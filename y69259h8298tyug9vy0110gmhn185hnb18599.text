@@ -1,0 +1,5026 @@
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
+local Lighting = game:GetService("Lighting")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local HttpService = game:GetService("HttpService")
+
+
+local LocalPlayer = Players.LocalPlayer
+local Camera = workspace.CurrentCamera
+
+repeat wait() until LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+
+local function testDrawingAPI()
+    local success, result = pcall(function()
+        local test = Drawing.new("Line")
+        test.Visible = false
+        test:Remove()
+        return true
+    end)
+    
+    if not success then
+        warn("Drawing API not available!")
+        return false
+    end
+    return true
+end
+
+if not testDrawingAPI() then
+    return
+end
+
+local PlayersFolder = workspace:FindFirstChild("Players")
+if not PlayersFolder then
+    warn("workspace.Players folder not found!")
+    return
+end
+
+local ResourcesFolder = workspace:FindFirstChild("Resources")
+local ResourcesConnections = {Added = nil, Removed = nil}
+
+local OriginalSettings = {
+    CameraMode = LocalPlayer.CameraMode,
+    CameraMaxZoom = LocalPlayer.CameraMaxZoomDistance,
+    CameraMinZoom = LocalPlayer.CameraMinZoomDistance,
+    FieldOfView = Camera.FieldOfView,
+    Brightness = Lighting.Brightness,
+    Ambient = Lighting.Ambient,
+    OutdoorAmbient = Lighting.OutdoorAmbient,
+    ColorShiftTop = Lighting.ColorShift_Top,
+    FogEnd = Lighting.FogEnd
+}
+
+-- Customizable Keys Configuration
+local KeyConfig = {
+    MenuToggle = Enum.KeyCode.RightShift,
+    FlyToggle = Enum.KeyCode.F,
+    NoClipToggle = Enum.KeyCode.Z,
+    CFrameSpeedToggle = Enum.KeyCode.V,
+    AimbotHold = Enum.UserInputType.MouseButton2,
+    CustomizeMode = false
+}
+
+local ESP = {
+    BoxEnabled = false,
+    DistanceEnabled = false,
+    NameEnabled = false,
+    WeaponEnabled = false,
+    HPEnabled = false,
+    HPBar = false,
+    TracerEnabled = false,
+    HeadLineEnabled = false,
+    MaxDistance = 1000,
+    BoxColor = Color3.new(1, 1, 1),
+    TracerColor = Color3.new(1, 1, 1),
+    DistanceColor = Color3.new(1, 1, 1),
+    NameColor = Color3.new(1, 1, 1),
+    WeaponColor = Color3.new(1, 1, 1),
+    LabelOrder = "Name",
+    BottomLabelOrder = "Weapon"
+}
+
+TeamCheckConfig = {
+    Enabled = false
+}
+
+HighlightConfig = {
+    Enabled = false,
+    Color = Color3.new(1, 1, 0)
+}
+
+GodSkinChanger = {
+    Enabled = false,
+    Highlights = {},
+    Hue = 0
+}
+
+OreESP = {
+    Enabled = false,
+    IronEnabled = false,
+    BrimstoneEnabled = false,
+    StoneEnabled = false,
+    MaxDistance = 1000
+}
+
+DroppedESP = {
+    Enabled = false,
+    Items = {},
+    MaxDistance = 1000
+}
+ 
+BackpackESP = {
+    Enabled = false,
+    MaxDistance = 1000
+}
+
+NewsConfig = {
+    Enabled = false,
+    Frame = nil,
+    Label = nil,
+    Position = UDim2.new(0.5, -100, 0.05, 0)
+}
+
+SkyColorConfig = {
+    Enabled = false,
+    Ambient = Lighting.Ambient,
+    Top = Lighting.ColorShift_Top
+}
+
+MapConfig = {
+    Enabled = false,
+    Frame = nil,
+    RotFrame = nil,
+    Dots = {},
+    Range = 1000,
+    Position = UDim2.new(0.7, 0, 0.7, 0)
+}
+
+XrayConfig = {
+    Enabled = false,
+    OriginalTransparencies = {},
+    ProcessedParts = {},
+    Transparency = 0.9,
+    FadeTime = 0.25,
+    Connection = nil,
+    RemoveConnection = nil,
+    ExcludedModels = {
+        ["Large Storage Box"] = true,
+        ["Small Storage Box"] = true,
+        ["Storage Cabinet"] = true,
+        ["Base Claim"] = true,
+        ["Metal Barricade"] = true,
+        ["Wooden Spikes"] = true
+    }
+}
+
+AimFovConfig = {
+    Enabled = false,
+    Radius = 90,
+    Color = Color3.new(1, 1, 1),
+    Circle = nil,
+    CircleOutline = nil,
+    CircleOuter = nil
+}
+
+AimbotConfig = {
+    Enabled = false,
+    Aiming = false,
+    Target = nil,
+    Smoothness = 0.35, -- Increased for more responsive aiming
+    Connection = nil,
+    MaxDistance = 1000,
+    SnapThreshold = 5 -- New: Distance threshold for instant snap
+}
+
+TimeControl = {
+    Enabled = false,
+    CurrentTime = Lighting.ClockTime,
+    OriginalTime = Lighting.ClockTime
+}
+
+FlyConfig = {
+    Enabled = false,
+    Speed = 6,
+    VerticalMult = 2,
+    IsFlying = false,
+    Connection = nil,
+    ToggleKey = Enum.KeyCode.F
+}
+
+NoClipConfig = {
+    Enabled = false,
+    IsActive = false,
+    ToggleKey = Enum.KeyCode.Z,
+    Connection = nil,
+    BaseCFrame = nil,
+    TargetOffset = 0,
+    OffsetStep = 0.02,
+    MaxOffset = -2.5,
+    FlySpeed = 60,
+    StoredY = nil,
+    OriginalY = nil,
+    ReturnY = false,
+}
+
+ThirdPersonConfig = {
+    Enabled = false,
+    Distance = 10,
+    CameraConnection = nil,
+    GhostConnections = {}
+}
+
+FOVConfig = {
+    Enabled = false,
+    Value = 90,
+    DefaultFOV = Camera.FieldOfView,
+    Connection = nil
+}
+
+NightVisionConfig = {
+    Enabled = false,
+    Connection = nil
+}
+
+CFrameSpeedConfig = {
+    Enabled = false,
+    IsActive = false,
+    Speed = 0.4,
+    Connection = nil
+}
+
+local function removeGhosts()
+    local char = LocalPlayer.Character
+    if not char then return end
+    local name = char.Name
+
+    local function cleanup(model)
+        if model and model ~= char and model.Name == name and model:IsA("Model") then
+            model:Destroy()
+        end
+    end
+
+    cleanup(workspace:FindFirstChild(name))
+    if PlayersFolder then
+        for _, model in ipairs(PlayersFolder:GetChildren()) do
+            cleanup(model)
+        end
+    end
+end
+
+GrassRemoverConfig = {
+    Enabled = false,
+    RemovedGrass = false
+}
+
+UIState = {
+    KeyListVisible = true,
+    StatsVisible = true,
+    oreListExpanded = false,
+    OreArrow = nil,
+    droppedListExpanded = false,
+    DroppedArrow = nil,
+    ConfigNotify = nil,
+}
+
+ESPObjects = {}
+OreESPObjects = {}
+lastOreRefresh = 0
+DroppedESPObjects = {}
+lastDroppedRefresh = 0
+BackpackESPObjects = {}
+lastBackpackRefresh = 0
+playerTracker = {}
+
+local Assets = ReplicatedStorage:WaitForChild("Assets")
+local ShivPrefabMain = Assets:WaitForChild("Prefabs"):WaitForChild("Tools"):WaitForChild("Shiv").Viewmodel.Rock.main
+local ShivPrefabSurface = ShivPrefabMain:FindFirstChildOfClass("SurfaceAppearance")
+local DefaultShivSurface = ShivPrefabSurface and ShivPrefabSurface:Clone()
+local ShivSkinsFolder = Assets:WaitForChild("Skins"):WaitForChild("Shiv")
+
+local DroppedPrefabs = Assets:WaitForChild("Prefabs"):WaitForChild("Dropped")
+local DroppedNames = {}
+for _, model in ipairs(DroppedPrefabs:GetChildren()) do
+    if model:IsA("Model") then
+        table.insert(DroppedNames, model.Name)
+        DroppedESP.Items[model.Name] = false
+    end
+end
+table.sort(DroppedNames)
+
+local ToolPrefabs = Assets:WaitForChild("Prefabs"):WaitForChild("Tools")
+local WeaponLookup = {}
+local WeaponPartSets = {}
+for _, folder in ipairs(ToolPrefabs:GetChildren()) do
+    if folder:IsA("Folder") then
+        local wm = folder:FindFirstChild("Worldmodel")
+        if wm then
+            local names = {}
+            for _, obj in ipairs(wm:GetDescendants()) do
+                if not obj:IsA("Folder") then
+                    table.insert(names, obj.Name)
+                end
+            end
+            table.sort(names)
+            local key = table.concat(names, "|")
+            WeaponLookup[key] = folder.Name
+            table.insert(WeaponPartSets, {names = names, name = folder.Name})
+        end
+    end
+end
+
+local function getWeaponName(model)
+    local wm = model:FindFirstChild("Worldmodel")
+    if not wm then return nil end
+    local nameSet = {}
+    local hasPart = false
+    for _, obj in ipairs(wm:GetDescendants()) do
+        if not obj:IsA("Folder") then
+            nameSet[obj.Name] = true
+            hasPart = true
+        end
+    end
+    if not hasPart then
+        return nil
+    end
+    local names = {}
+    for n in pairs(nameSet) do
+        table.insert(names, n)
+    end
+    table.sort(names)
+    local direct = WeaponLookup[table.concat(names, "|")]
+    if direct then
+        return direct
+    end
+    for _, info in ipairs(WeaponPartSets) do
+        local match = true
+        for _, partName in ipairs(info.names) do
+            if not nameSet[partName] then
+                match = false
+                break
+            end
+        end
+        if match then
+            return info.name
+        end
+    end
+    return nil
+end
+
+local function applyShivSkin(skinName)
+    local newSurface
+    if skinName == "Default" then
+        newSurface = DefaultShivSurface and DefaultShivSurface:Clone()
+    else
+        local folder = ShivSkinsFolder:FindFirstChild(skinName)
+        if folder then
+            local vm = folder:FindFirstChild("Viewmodel")
+            if vm then
+                local surface = vm:FindFirstChild("main") and vm.main:FindFirstChildOfClass("SurfaceAppearance")
+                if surface then
+                    newSurface = surface:Clone()
+                end
+            end
+        end
+    end
+    if newSurface then
+        if ShivPrefabSurface then ShivPrefabSurface:Destroy() end
+        ShivPrefabSurface = newSurface
+        ShivPrefabSurface.Parent = ShivPrefabMain
+    end
+end
+
+local RaycastParams = RaycastParams.new()
+RaycastParams.FilterType = Enum.RaycastFilterType.Blacklist
+RaycastParams.FilterDescendantsInstances = {Camera}
+
+local customFont = Font.new("rbxasset://fonts/families/Sarpanch.json")
+local tabSelectedColor = Color3.fromRGB(80, 0, 160)
+local tabDefaultColor = Color3.fromRGB(40, 40, 40)
+
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "ESPGui"
+ScreenGui.Parent = game.CoreGui
+ScreenGui.ResetOnSpawn = false
+
+local MainFrame = Instance.new("Frame")
+MainFrame.Parent = ScreenGui
+MainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+MainFrame.BorderColor3 = Color3.fromRGB(255, 255, 255)
+MainFrame.BorderSizePixel = 2
+MainFrame.Position = UDim2.new(0.3, 0, 0.3, 0)
+
+local FrameStroke = Instance.new("UIStroke")
+FrameStroke.Color = Color3.fromRGB(128, 0, 255)
+FrameStroke.Thickness = 1
+FrameStroke.Parent = MainFrame
+MainFrame.Size = UDim2.new(0, 300, 0, 350)
+MainFrame.Active = true
+
+local Corner = Instance.new("UICorner")
+Corner.CornerRadius = UDim.new(0, 8)
+Corner.Parent = MainFrame
+
+local MenuPosition = MainFrame.Position
+
+local menuTween
+local menuTweenConn
+local MenuOpen = MainFrame.Visible
+local function slideMenu(show)
+    if menuTween then
+        menuTween:Cancel()
+        if menuTweenConn then
+            menuTweenConn:Disconnect()
+            menuTweenConn = nil
+        end
+    end
+    if show then
+        MenuOpen = true
+        local offscreen = UDim2.new(MenuPosition.X.Scale, MenuPosition.X.Offset, 1, 0)
+        MainFrame.Position = offscreen
+        MainFrame.Visible = true
+        menuTween = TweenService:Create(MainFrame, TweenInfo.new(0.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Position = MenuPosition})
+        menuTween:Play()
+    else
+        MenuOpen = false
+        local offscreen = UDim2.new(MenuPosition.X.Scale, MenuPosition.X.Offset, 1, 0)
+        menuTween = TweenService:Create(MainFrame, TweenInfo.new(0.15, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {Position = offscreen})
+        menuTweenConn = menuTween.Completed:Connect(function()
+            if not MenuOpen then
+                MainFrame.Visible = false
+            end
+        end)
+        menuTween:Play()
+    end
+end
+
+local KeyListFrame = Instance.new("Frame")
+KeyListFrame.Parent = ScreenGui
+KeyListFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+KeyListFrame.BorderColor3 = Color3.fromRGB(100, 100, 100)
+KeyListFrame.BorderSizePixel = 1
+KeyListFrame.Position = UDim2.new(0, 10, 0.5, -80)
+KeyListFrame.Size = UDim2.new(0, 170, 0, 200) -- Increased height
+KeyListFrame.BackgroundTransparency = 0.3
+
+local KeyListCorner = Instance.new("UICorner")
+KeyListCorner.CornerRadius = UDim.new(0, 6)
+KeyListCorner.Parent = KeyListFrame
+
+local KeyListTitle = Instance.new("TextLabel")
+KeyListTitle.Parent = KeyListFrame
+KeyListTitle.BackgroundTransparency = 1
+KeyListTitle.Size = UDim2.new(1, 0, 0, 25)
+KeyListTitle.FontFace = customFont
+KeyListTitle.Text = "KEY LIST"
+KeyListTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
+KeyListTitle.TextSize = 14
+KeyListTitle.TextStrokeTransparency = 0.5
+KeyListTitle.TextStrokeColor3 = Color3.new(0, 0, 0)
+
+local FlyKeyLabel = Instance.new("TextLabel")
+FlyKeyLabel.Parent = KeyListFrame
+FlyKeyLabel.BackgroundTransparency = 1
+FlyKeyLabel.Position = UDim2.new(0, 8, 0, 30)
+FlyKeyLabel.Size = UDim2.new(1, -16, 0, 18)
+FlyKeyLabel.FontFace = customFont
+FlyKeyLabel.Text = "[F] Fly"
+FlyKeyLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+FlyKeyLabel.TextSize = 12
+FlyKeyLabel.TextXAlignment = Enum.TextXAlignment.Left
+FlyKeyLabel.TextStrokeTransparency = 0.5
+FlyKeyLabel.TextStrokeColor3 = Color3.new(0, 0, 0)
+
+local NoClipKeyLabel = Instance.new("TextLabel")
+NoClipKeyLabel.Parent = KeyListFrame
+NoClipKeyLabel.BackgroundTransparency = 1
+NoClipKeyLabel.Position = UDim2.new(0, 8, 0, 50)
+NoClipKeyLabel.Size = UDim2.new(1, -16, 0, 18)
+NoClipKeyLabel.FontFace = customFont
+NoClipKeyLabel.Text = "[Z] NoClip"
+NoClipKeyLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+NoClipKeyLabel.TextSize = 12
+NoClipKeyLabel.TextXAlignment = Enum.TextXAlignment.Left
+NoClipKeyLabel.TextStrokeTransparency = 0.5
+NoClipKeyLabel.TextStrokeColor3 = Color3.new(0, 0, 0)
+
+local CFrameSpeedKeyLabel = Instance.new("TextLabel")
+CFrameSpeedKeyLabel.Parent = KeyListFrame
+CFrameSpeedKeyLabel.BackgroundTransparency = 1
+CFrameSpeedKeyLabel.Position = UDim2.new(0, 8, 0, 70)
+CFrameSpeedKeyLabel.Size = UDim2.new(1, -16, 0, 18)
+CFrameSpeedKeyLabel.FontFace = customFont
+CFrameSpeedKeyLabel.Text = "[V] CFrameSpeed"
+CFrameSpeedKeyLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+CFrameSpeedKeyLabel.TextSize = 12
+CFrameSpeedKeyLabel.TextXAlignment = Enum.TextXAlignment.Left
+CFrameSpeedKeyLabel.TextStrokeTransparency = 0.5
+CFrameSpeedKeyLabel.TextStrokeColor3 = Color3.new(0, 0, 0)
+
+local AimbotKeyLabel = Instance.new("TextLabel")
+AimbotKeyLabel.Parent = KeyListFrame
+AimbotKeyLabel.BackgroundTransparency = 1
+AimbotKeyLabel.Position = UDim2.new(0, 8, 0, 90)
+AimbotKeyLabel.Size = UDim2.new(1, -16, 0, 18)
+AimbotKeyLabel.FontFace = customFont
+AimbotKeyLabel.Text = "[RMB] Aimbot"
+AimbotKeyLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+AimbotKeyLabel.TextSize = 12
+AimbotKeyLabel.TextXAlignment = Enum.TextXAlignment.Left
+AimbotKeyLabel.TextStrokeTransparency = 0.5
+AimbotKeyLabel.TextStrokeColor3 = Color3.new(0, 0, 0)
+
+local ToggleKeyLabel = Instance.new("TextLabel")
+ToggleKeyLabel.Parent = KeyListFrame
+ToggleKeyLabel.BackgroundTransparency = 1
+ToggleKeyLabel.Position = UDim2.new(0, 8, 0, 110)
+ToggleKeyLabel.Size = UDim2.new(1, -16, 0, 18)
+ToggleKeyLabel.FontFace = customFont
+ToggleKeyLabel.Text = "[RShift] Menu"
+ToggleKeyLabel.TextColor3 = Color3.fromRGB(150, 150, 150)
+ToggleKeyLabel.TextSize = 11
+ToggleKeyLabel.TextXAlignment = Enum.TextXAlignment.Left
+ToggleKeyLabel.TextStrokeTransparency = 0.5
+ToggleKeyLabel.TextStrokeColor3 = Color3.new(0, 0, 0)
+
+local CustomizeKeysLabel = Instance.new("TextLabel")
+CustomizeKeysLabel.Parent = KeyListFrame
+CustomizeKeysLabel.BackgroundTransparency = 1
+CustomizeKeysLabel.Position = UDim2.new(0, 8, 0, 130)
+CustomizeKeysLabel.Size = UDim2.new(1, -16, 0, 18)
+CustomizeKeysLabel.FontFace = customFont
+CustomizeKeysLabel.Text = "Click buttons to change keys"
+CustomizeKeysLabel.TextColor3 = Color3.fromRGB(100, 150, 255)
+CustomizeKeysLabel.TextSize = 10
+CustomizeKeysLabel.TextXAlignment = Enum.TextXAlignment.Left
+CustomizeKeysLabel.TextStrokeTransparency = 0.5
+CustomizeKeysLabel.TextStrokeColor3 = Color3.new(0, 0, 0)
+
+local SeparatorLine = Instance.new("Frame")
+SeparatorLine.Parent = KeyListFrame
+SeparatorLine.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
+SeparatorLine.BorderSizePixel = 0
+SeparatorLine.Position = UDim2.new(0.1, 0, 0, 155)
+SeparatorLine.Size = UDim2.new(0.8, 0, 0, 1)
+
+local StatusLabel = Instance.new("TextLabel")
+StatusLabel.Parent = KeyListFrame
+StatusLabel.BackgroundTransparency = 1
+StatusLabel.Position = UDim2.new(0, 8, 0, 160)
+StatusLabel.Size = UDim2.new(1, -16, 0, 30)
+StatusLabel.FontFace = customFont
+StatusLabel.Text = "Fly: OFF\nNoClip: OFF"
+StatusLabel.TextColor3 = Color3.fromRGB(100, 200, 100)
+StatusLabel.TextSize = 10
+StatusLabel.TextXAlignment = Enum.TextXAlignment.Left
+StatusLabel.TextYAlignment = Enum.TextYAlignment.Top
+StatusLabel.TextStrokeTransparency = 0.5
+StatusLabel.TextStrokeColor3 = Color3.new(0, 0, 0)
+
+local StatsFrame = Instance.new("Frame")
+StatsFrame.Parent = ScreenGui
+StatsFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+StatsFrame.BorderColor3 = Color3.fromRGB(100, 100, 100)
+StatsFrame.BorderSizePixel = 1
+StatsFrame.Position = UDim2.new(0, 10, 0.5, 130)
+StatsFrame.Size = UDim2.new(0, 170, 0, 70)
+StatsFrame.BackgroundTransparency = 0.3
+StatsFrame.Visible = UIState.StatsVisible
+
+local StatsCorner = Instance.new("UICorner")
+StatsCorner.CornerRadius = UDim.new(0, 6)
+StatsCorner.Parent = StatsFrame
+
+local StatsTitle = Instance.new("TextLabel")
+StatsTitle.Parent = StatsFrame
+StatsTitle.BackgroundTransparency = 1
+StatsTitle.Size = UDim2.new(1, 0, 0, 25)
+StatsTitle.FontFace = customFont
+StatsTitle.Text = "STATS"
+StatsTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
+StatsTitle.TextSize = 14
+StatsTitle.TextStrokeTransparency = 0.5
+StatsTitle.TextStrokeColor3 = Color3.new(0, 0, 0)
+
+local FPSLabel = Instance.new("TextLabel")
+FPSLabel.Parent = StatsFrame
+FPSLabel.BackgroundTransparency = 1
+FPSLabel.Position = UDim2.new(0, 8, 0, 30)
+FPSLabel.Size = UDim2.new(1, -16, 0, 18)
+FPSLabel.FontFace = customFont
+FPSLabel.Text = "FPS: 0"
+FPSLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+FPSLabel.TextSize = 12
+FPSLabel.TextXAlignment = Enum.TextXAlignment.Left
+FPSLabel.TextStrokeTransparency = 0.5
+FPSLabel.TextStrokeColor3 = Color3.new(0, 0, 0)
+
+local PingLabel = Instance.new("TextLabel")
+PingLabel.Parent = StatsFrame
+PingLabel.BackgroundTransparency = 1
+PingLabel.Position = UDim2.new(0, 8, 0, 50)
+PingLabel.Size = UDim2.new(1, -16, 0, 18)
+PingLabel.FontFace = customFont
+PingLabel.Text = "Ping: 0 ms"
+PingLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+PingLabel.TextSize = 12
+PingLabel.TextXAlignment = Enum.TextXAlignment.Left
+PingLabel.TextStrokeTransparency = 0.5
+PingLabel.TextStrokeColor3 = Color3.new(0, 0, 0)
+
+RunService.RenderStepped:Connect(function(dt)
+    FPSLabel.Text = "FPS: " .. math.floor(1 / dt)
+    local pingItem = game:GetService("Stats").Network.ServerStatsItem["Data Ping"]
+    local ping = pingItem and math.floor(pingItem:GetValue()) or 0
+    PingLabel.Text = "Ping: " .. ping .. " ms"
+end)
+
+local OreListFrame = Instance.new("Frame")
+OreListFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+OreListFrame.BorderColor3 = Color3.fromRGB(100, 100, 100)
+OreListFrame.BorderSizePixel = 1
+OreListFrame.Size = UDim2.new(0, 170, 0, 90)
+OreListFrame.BackgroundTransparency = 0.3
+OreListFrame.Visible = false
+OreListFrame.Active = true
+local oreListPos
+
+local OreCorner = Instance.new("UICorner")
+OreCorner.CornerRadius = UDim.new(0, 6)
+OreCorner.Parent = OreListFrame
+
+local OreTitle = Instance.new("TextLabel")
+OreTitle.Parent = OreListFrame
+OreTitle.BackgroundTransparency = 1
+OreTitle.Size = UDim2.new(1, 0, 0, 20)
+OreTitle.FontFace = customFont
+OreTitle.Text = "ORE ESP"
+OreTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
+OreTitle.TextSize = 14
+OreTitle.TextStrokeTransparency = 0.5
+OreTitle.TextStrokeColor3 = Color3.new(0, 0, 0)
+
+local oreDragging = false
+local oreDragStart, oreStartPos
+
+OreListFrame.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        oreDragging = true
+        oreDragStart = input.Position
+        oreStartPos = OreListFrame.Position
+    end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+    if oreDragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+        local delta = input.Position - oreDragStart
+        OreListFrame.Position = UDim2.new(oreStartPos.X.Scale, oreStartPos.X.Offset + delta.X, oreStartPos.Y.Scale, oreStartPos.Y.Offset + delta.Y)
+    end
+end)
+
+UserInputService.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 and oreDragging then
+        oreDragging = false
+        oreListPos = OreListFrame.Position
+    end
+end)
+
+local dropFrameHeight = 30 + 20 * #DroppedNames
+local DroppedListFrame = Instance.new("ScrollingFrame")
+DroppedListFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+DroppedListFrame.BorderColor3 = Color3.fromRGB(100, 100, 100)
+DroppedListFrame.BorderSizePixel = 1
+DroppedListFrame.Size = UDim2.new(0, 170, 0, math.min(200, dropFrameHeight))
+DroppedListFrame.CanvasSize = UDim2.new(0, 0, 0, dropFrameHeight)
+DroppedListFrame.ScrollBarThickness = 4
+DroppedListFrame.ScrollingDirection = Enum.ScrollingDirection.Y
+DroppedListFrame.BackgroundTransparency = 0.3
+DroppedListFrame.Visible = false
+DroppedListFrame.Active = true
+DroppedListFrame.ClipsDescendants = true
+local droppedListPos
+
+local DroppedCorner = Instance.new("UICorner")
+DroppedCorner.CornerRadius = UDim.new(0, 6)
+DroppedCorner.Parent = DroppedListFrame
+
+local DroppedTitle = Instance.new("TextLabel")
+DroppedTitle.Parent = DroppedListFrame
+DroppedTitle.BackgroundTransparency = 1
+DroppedTitle.Size = UDim2.new(1, 0, 0, 20)
+DroppedTitle.FontFace = customFont
+DroppedTitle.Text = "DROPPED ESP"
+DroppedTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
+DroppedTitle.TextSize = 14
+DroppedTitle.TextStrokeTransparency = 0.5
+DroppedTitle.TextStrokeColor3 = Color3.new(0, 0, 0)
+
+local droppedDragging = false
+local droppedDragStart, droppedStartPos
+
+DroppedListFrame.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        droppedDragging = true
+        droppedDragStart = input.Position
+        droppedStartPos = DroppedListFrame.Position
+    end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+    if droppedDragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+        local delta = input.Position - droppedDragStart
+        DroppedListFrame.Position = UDim2.new(droppedStartPos.X.Scale, droppedStartPos.X.Offset + delta.X, droppedStartPos.Y.Scale, droppedStartPos.Y.Offset + delta.Y)
+    end
+end)
+
+UserInputService.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 and droppedDragging then
+        droppedDragging = false
+        droppedListPos = DroppedListFrame.Position
+    end
+end)
+
+local Title = Instance.new("TextLabel")
+Title.Parent = MainFrame
+Title.BackgroundTransparency = 1
+Title.Size = UDim2.new(1, 0, 0, 25)
+Title.FontFace = customFont
+Title.Text = "Lone_Kumao"
+Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+Title.TextStrokeTransparency = 0.5
+Title.TextStrokeColor3 = Color3.new(0, 0, 0)
+Title.TextSize = 14
+
+local InfoLabel = Instance.new("TextLabel")
+InfoLabel.Parent = MainFrame
+InfoLabel.BackgroundTransparency = 1
+InfoLabel.Position = UDim2.new(0, 5, 0, 25)
+InfoLabel.Size = UDim2.new(1, -10, 0, 15)
+InfoLabel.FontFace = customFont
+InfoLabel.Text = "Right Shift = Toggle GUI"
+InfoLabel.TextColor3 = Color3.fromRGB(0, 255, 0)
+InfoLabel.TextSize = 10
+InfoLabel.TextXAlignment = Enum.TextXAlignment.Left
+InfoLabel.TextStrokeTransparency = 0.5
+InfoLabel.TextStrokeColor3 = Color3.new(0, 0, 0)
+
+local titleHue = 0
+RunService.RenderStepped:Connect(function()
+    titleHue = (titleHue + 0.01) % 1
+    Title.TextColor3 = Color3.fromHSV(titleHue, 1, 1)
+
+    if GodSkinChanger.Enabled then
+        GodSkinChanger.Hue = (GodSkinChanger.Hue + 0.01) % 1
+        for _, name in ipairs({"Viewmodel", "Model"}) do
+            local obj = Camera:FindFirstChild(name)
+            if obj then
+                local highlight = GodSkinChanger.Highlights[name]
+                if not highlight or highlight.Parent ~= obj then
+                    if highlight then
+                        highlight:Destroy()
+                    end
+                    highlight = Instance.new("Highlight")
+                    highlight.Name = "GodSkinHighlight"
+                    highlight.FillTransparency = 0
+                    highlight.OutlineTransparency = 0
+                    highlight.Parent = obj
+                    GodSkinChanger.Highlights[name] = highlight
+                end
+                local col = Color3.fromHSV(GodSkinChanger.Hue, 1, 1)
+                highlight.OutlineColor = col
+                highlight.FillColor = col
+            elseif GodSkinChanger.Highlights[name] then
+                GodSkinChanger.Highlights[name]:Destroy()
+                GodSkinChanger.Highlights[name] = nil
+            end
+        end
+    elseif next(GodSkinChanger.Highlights) then
+        for _, highlight in pairs(GodSkinChanger.Highlights) do
+            highlight:Destroy()
+        end
+        GodSkinChanger.Highlights = {}
+    end
+end)
+
+local dragging = false
+local dragStart, startPos
+
+Title.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = true
+        dragStart = input.Position
+        startPos = MainFrame.Position
+    end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+    if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+        local delta = input.Position - dragStart
+        MainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+    end
+end)
+
+UserInputService.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 and dragging then
+        dragging = false
+        MenuPosition = MainFrame.Position
+    end
+end)
+
+-- Tab system
+local Tabs = {}
+local function createTab(name, order, scrollable)
+    local button = Instance.new("TextButton")
+    button.Parent = MainFrame
+    button.BackgroundColor3 = order == 1 and tabSelectedColor or tabDefaultColor
+    button.BorderSizePixel = 0
+    button.Position = UDim2.new((order - 1) * 0.25, 0, 0, 40)
+    button.Size = UDim2.new(0.25, 0, 0, 25)
+    button.FontFace = customFont
+    button.Text = name
+    button.TextColor3 = Color3.fromRGB(255, 255, 255)
+    button.TextSize = 12
+    button.TextStrokeTransparency = 0.5
+    button.TextStrokeColor3 = Color3.new(0, 0, 0)
+
+    local frame
+    if scrollable then
+        frame = Instance.new("ScrollingFrame")
+        frame.ScrollBarThickness = 4
+        frame.ScrollingDirection = Enum.ScrollingDirection.Y
+        frame.Active = true
+        frame.CanvasSize = UDim2.new(0, 0, 0, 0)
+        frame.ClipsDescendants = true
+    else
+        frame = Instance.new("Frame")
+    end
+    frame.Parent = MainFrame
+    frame.BackgroundTransparency = 1
+    frame.Position = UDim2.new(0, 0, 0, 70)
+    frame.Size = UDim2.new(1, 0, 1, -70)
+    frame.Visible = order == 1
+
+    Tabs[name] = {Button = button, Frame = frame}
+
+    button.MouseButton1Click:Connect(function()
+        for _, tab in pairs(Tabs) do
+            tab.Frame.Visible = false
+            tab.Button.BackgroundColor3 = tabDefaultColor
+        end
+        frame.Visible = true
+        button.BackgroundColor3 = tabSelectedColor
+    end)
+
+    return frame
+end
+
+local MainTab = createTab("Main", 1)
+local VisualTab = createTab("Visual", 2, true)
+local MiscTab = createTab("Misc", 3)
+local SettingTab = createTab("Setting", 4, true)
+
+local function createToggle(parent, name, text, yPos)
+    local holder = Instance.new("Frame")
+    holder.Name = name .. "Holder"
+    holder.Parent = parent
+    holder.BackgroundTransparency = 1
+    holder.Position = UDim2.new(0.05, 0, 0, yPos)
+    holder.Size = UDim2.new(0.9, 0, 0, 20)
+
+    local box = Instance.new("TextButton")
+    box.Name = name
+    box.Parent = holder
+    box.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+    box.BorderColor3 = Color3.fromRGB(255, 255, 255)
+    box.BorderSizePixel = 1
+    box.Position = UDim2.new(0, 0, 0, 2)
+    box.Size = UDim2.new(0, 16, 0, 16)
+    box.Text = ""
+    box.AutoButtonColor = false
+
+    local check = Instance.new("Frame")
+    check.Parent = box
+    check.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+    check.BorderSizePixel = 0
+    check.Position = UDim2.new(0, 2, 0, 2)
+    check.Size = UDim2.new(1, -4, 1, -4)
+    check.Visible = false
+
+    local label = Instance.new("TextLabel")
+    label.Parent = holder
+    label.BackgroundTransparency = 1
+    label.Position = UDim2.new(0, 25, 0, 0)
+    label.Size = UDim2.new(1, -25, 1, 0)
+    label.FontFace = customFont
+    label.Text = text
+    label.TextColor3 = Color3.fromRGB(255, 255, 255)
+    label.TextSize = 12
+    label.TextXAlignment = Enum.TextXAlignment.Left
+    label.TextStrokeTransparency = 0.5
+    label.TextStrokeColor3 = Color3.new(0, 0, 0)
+
+    return {Holder = holder, Button = box, Check = check}
+end
+
+local function createColorButton(holder, name, initialColor)
+    local button = Instance.new("TextButton")
+    button.Name = name
+    button.Parent = holder
+    button.Position = UDim2.new(1, -20, 0, 2)
+    button.Size = UDim2.new(0, 16, 0, 16)
+    button.BackgroundColor3 = initialColor
+    button.BorderColor3 = Color3.fromRGB(255, 255, 255)
+    button.Text = ""
+
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 3)
+    corner.Parent = button
+
+    return button
+end
+
+local function createKeyButton(parent, name, labelText, defaultKey, yPos)
+    local holder = Instance.new("Frame")
+    holder.Parent = parent
+    holder.BackgroundTransparency = 1
+    holder.Position = UDim2.new(0.05, 0, 0, yPos)
+    holder.Size = UDim2.new(0.9, 0, 0, 20)
+
+    local label = Instance.new("TextLabel")
+    label.Parent = holder
+    label.BackgroundTransparency = 1
+    label.Position = UDim2.new(0, 0, 0, 0)
+    label.Size = UDim2.new(0.6, 0, 1, 0)
+    label.FontFace = customFont
+    label.Text = labelText
+    label.TextColor3 = Color3.fromRGB(255, 255, 255)
+    label.TextSize = 12
+    label.TextXAlignment = Enum.TextXAlignment.Left
+    label.TextStrokeTransparency = 0.5
+    label.TextStrokeColor3 = Color3.new(0, 0, 0)
+
+    local button = Instance.new("TextButton")
+    button.Name = name
+    button.Parent = holder
+    button.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+    button.BorderColor3 = Color3.fromRGB(255, 255, 255)
+    button.BorderSizePixel = 1
+    button.Position = UDim2.new(0.65, 0, 0, 2)
+    button.Size = UDim2.new(0.35, 0, 1, -4)
+    button.FontFace = customFont
+    button.TextColor3 = Color3.fromRGB(255, 255, 255)
+    button.TextSize = 12
+    button.TextStrokeTransparency = 0.5
+    button.TextStrokeColor3 = Color3.new(0, 0, 0)
+    local keyName = string.sub(tostring(defaultKey), 14)
+    button.Text = "[" .. keyName .. "]"
+
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 3)
+    corner.Parent = button
+
+    return button
+end
+
+BoxToggle = createToggle(VisualTab, "BoxToggle", "Box ESP", 10)
+BoxColorButton = createColorButton(BoxToggle.Holder, "BoxColorButton", ESP.BoxColor)
+DistanceToggle = createToggle(VisualTab, "DistanceToggle", "Distance ESP", 40)
+DistanceColorButton = createColorButton(DistanceToggle.Holder, "DistanceColorButton", ESP.DistanceColor)
+NameToggle = createToggle(VisualTab, "NameToggle", "Name ESP", 70)
+NameColorButton = createColorButton(NameToggle.Holder, "NameColorButton", ESP.NameColor)
+HPToggle = createToggle(VisualTab, "HPToggle", "HP ESP", 100)
+HPBarButton = Instance.new("TextButton")
+HPBarButton.Name = "HPBarButton"
+HPBarButton.Parent = HPToggle.Holder
+HPBarButton.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+HPBarButton.BorderColor3 = Color3.fromRGB(255, 255, 255)
+HPBarButton.Position = UDim2.new(1, -30, 0, 2)
+HPBarButton.Size = UDim2.new(0, 30, 0, 16)
+HPBarButton.FontFace = customFont
+HPBarButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+HPBarButton.TextSize = 12
+HPBarButton.TextStrokeTransparency = 0.5
+HPBarButton.TextStrokeColor3 = Color3.new(0, 0, 0)
+HPBarButton.AutoButtonColor = false
+HPBarButton.Text = ESP.HPBar and "bar" or "text"
+Instance.new("UICorner", HPBarButton).CornerRadius = UDim.new(0, 3)
+TracerToggle = createToggle(VisualTab, "TracerToggle", "Tracer ESP", 130)
+TracerColorButton = createColorButton(TracerToggle.Holder, "TracerColorButton", ESP.TracerColor)
+HighlightToggle = createToggle(VisualTab, "HighlightToggle", "Highlight ESP", 160)
+HighlightColorButton = createColorButton(HighlightToggle.Holder, "HighlightColorButton", HighlightConfig.Color)
+HeadLineToggle = createToggle(VisualTab, "HeadLineToggle", "Head Line", 190)
+WeaponToggle = createToggle(VisualTab, "WeaponToggle", "Weapon ESP", 220)
+WeaponColorButton = createColorButton(WeaponToggle.Holder, "WeaponColorButton", ESP.WeaponColor)
+TeamCheckToggle = createToggle(VisualTab, "TeamCheckToggle", "Team Check", 250)
+OreToggle = createToggle(VisualTab, "OreToggle", "Ore ESP Enabled", 280)
+
+UIState.OreArrow = Instance.new("TextButton")
+UIState.OreArrow.Parent = OreToggle.Holder
+UIState.OreArrow.BackgroundTransparency = 1
+UIState.OreArrow.BorderSizePixel = 0
+UIState.OreArrow.Position = UDim2.new(1, -20, 0, 0)
+UIState.OreArrow.Size = UDim2.new(0, 20, 0, 20)
+UIState.OreArrow.Text = ">"
+UIState.OreArrow.FontFace = customFont
+UIState.OreArrow.TextSize = 16
+UIState.OreArrow.TextColor3 = Color3.fromRGB(255, 255, 255)
+UIState.OreArrow.AutoButtonColor = false
+
+OreListFrame.Parent = ScreenGui
+OreListFrame.Position = UDim2.new(0, 0, 0, 0)
+OreTitle.Visible = false
+
+IronToggle = createToggle(OreListFrame, "IronToggle", "Iron Ore", 30)
+BrimstoneToggle = createToggle(OreListFrame, "BrimstoneToggle", "Brimstone Ore", 50)
+StoneToggle = createToggle(OreListFrame, "StoneToggle", "Stone Ore", 70)
+
+DroppedToggle = createToggle(VisualTab, "DroppedToggle", "Dropped ESP Enabled", 310)
+
+UIState.DroppedArrow = Instance.new("TextButton")
+UIState.DroppedArrow.Parent = DroppedToggle.Holder
+UIState.DroppedArrow.BackgroundTransparency = 1
+UIState.DroppedArrow.BorderSizePixel = 0
+UIState.DroppedArrow.Position = UDim2.new(1, -20, 0, 0)
+UIState.DroppedArrow.Size = UDim2.new(0, 20, 0, 20)
+UIState.DroppedArrow.Text = ">"
+UIState.DroppedArrow.FontFace = customFont
+UIState.DroppedArrow.TextSize = 16
+UIState.DroppedArrow.TextColor3 = Color3.fromRGB(255, 255, 255)
+UIState.DroppedArrow.AutoButtonColor = false
+
+DroppedListFrame.Parent = ScreenGui
+DroppedListFrame.Position = UDim2.new(0, 0, 0, 0)
+DroppedTitle.Visible = false
+
+local refreshDroppedList
+local DroppedToggles = {}
+local dropY = 30
+for _, name in ipairs(DroppedNames) do
+    local tgl = createToggle(DroppedListFrame, name .. "Toggle", name, dropY)
+    DroppedToggles[name] = tgl
+    tgl.Button.MouseButton1Click:Connect(function()
+        DroppedESP.Items[name] = not DroppedESP.Items[name]
+        refreshDroppedList()
+        updateButtons()
+    end)
+    dropY = dropY + 20
+end
+
+BackpackToggle = createToggle(VisualTab, "BackpackToggle", "Backpack ESP", 340)
+
+GodSkinChangerToggle = createToggle(VisualTab, "GodSkinChangerToggle", "God SkinChanger", 370)
+
+MapToggle = createToggle(VisualTab, "MapToggle", "Map", 400)
+
+NewsToggle = createToggle(VisualTab, "NewsToggle", "News", 430)
+
+SkyColorToggle = createToggle(VisualTab, "SkyColorToggle", "SkyColor", 460)
+SkyAmbientButton = createColorButton(SkyColorToggle.Holder, "SkyAmbientButton", SkyColorConfig.Ambient)
+SkyTopButton = createColorButton(SkyColorToggle.Holder, "SkyTopButton", SkyColorConfig.Top)
+SkyAmbientButton.Position = UDim2.new(1, -40, 0, 2)
+
+SkyTopButton.Position = UDim2.new(1, -20, 0, 2)
+
+local ShivLabel = Instance.new("TextLabel")
+ShivLabel.Parent = VisualTab
+ShivLabel.BackgroundTransparency = 1
+ShivLabel.Position = UDim2.new(0.05, 0, 0, 520)
+ShivLabel.Size = UDim2.new(0.9, 0, 0, 20)
+ShivLabel.FontFace = customFont
+ShivLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+ShivLabel.TextStrokeTransparency = 0.5
+ShivLabel.TextStrokeColor3 = Color3.new(0, 0, 0)
+ShivLabel.TextSize = 12
+ShivLabel.Text = "Shiv"
+
+ShivSkinButton = Instance.new("TextButton")
+ShivSkinButton.Parent = VisualTab
+ShivSkinButton.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+ShivSkinButton.BorderColor3 = Color3.fromRGB(255, 255, 255)
+ShivSkinButton.BorderSizePixel = 1
+ShivSkinButton.Position = UDim2.new(0.05, 0, 0, 540)
+ShivSkinButton.Size = UDim2.new(0.9, 0, 0, 20)
+ShivSkinButton.FontFace = customFont
+ShivSkinButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+ShivSkinButton.TextSize = 12
+ShivSkinButton.TextStrokeTransparency = 0.5
+ShivSkinButton.TextStrokeColor3 = Color3.new(0, 0, 0)
+ShivSkinButton.Text = "Skin: Default"
+
+VisualTab.CanvasSize = UDim2.new(0, 0, 0, 600)
+
+FlyToggle = createToggle(MainTab, "FlyToggle", "Fly Feature", 10)
+NoClipToggle = createToggle(MainTab, "NoClipToggle", "NoClip Feature", 40)
+NoClipReturnToggle = createToggle(MainTab, "NoClipReturnToggle", "Reset Y on NoClip Off", 70)
+
+-- Misc tab toggles
+XrayToggle = createToggle(MiscTab, "XrayToggle", "Xray Feature", 10)
+ThirdPersonToggle = createToggle(MiscTab, "ThirdPersonToggle", "Third Person", 40)
+FOVToggle = createToggle(MiscTab, "FOVToggle", "FOV Changer", 70)
+AimFovToggle = createToggle(MiscTab, "AimFovToggle", "Aim FOV", 100)
+AimFovColorButton = createColorButton(AimFovToggle.Holder, "AimFovColorButton", AimFovConfig.Color)
+AimbotToggle = createToggle(MiscTab, "AimbotToggle", "Aimbot", 130)
+NightVisionToggle = createToggle(MiscTab, "NightVisionToggle", "Night Vision", 160)
+CFrameSpeedToggle = createToggle(MiscTab, "CFrameSpeedToggle", "CFrameSpeed", 190)
+RemoveGrassToggle = createToggle(MiscTab, "RemoveGrassToggle", "Remove All Grass", 220)
+TimeToggle = createToggle(MiscTab, "TimeToggle", "Time Control", 250)
+
+FlyKeyButton = createKeyButton(SettingTab, "FlyKeyButton", "Fly key", KeyConfig.FlyToggle, 10)
+NoClipKeyButton = createKeyButton(SettingTab, "NoClipKeyButton", "Noclip key", KeyConfig.NoClipToggle, 40)
+CFrameSpeedKeyButton = createKeyButton(SettingTab, "CFrameSpeedKeyButton", "CFrameSpeed key", KeyConfig.CFrameSpeedToggle, 70)
+KeyListToggle = createToggle(SettingTab, "KeyListToggle", "Key List", 100)
+StatsToggle = createToggle(SettingTab, "StatsToggle", "FPS/Ping", 130)
+
+-- Config save/load UI elements
+local ConfigNameBox = Instance.new("TextBox")
+ConfigNameBox.Parent = SettingTab
+ConfigNameBox.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+ConfigNameBox.BorderColor3 = Color3.fromRGB(255, 255, 255)
+ConfigNameBox.BorderSizePixel = 1
+ConfigNameBox.Position = UDim2.new(0.05, 0, 0, 160)
+ConfigNameBox.Size = UDim2.new(0.6, 0, 0, 20)
+ConfigNameBox.FontFace = customFont
+ConfigNameBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+ConfigNameBox.TextSize = 12
+ConfigNameBox.PlaceholderText = "config name"
+ConfigNameBox.Text = ""
+
+local SaveConfigButton = Instance.new("TextButton")
+SaveConfigButton.Parent = SettingTab
+SaveConfigButton.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+SaveConfigButton.BorderColor3 = Color3.fromRGB(255, 255, 255)
+SaveConfigButton.BorderSizePixel = 1
+SaveConfigButton.Position = UDim2.new(0.7, 0, 0, 160)
+SaveConfigButton.Size = UDim2.new(0.25, 0, 0, 20)
+SaveConfigButton.FontFace = customFont
+SaveConfigButton.Text = "Save"
+SaveConfigButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+SaveConfigButton.TextSize = 12
+
+local ConfigListFrame = Instance.new("Frame")
+ConfigListFrame.Parent = SettingTab
+ConfigListFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+ConfigListFrame.BorderColor3 = Color3.fromRGB(100, 100, 100)
+ConfigListFrame.BorderSizePixel = 1
+ConfigListFrame.Position = UDim2.new(0.05, 0, 0, 190)
+ConfigListFrame.Size = UDim2.new(0.9, 0, 0, 100)
+
+local ConfigListLayout = Instance.new("UIListLayout")
+ConfigListLayout.Parent = ConfigListFrame
+ConfigListLayout.Padding = UDim.new(0, 2)
+
+local LoadConfigButton = Instance.new("TextButton")
+LoadConfigButton.Parent = SettingTab
+LoadConfigButton.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+LoadConfigButton.BorderColor3 = Color3.fromRGB(255, 255, 255)
+LoadConfigButton.BorderSizePixel = 1
+LoadConfigButton.Position = UDim2.new(0.7, 0, 0, 300)
+LoadConfigButton.Size = UDim2.new(0.25, 0, 0, 20)
+LoadConfigButton.FontFace = customFont
+LoadConfigButton.Text = "Load"
+LoadConfigButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+LoadConfigButton.TextSize = 12
+
+local DeleteConfigButton = Instance.new("TextButton")
+DeleteConfigButton.Parent = SettingTab
+DeleteConfigButton.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+DeleteConfigButton.BorderColor3 = Color3.fromRGB(255, 255, 255)
+DeleteConfigButton.BorderSizePixel = 1
+DeleteConfigButton.Position = UDim2.new(0.7, 0, 0, 330)
+DeleteConfigButton.Size = UDim2.new(0.25, 0, 0, 20)
+DeleteConfigButton.FontFace = customFont
+DeleteConfigButton.Text = "Delete"
+DeleteConfigButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+DeleteConfigButton.TextSize = 12
+
+SettingTab.CanvasSize = UDim2.new(0, 0, 0, 360)
+
+local ConfigButtons = {}
+local SelectedConfig
+local saveConfig
+local loadConfigFile
+local deleteConfigFile
+local refreshConfigList
+local defaultConfigColor = Color3.fromRGB(40, 40, 40)
+local selectedConfigColor = Color3.fromRGB(0, 170, 255)
+
+SaveConfigButton.MouseButton1Click:Connect(function()
+    if ConfigNameBox.Text ~= "" then
+        saveConfig(ConfigNameBox.Text)
+    elseif SelectedConfig then
+        saveConfig(SelectedConfig)
+    end
+end)
+
+LoadConfigButton.MouseButton1Click:Connect(function()
+    if SelectedConfig then
+        loadConfigFile(SelectedConfig)
+    end
+end)
+
+DeleteConfigButton.MouseButton1Click:Connect(function()
+    if SelectedConfig then
+        deleteConfigFile(SelectedConfig)
+    end
+end)
+
+-- Generic HSV color picker creator
+local function createColorPicker(yOffset, initialColor, applyColor)
+    -- Frame that holds the picker UI
+    local pickerFrame = Instance.new("Frame")
+    pickerFrame.Parent = MainFrame
+    pickerFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+    pickerFrame.BorderColor3 = Color3.fromRGB(100, 100, 100)
+    pickerFrame.BorderSizePixel = 1
+    pickerFrame.Position = UDim2.new(1, 10, 0, yOffset)
+    pickerFrame.Size = UDim2.new(0, 170, 0, 140)
+    pickerFrame.Visible = false
+
+    -- Table returned so we can attach helper methods like SetColor
+    local picker = {Frame = pickerFrame}
+
+    local hsv = {h = 0, s = 1, v = 1}
+
+    local ColorArea = Instance.new("Frame")
+    ColorArea.Parent = pickerFrame
+    ColorArea.Position = UDim2.new(0, 5, 0, 5)
+    ColorArea.Size = UDim2.new(0, 120, 0, 120)
+    ColorArea.BackgroundColor3 = Color3.new(1, 1, 1)
+    ColorArea.ClipsDescendants = true
+
+    local SatOverlay = Instance.new("Frame")
+    SatOverlay.Parent = ColorArea
+    SatOverlay.BackgroundColor3 = Color3.new(1, 1, 1)
+    SatOverlay.Size = UDim2.new(1, 0, 1, 0)
+    local SatGrad = Instance.new("UIGradient")
+    SatGrad.Color = ColorSequence.new(Color3.new(1, 1, 1), Color3.new(1, 1, 1))
+    SatGrad.Transparency = NumberSequence.new({
+        NumberSequenceKeypoint.new(0, 1),
+        NumberSequenceKeypoint.new(1, 0)
+    })
+    SatGrad.Rotation = 90
+    SatGrad.Parent = SatOverlay
+
+    local ValOverlay = Instance.new("Frame")
+    ValOverlay.Parent = ColorArea
+    ValOverlay.BackgroundColor3 = Color3.new(0, 0, 0)
+    ValOverlay.Size = UDim2.new(1, 0, 1, 0)
+    local ValGrad = Instance.new("UIGradient")
+    ValGrad.Color = ColorSequence.new(Color3.new(0, 0, 0), Color3.new(0, 0, 0))
+    ValGrad.Transparency = NumberSequence.new({
+        NumberSequenceKeypoint.new(0, 1),
+        NumberSequenceKeypoint.new(1, 0)
+    })
+    ValGrad.Rotation = 0
+    ValGrad.Parent = ValOverlay
+
+    local ColorSelector = Instance.new("Frame")
+    ColorSelector.Parent = ColorArea
+    ColorSelector.Size = UDim2.new(0, 8, 0, 8)
+    ColorSelector.AnchorPoint = Vector2.new(0.5, 0.5)
+    ColorSelector.BorderColor3 = Color3.new(1, 1, 1)
+    ColorSelector.BackgroundColor3 = Color3.new(0, 0, 0)
+    local SelectorCorner = Instance.new("UICorner")
+    SelectorCorner.CornerRadius = UDim.new(1, 0)
+    SelectorCorner.Parent = ColorSelector
+
+    local HueBar = Instance.new("Frame")
+    HueBar.Parent = pickerFrame
+    HueBar.Position = UDim2.new(0, 135, 0, 5)
+    HueBar.Size = UDim2.new(0, 20, 0, 120)
+    local HueGradient = Instance.new("UIGradient")
+    HueGradient.Color = ColorSequence.new({
+        ColorSequenceKeypoint.new(0.00, Color3.fromHSV(0.00, 1, 1)),
+        ColorSequenceKeypoint.new(0.17, Color3.fromHSV(0.17, 1, 1)),
+        ColorSequenceKeypoint.new(0.33, Color3.fromHSV(0.33, 1, 1)),
+        ColorSequenceKeypoint.new(0.50, Color3.fromHSV(0.50, 1, 1)),
+        ColorSequenceKeypoint.new(0.67, Color3.fromHSV(0.67, 1, 1)),
+        ColorSequenceKeypoint.new(0.83, Color3.fromHSV(0.83, 1, 1)),
+        ColorSequenceKeypoint.new(1.00, Color3.fromHSV(1.00, 1, 1))
+    })
+    HueGradient.Rotation = 90
+    HueGradient.Parent = HueBar
+
+    local HueSelector = Instance.new("Frame")
+    HueSelector.Parent = HueBar
+    HueSelector.Size = UDim2.new(1, 0, 0, 2)
+    HueSelector.BackgroundColor3 = Color3.new(1, 1, 1)
+    HueSelector.BorderSizePixel = 0
+
+    local function setHSV(color)
+        hsv.h, hsv.s, hsv.v = Color3.toHSV(color)
+        ColorArea.BackgroundColor3 = Color3.fromHSV(hsv.h, 1, 1)
+        ColorSelector.Position = UDim2.new(hsv.s, 0, 1 - hsv.v, 0)
+        HueSelector.Position = UDim2.new(0, 0, hsv.h, 0)
+    end
+
+    local function updateColor()
+        local color = Color3.fromHSV(hsv.h, hsv.s, hsv.v)
+        applyColor(color)
+        ColorArea.BackgroundColor3 = Color3.fromHSV(hsv.h, 1, 1)
+    end
+
+    setHSV(initialColor)
+    updateColor()
+    local draggingSV = false
+    local draggingHue = false
+
+    local function updateSV(pos)
+        local x = (pos.X - ColorArea.AbsolutePosition.X) / ColorArea.AbsoluteSize.X
+        local y = (pos.Y - ColorArea.AbsolutePosition.Y) / ColorArea.AbsoluteSize.Y
+        hsv.s = math.clamp(x, 0, 1)
+        hsv.v = 1 - math.clamp(y, 0, 1)
+        ColorSelector.Position = UDim2.new(hsv.s, 0, 1 - hsv.v, 0)
+        updateColor()
+    end
+
+    local function updateHue(pos)
+        local y = (pos.Y - HueBar.AbsolutePosition.Y) / HueBar.AbsoluteSize.Y
+        hsv.h = math.clamp(y, 0, 1)
+        HueSelector.Position = UDim2.new(0, 0, hsv.h, 0)
+        ColorArea.BackgroundColor3 = Color3.fromHSV(hsv.h, 1, 1)
+        updateColor()
+    end
+
+    ColorArea.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            draggingSV = true
+            updateSV(input.Position)
+        end
+    end)
+    ColorArea.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            draggingSV = false
+        end
+    end)
+    ColorArea.InputChanged:Connect(function(input)
+        if draggingSV and input.UserInputType == Enum.UserInputType.MouseMovement then
+            updateSV(input.Position)
+        end
+    end)
+
+    HueBar.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            draggingHue = true
+            updateHue(input.Position)
+        end
+    end)
+    HueBar.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            draggingHue = false
+        end
+    end)
+    HueBar.InputChanged:Connect(function(input)
+        if draggingHue and input.UserInputType == Enum.UserInputType.MouseMovement then
+            updateHue(input.Position)
+        end
+    end)
+
+    UserInputService.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            draggingSV = false
+            draggingHue = false
+        end
+    end)
+
+    function picker.SetColor(color)
+        setHSV(color)
+    end
+
+    return picker
+end
+
+BoxColorPicker = createColorPicker(50, ESP.BoxColor, function(color)
+    ESP.BoxColor = color
+    BoxColorButton.BackgroundColor3 = color
+    for _, esp in pairs(ESPObjects) do
+        if esp.Box then esp.Box.Color = color end
+    end
+end)
+
+DistanceColorPicker = createColorPicker(80, ESP.DistanceColor, function(color)
+    ESP.DistanceColor = color
+    DistanceColorButton.BackgroundColor3 = color
+    for _, esp in pairs(ESPObjects) do
+        if esp.DistanceText then esp.DistanceText.Color = color end
+    end
+end)
+
+NameColorPicker = createColorPicker(110, ESP.NameColor, function(color)
+    ESP.NameColor = color
+    NameColorButton.BackgroundColor3 = color
+    for _, esp in pairs(ESPObjects) do
+        if esp.NameText then esp.NameText.Color = color end
+    end
+end)
+
+WeaponColorPicker = createColorPicker(140, ESP.WeaponColor, function(color)
+    ESP.WeaponColor = color
+    WeaponColorButton.BackgroundColor3 = color
+    for _, esp in pairs(ESPObjects) do
+        if esp.WeaponText then esp.WeaponText.Color = color end
+    end
+end)
+
+TracerColorPicker = createColorPicker(170, ESP.TracerColor, function(color)
+    ESP.TracerColor = color
+    TracerColorButton.BackgroundColor3 = color
+    for _, esp in pairs(ESPObjects) do
+        if esp.Tracer then
+            esp.Tracer.Color = color
+        end
+    end
+end)
+
+HighlightColorPicker = createColorPicker(190, HighlightConfig.Color, function(color)
+    HighlightConfig.Color = color
+    HighlightColorButton.BackgroundColor3 = color
+    for _, esp in pairs(ESPObjects) do
+        if esp.Highlight then
+            esp.Highlight.OutlineColor = color
+        end
+    end
+end)
+
+AimFovColorPicker = createColorPicker(230, AimFovConfig.Color, function(color)
+    AimFovConfig.Color = color
+    AimFovColorButton.BackgroundColor3 = color
+    if AimFovConfig.CircleOutline then
+        AimFovConfig.CircleOutline.Color = color
+    end
+end)
+
+SkyAmbientPicker = createColorPicker(260, SkyColorConfig.Ambient, function(color)
+    SkyColorConfig.Ambient = color
+    SkyAmbientButton.BackgroundColor3 = color
+    if SkyColorConfig.Enabled then
+        Lighting.Ambient = color
+    end
+end)
+
+SkyTopPicker = createColorPicker(290, SkyColorConfig.Top, function(color)
+    SkyColorConfig.Top = color
+    SkyTopButton.BackgroundColor3 = color
+    if SkyColorConfig.Enabled then
+        Lighting.ColorShift_Top = color
+    end
+end)
+local function hideAllPickers()
+    TracerColorPicker.Frame.Visible = false
+    HighlightColorPicker.Frame.Visible = false
+    BoxColorPicker.Frame.Visible = false
+    DistanceColorPicker.Frame.Visible = false
+    NameColorPicker.Frame.Visible = false
+    WeaponColorPicker.Frame.Visible = false
+    AimFovColorPicker.Frame.Visible = false
+    SkyAmbientPicker.Frame.Visible = false
+    SkyTopPicker.Frame.Visible = false
+end
+
+local function createMapFrame()
+    if MapConfig.Frame then return end
+    local frame = Instance.new("Frame")
+    frame.Name = "MapFrame"
+    frame.Size = UDim2.new(0, 250, 0, 250)
+    frame.AnchorPoint = Vector2.new(0.5, 0.5)
+    frame.Position = MapConfig.Position
+    frame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+    frame.BackgroundTransparency = 0.3
+    frame.BorderColor3 = Color3.fromRGB(255, 255, 255)
+    frame.BorderSizePixel = 1
+    frame.Active = true
+    frame.Draggable = true
+    frame.ClipsDescendants = true
+    frame.Parent = ScreenGui
+    Instance.new("UICorner", frame).CornerRadius = UDim.new(1, 0)
+    frame:GetPropertyChangedSignal("Position"):Connect(function()
+        MapConfig.Position = frame.Position
+    end)
+
+    local rot = Instance.new("Frame")
+    rot.Name = "RotFrame"
+    rot.Size = UDim2.new(1, 0, 1, 0)
+    rot.AnchorPoint = Vector2.new(0.5, 0.5)
+    rot.Position = UDim2.new(0.5, 0, 0.5, 0)
+    rot.BackgroundTransparency = 1
+    rot.ZIndex = 1
+    rot.Parent = frame
+
+    local hLine = Instance.new("Frame")
+    hLine.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+    hLine.BorderSizePixel = 0
+    hLine.AnchorPoint = Vector2.new(0.5, 0.5)
+    hLine.Position = UDim2.new(0.5, 0, 0.5, 0)
+    hLine.Size = UDim2.new(1, 0, 0, 1)
+    hLine.ZIndex = 3
+    hLine.Parent = frame
+
+    local vLine = Instance.new("Frame")
+    vLine.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+    vLine.BorderSizePixel = 0
+    vLine.AnchorPoint = Vector2.new(0.5, 0.5)
+    vLine.Position = UDim2.new(0.5, 0, 0.5, 0)
+    vLine.Size = UDim2.new(0, 1, 1, 0)
+    vLine.ZIndex = 3
+    vLine.Parent = frame
+
+    local center = Instance.new("Frame")
+    center.BackgroundColor3 = Color3.new(1, 1, 1)
+    center.BorderSizePixel = 0
+    center.AnchorPoint = Vector2.new(0.5, 0.5)
+    center.Size = UDim2.new(0, 6, 0, 6)
+    center.Position = UDim2.new(0.5, 0, 0.5, 0)
+    center.ZIndex = 4
+    Instance.new("UICorner", center).CornerRadius = UDim.new(1, 0)
+    center.Parent = frame
+
+    MapConfig.Frame = frame
+    MapConfig.RotFrame = rot
+end
+
+local function destroyMapFrame()
+    if MapConfig.Frame then
+        MapConfig.Frame:Destroy()
+        MapConfig.Frame = nil
+        MapConfig.RotFrame = nil
+        MapConfig.Dots = {}
+    end
+end
+
+function createNewsFrame()
+    if NewsConfig.Frame then return end
+    local frame = Instance.new("Frame")
+    frame.Name = "NewsFrame"
+    frame.Size = UDim2.new(0, 200, 0, 30)
+    frame.Position = NewsConfig.Position
+    frame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+    frame.BorderColor3 = Color3.fromRGB(255, 255, 255)
+    frame.BorderSizePixel = 1
+    frame.Active = true
+    frame.Draggable = true
+    frame.Parent = ScreenGui
+    frame:GetPropertyChangedSignal("Position"):Connect(function()
+        NewsConfig.Position = frame.Position
+    end)
+    local label = Instance.new("TextLabel")
+    label.Size = UDim2.new(1, 0, 1, 0)
+    label.BackgroundTransparency = 1
+    label.FontFace = customFont
+    label.TextColor3 = Color3.fromRGB(255, 255, 255)
+    label.TextSize = 14
+    label.Parent = frame
+    NewsConfig.Frame = frame
+    NewsConfig.Label = label
+end
+
+function destroyNewsFrame()
+    if NewsConfig.Frame then
+        NewsConfig.Frame:Destroy()
+        NewsConfig.Frame = nil
+        NewsConfig.Label = nil
+    end
+end
+
+ShivSkinListFrame = Instance.new("ScrollingFrame")
+ShivSkinListFrame.Parent = VisualTab
+ShivSkinListFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+ShivSkinListFrame.BorderColor3 = Color3.fromRGB(100, 100, 100)
+ShivSkinListFrame.BorderSizePixel = 1
+ShivSkinListFrame.Position = UDim2.new(0.05, 0, 0, 480)
+ShivSkinListFrame.Size = UDim2.new(0.9, 0, 0, 100)
+ShivSkinListFrame.ScrollBarThickness = 4
+ShivSkinListFrame.ScrollingDirection = Enum.ScrollingDirection.Y
+ShivSkinListFrame.Active = true
+ShivSkinListFrame.ClipsDescendants = true
+ShivSkinListFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
+ShivSkinListFrame.Visible = false
+
+skinListLayout = Instance.new("UIListLayout")
+skinListLayout.Parent = ShivSkinListFrame
+skinListLayout.Padding = UDim.new(0, 2)
+
+defaultBtn = Instance.new("TextButton")
+defaultBtn.Parent = ShivSkinListFrame
+defaultBtn.Size = UDim2.new(1, 0, 0, 20)
+defaultBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+defaultBtn.BorderColor3 = Color3.fromRGB(255, 255, 255)
+defaultBtn.BorderSizePixel = 1
+defaultBtn.FontFace = customFont
+defaultBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+defaultBtn.TextSize = 12
+defaultBtn.TextStrokeTransparency = 0.5
+defaultBtn.TextStrokeColor3 = Color3.new(0, 0, 0)
+defaultBtn.Text = "Default"
+defaultBtn.MouseButton1Click:Connect(function()
+    applyShivSkin("Default")
+    ShivSkinListFrame.Visible = false
+    ShivSkinButton.Text = "Skin: Default"
+end)
+
+local skinFolders = ShivSkinsFolder:GetChildren()
+table.sort(skinFolders, function(a, b) return a.Name < b.Name end)
+for _, folder in ipairs(skinFolders) do
+    if folder:IsA("Folder") then
+        local btn = Instance.new("TextButton")
+        btn.Parent = ShivSkinListFrame
+        btn.Size = UDim2.new(1, 0, 0, 20)
+        btn.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+        btn.BorderColor3 = Color3.fromRGB(255, 255, 255)
+        btn.BorderSizePixel = 1
+        btn.FontFace = customFont
+        btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+        btn.TextSize = 12
+        btn.TextStrokeTransparency = 0.5
+        btn.TextStrokeColor3 = Color3.new(0, 0, 0)
+        btn.Text = folder.Name
+
+        btn.MouseButton1Click:Connect(function()
+            applyShivSkin(folder.Name)
+            ShivSkinListFrame.Visible = false
+            ShivSkinButton.Text = "Skin: " .. folder.Name
+        end)
+    end
+end
+
+ShivSkinListFrame.CanvasSize = UDim2.new(0, 0, 0, skinListLayout.AbsoluteContentSize.Y)
+skinListLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+    ShivSkinListFrame.CanvasSize = UDim2.new(0, 0, 0, skinListLayout.AbsoluteContentSize.Y)
+end)
+
+FOVSliderFrame = Instance.new("Frame")
+FOVSliderFrame.Parent = FOVToggle.Holder
+FOVSliderFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+FOVSliderFrame.BorderSizePixel = 0
+FOVSliderFrame.Position = UDim2.new(0.4, 0, 0, 2)
+FOVSliderFrame.Size = UDim2.new(0.45, 0, 0, 16)
+FOVSliderFrame.Visible = false
+
+FOVSliderBar = Instance.new("Frame")
+FOVSliderBar.Parent = FOVSliderFrame
+FOVSliderBar.BackgroundColor3 = Color3.fromRGB(0, 150, 255)
+FOVSliderBar.BorderSizePixel = 0
+FOVSliderBar.Size = UDim2.new(0, 0, 1, 0)
+
+FOVSliderHandle = Instance.new("TextButton")
+FOVSliderHandle.Parent = FOVSliderFrame
+FOVSliderHandle.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+FOVSliderHandle.BorderSizePixel = 0
+FOVSliderHandle.Position = UDim2.new(0, -6, 0.5, -6)
+FOVSliderHandle.Size = UDim2.new(0, 12, 0, 12)
+FOVSliderHandle.Text = ""
+
+FOVLabel = Instance.new("TextLabel")
+FOVLabel.Parent = FOVToggle.Holder
+FOVLabel.BackgroundTransparency = 1
+FOVLabel.Position = UDim2.new(0.87, 0, 0, 0)
+FOVLabel.Size = UDim2.new(0.13, 0, 1, 0)
+FOVLabel.FontFace = customFont
+FOVLabel.Text = "FOV: 70"
+FOVLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+FOVLabel.TextSize = 10
+FOVLabel.TextXAlignment = Enum.TextXAlignment.Left
+FOVLabel.Visible = false
+FOVLabel.TextStrokeTransparency = 0.5
+FOVLabel.TextStrokeColor3 = Color3.new(0, 0, 0)
+
+AimFovSliderFrame = Instance.new("Frame")
+AimFovSliderFrame.Parent = AimFovToggle.Holder
+AimFovSliderFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+AimFovSliderFrame.BorderSizePixel = 0
+AimFovSliderFrame.Position = UDim2.new(0.4, 0, 0, 2)
+AimFovSliderFrame.Size = UDim2.new(0.45, 0, 0, 16)
+AimFovSliderFrame.Visible = false
+
+AimFovSliderBar = Instance.new("Frame")
+AimFovSliderBar.Parent = AimFovSliderFrame
+AimFovSliderBar.BackgroundColor3 = Color3.fromRGB(0, 150, 255)
+AimFovSliderBar.BorderSizePixel = 0
+AimFovSliderBar.Size = UDim2.new(0, 0, 1, 0)
+
+AimFovSliderHandle = Instance.new("TextButton")
+AimFovSliderHandle.Parent = AimFovSliderFrame
+AimFovSliderHandle.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+AimFovSliderHandle.BorderSizePixel = 0
+AimFovSliderHandle.Position = UDim2.new(0, -6, 0.5, -6)
+AimFovSliderHandle.Size = UDim2.new(0, 12, 0, 12)
+AimFovSliderHandle.Text = ""
+
+AimFovValueLabel = Instance.new("TextLabel")
+AimFovValueLabel.Parent = AimFovToggle.Holder
+AimFovValueLabel.BackgroundTransparency = 1
+AimFovValueLabel.Position = UDim2.new(0.87, 0, 0, 0)
+AimFovValueLabel.Size = UDim2.new(0.13, 0, 1, 0)
+AimFovValueLabel.FontFace = customFont
+AimFovValueLabel.Text = "FOV: 90"
+AimFovValueLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+AimFovValueLabel.TextSize = 10
+AimFovValueLabel.TextXAlignment = Enum.TextXAlignment.Left
+AimFovValueLabel.Visible = false
+AimFovValueLabel.TextStrokeTransparency = 0.5
+AimFovValueLabel.TextStrokeColor3 = Color3.new(0, 0, 0)
+
+XrayLabel = Instance.new("TextLabel")
+XrayLabel.Parent = XrayToggle.Holder
+XrayLabel.BackgroundTransparency = 1
+XrayLabel.Position = UDim2.new(0.87, 0, 0, 0)
+XrayLabel.Size = UDim2.new(0.13, 0, 1, 0)
+XrayLabel.FontFace = customFont
+XrayLabel.Text = "Alpha: 0.9"
+XrayLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+XrayLabel.TextSize = 10
+XrayLabel.TextXAlignment = Enum.TextXAlignment.Left
+XrayLabel.Visible = false
+XrayLabel.TextStrokeTransparency = 0.5
+XrayLabel.TextStrokeColor3 = Color3.new(0, 0, 0)
+
+XraySliderFrame = Instance.new("Frame")
+XraySliderFrame.Parent = XrayToggle.Holder
+XraySliderFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+XraySliderFrame.BorderSizePixel = 0
+XraySliderFrame.Position = UDim2.new(0.4, 0, 0, 2)
+XraySliderFrame.Size = UDim2.new(0.45, 0, 0, 16)
+XraySliderFrame.Visible = false
+
+XraySliderBar = Instance.new("Frame")
+XraySliderBar.Parent = XraySliderFrame
+XraySliderBar.BackgroundColor3 = Color3.fromRGB(0, 150, 255)
+XraySliderBar.BorderSizePixel = 0
+XraySliderBar.Size = UDim2.new(XrayConfig.Transparency, 0, 1, 0)
+
+XraySliderHandle = Instance.new("TextButton")
+XraySliderHandle.Parent = XraySliderFrame
+XraySliderHandle.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+XraySliderHandle.BorderSizePixel = 0
+XraySliderHandle.Position = UDim2.new(XrayConfig.Transparency, -6, 0.5, -6)
+XraySliderHandle.Size = UDim2.new(0, 12, 0, 12)
+XraySliderHandle.Text = ""
+
+TimeLabel = Instance.new("TextLabel")
+TimeLabel.Parent = TimeToggle.Holder
+TimeLabel.BackgroundTransparency = 1
+TimeLabel.Position = UDim2.new(0.87, 0, 0, 0)
+TimeLabel.Size = UDim2.new(0.13, 0, 1, 0)
+TimeLabel.FontFace = customFont
+TimeLabel.Text = "Time: " .. string.format("%.1f", Lighting.ClockTime)
+TimeLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+TimeLabel.TextSize = 10
+TimeLabel.TextXAlignment = Enum.TextXAlignment.Left
+TimeLabel.Visible = false
+TimeLabel.TextStrokeTransparency = 0.5
+TimeLabel.TextStrokeColor3 = Color3.new(0, 0, 0)
+
+TimeSliderFrame = Instance.new("Frame")
+TimeSliderFrame.Parent = TimeToggle.Holder
+TimeSliderFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+TimeSliderFrame.BorderSizePixel = 0
+TimeSliderFrame.Position = UDim2.new(0.4, 0, 0, 2)
+TimeSliderFrame.Size = UDim2.new(0.45, 0, 0, 16)
+TimeSliderFrame.Visible = false
+
+TimeSliderBar = Instance.new("Frame")
+TimeSliderBar.Parent = TimeSliderFrame
+TimeSliderBar.BackgroundColor3 = Color3.fromRGB(0, 150, 255)
+TimeSliderBar.BorderSizePixel = 0
+TimeSliderBar.Size = UDim2.new(0, 0, 1, 0)
+
+TimeSliderHandle = Instance.new("TextButton")
+TimeSliderHandle.Parent = TimeSliderFrame
+TimeSliderHandle.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+TimeSliderHandle.BorderSizePixel = 0
+TimeSliderHandle.Position = UDim2.new(0, -6, 0.5, -6)
+TimeSliderHandle.Size = UDim2.new(0, 12, 0, 12)
+TimeSliderHandle.Text = ""
+
+-- Function to check if player has TeamDot with Enabled = true
+local function hasTeamDot(model)
+    if not model or not model:IsA("Model") then return false end
+    local teamDot = model:FindFirstChild("TeamDot")
+    if not teamDot then return false end
+    
+    -- Check if TeamDot has Enabled property and if it's true
+    local success, enabled = pcall(function()
+        return teamDot.Enabled
+    end)
+    
+    return success and enabled == true
+end
+
+-- Function to get key name for display
+local function getKeyName(keyCode)
+    if keyCode == Enum.KeyCode.RightShift then return "RShift"
+    elseif keyCode == Enum.KeyCode.LeftShift then return "LShift"
+    elseif keyCode == Enum.KeyCode.LeftControl then return "LCtrl"
+    elseif keyCode == Enum.KeyCode.RightControl then return "RCtrl"
+    elseif keyCode == Enum.KeyCode.LeftAlt then return "LAlt"
+    elseif keyCode == Enum.KeyCode.RightAlt then return "RAlt"
+    elseif keyCode == Enum.KeyCode.Space then return "Space"
+    else
+        return string.sub(tostring(keyCode), 14) -- Remove "Enum.KeyCode."
+    end
+end
+
+-- Function to update key labels
+local function updateKeyLabels()
+    FlyKeyLabel.Text = "[" .. getKeyName(KeyConfig.FlyToggle) .. "] Fly"
+    NoClipKeyLabel.Text = "[" .. getKeyName(KeyConfig.NoClipToggle) .. "] NoClip"
+    CFrameSpeedKeyLabel.Text = "[" .. getKeyName(KeyConfig.CFrameSpeedToggle) .. "] CFrameSpeed"
+    ToggleKeyLabel.Text = "[" .. getKeyName(KeyConfig.MenuToggle) .. "] Menu"
+
+    FlyKeyButton.Text = "[" .. getKeyName(KeyConfig.FlyToggle) .. "]"
+    NoClipKeyButton.Text = "[" .. getKeyName(KeyConfig.NoClipToggle) .. "]"
+    CFrameSpeedKeyButton.Text = "[" .. getKeyName(KeyConfig.CFrameSpeedToggle) .. "]"
+
+    InfoLabel.Text = getKeyName(KeyConfig.MenuToggle) .. " = Toggle GUI"
+end
+
+-- Key customization system
+local waitingForKey = nil
+
+local function waitForKeyInput(configKey, buttonToUpdate)
+    waitingForKey = configKey
+    buttonToUpdate.Text = '[""]'
+    buttonToUpdate.BackgroundColor3 = Color3.fromRGB(100, 100, 0)
+end
+
+local function cframeSpeedHeartbeat(deltaTime)
+    local Character = LocalPlayer.Character
+    if not Character then return end
+
+    local HumanoidRootPart = Character:FindFirstChild("HumanoidRootPart")
+    local Humanoid = Character:FindFirstChild("Humanoid")
+    if not HumanoidRootPart or not Humanoid then return end
+
+    local MovementDirection = Vector3.new(0, 0, 0)
+
+    local CameraCFrame = Camera.CFrame
+    local ForwardVector = CameraCFrame.LookVector
+    local RightVector = CameraCFrame.RightVector
+
+    if UserInputService:IsKeyDown(Enum.KeyCode.W) then
+        MovementDirection = MovementDirection + ForwardVector
+    end
+    if UserInputService:IsKeyDown(Enum.KeyCode.S) then
+        MovementDirection = MovementDirection - ForwardVector
+    end
+    if UserInputService:IsKeyDown(Enum.KeyCode.A) then
+        MovementDirection = MovementDirection - RightVector
+    end
+    if UserInputService:IsKeyDown(Enum.KeyCode.D) then
+        MovementDirection = MovementDirection + RightVector
+    end
+
+    if MovementDirection.Magnitude > 0 then
+        MovementDirection = MovementDirection.Unit
+        local MoveSpeed = CFrameSpeedConfig.Speed * deltaTime * 60
+        local NewPosition = HumanoidRootPart.Position + (MovementDirection * MoveSpeed)
+
+        NewPosition = Vector3.new(NewPosition.X, HumanoidRootPart.Position.Y, NewPosition.Z)
+
+        HumanoidRootPart.CFrame = CFrame.new(NewPosition, NewPosition + Vector3.new(MovementDirection.X, 0, MovementDirection.Z))
+    end
+end
+
+local function toggleCFrameSpeed()
+    CFrameSpeedConfig.IsActive = not CFrameSpeedConfig.IsActive
+
+    if CFrameSpeedConfig.IsActive then
+        CFrameSpeedKeyLabel.TextColor3 = Color3.fromRGB(150, 100, 255)
+        if CFrameSpeedConfig.Connection then
+            CFrameSpeedConfig.Connection:Disconnect()
+        end
+
+        CFrameSpeedConfig.Connection = RunService.Heartbeat:Connect(cframeSpeedHeartbeat)
+    else
+        CFrameSpeedKeyLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+        if CFrameSpeedConfig.Connection then
+            CFrameSpeedConfig.Connection:Disconnect()
+            CFrameSpeedConfig.Connection = nil
+        end
+    end
+end
+
+-- Remove All Grass Functions
+local function removeTerrainDecoration()
+    pcall(function()
+        if sethiddenproperty then
+            sethiddenproperty(workspace.Terrain, "Decoration", false)
+        end
+    end)
+end
+
+local function removeGrassModels()
+    local grassNames = {
+        "grass",
+        "flower",
+        "bush",
+        "shrub",
+        "weed",
+        "fern",
+        "moss",
+        "leaves",
+        "leaf",
+        "plant",
+        "vegetation"
+    }
+    
+    local function SearchAndDestroy(parent)
+        for _, child in pairs(parent:GetChildren()) do
+            if child:IsA("Model") or child:IsA("Part") or child:IsA("MeshPart") then
+                local childNameLower = string.lower(child.Name)
+                for _, grassName in pairs(grassNames) do
+                    if string.find(childNameLower, grassName) then
+                        child:Destroy()
+                        break
+                    end
+                end
+                
+                if child:IsA("Part") or child:IsA("MeshPart") then
+                    if (child.Material == Enum.Material.Grass or 
+                        child.Material == Enum.Material.LeafyGrass or
+                        child.Material == Enum.Material.Pebble) and
+                       child.Size.Y < 5 and 
+                       child.CanCollide == false then
+                        child:Destroy()
+                    end
+                end
+            end
+            
+            if child:IsA("Folder") or child:IsA("Model") then
+                SearchAndDestroy(child)
+            end
+        end
+    end
+    
+    SearchAndDestroy(workspace)
+end
+
+local function toggleRemoveAllGrass()
+    GrassRemoverConfig.Enabled = not GrassRemoverConfig.Enabled
+    
+    if GrassRemoverConfig.Enabled and not GrassRemoverConfig.RemovedGrass then
+        removeTerrainDecoration()
+        removeGrassModels()
+        GrassRemoverConfig.RemovedGrass = true
+    end
+end
+
+local function createAimFovCircle()
+    if AimFovConfig.Circle or AimFovConfig.CircleOutline or AimFovConfig.CircleOuter then
+        return
+    end
+
+    pcall(function()
+        local outer = Drawing.new("Circle")
+        outer.Color = Color3.new(0, 0, 0)
+        outer.Thickness = 1
+        outer.NumSides = 60
+        outer.Filled = false
+        outer.Visible = false
+        outer.Transparency = 1
+        AimFovConfig.CircleOuter = outer
+
+        local mid = Drawing.new("Circle")
+        mid.Color = AimFovConfig.Color
+        mid.Thickness = 2
+        mid.NumSides = 60
+        mid.Filled = false
+        mid.Visible = false
+        mid.Transparency = 1
+        AimFovConfig.CircleOutline = mid
+
+        local inner = Drawing.new("Circle")
+        inner.Color = Color3.new(0, 0, 0)
+        inner.Thickness = 1
+        inner.NumSides = 60
+        inner.Filled = false
+        inner.Visible = false
+        inner.Transparency = 1
+        AimFovConfig.Circle = inner
+    end)
+end
+
+local function updateAimFovRadius(value)
+    AimFovConfig.Radius = value
+    AimFovValueLabel.Text = "FOV: " .. math.floor(value)
+end
+
+local function updateAimFovPosition()
+    if not AimFovConfig.Enabled then return end
+    local center = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
+
+    if AimFovConfig.Circle and AimFovConfig.CircleOutline and AimFovConfig.CircleOuter then
+        pcall(function()
+            AimFovConfig.CircleOuter.Position = center
+            AimFovConfig.CircleOuter.Radius = AimFovConfig.Radius + 3
+            AimFovConfig.CircleOuter.Visible = true
+
+            AimFovConfig.CircleOutline.Position = center
+            AimFovConfig.CircleOutline.Radius = AimFovConfig.Radius + 1
+            AimFovConfig.CircleOutline.Visible = true
+
+            AimFovConfig.Circle.Position = center
+            AimFovConfig.Circle.Radius = AimFovConfig.Radius
+            AimFovConfig.Circle.Visible = true
+        end)
+    end
+end
+
+
+local function applyXrayToObject(obj)
+    if obj:IsA("MeshPart") and obj.Parent then
+        if not XrayConfig.OriginalTransparencies[obj] then
+            XrayConfig.OriginalTransparencies[obj] = obj.Transparency
+        end
+        obj.Transparency = XrayConfig.Transparency
+        XrayConfig.ProcessedParts[obj] = true
+    end
+end
+
+local xrayUpdateScheduled = false
+local function updateXrayTransparency()
+    if xrayUpdateScheduled then return end
+    xrayUpdateScheduled = true
+    task.defer(function()
+        xrayUpdateScheduled = false
+        local parts = {}
+        for part in pairs(XrayConfig.ProcessedParts) do
+            parts[#parts + 1] = part
+        end
+        for i, part in ipairs(parts) do
+            if part and part.Parent then
+                part.Transparency = XrayConfig.Transparency
+            end
+            if i % 400 == 0 then
+                task.wait()
+            end
+        end
+    end)
+end
+
+local function refreshXray()
+    if not XrayConfig.Enabled then return end
+    local builtObjects = workspace:FindFirstChild("BuiltObjects")
+    if not builtObjects then return end
+    local queue = {builtObjects}
+    local candidates = {}
+    local processed = 0
+    while #queue > 0 do
+        local node = table.remove(queue)
+        for _, child in ipairs(node:GetChildren()) do
+            queue[#queue + 1] = child
+            if child:IsA("MeshPart") then
+                local model = child:FindFirstAncestorWhichIsA("Model")
+                if not model or not XrayConfig.ExcludedModels[model.Name] then
+                    candidates[#candidates + 1] = child
+                end
+            end
+            processed = processed + 1
+            if processed % 400 == 0 then
+                task.wait()
+            end
+        end
+        if processed % 400 == 0 then
+            task.wait()
+        end
+    end
+    for i, part in ipairs(candidates) do
+        applyXrayToObject(part)
+        if i % 400 == 0 then
+            task.wait()
+        end
+    end
+end
+
+local function toggleXray()
+    XrayConfig.Enabled = not XrayConfig.Enabled
+
+    if XrayConfig.Enabled then
+        local builtObjects = workspace:FindFirstChild("BuiltObjects")
+        if not builtObjects then
+            warn("workspace.BuiltObjects folder not found!")
+            XrayConfig.Enabled = false
+            return
+        end
+        task.spawn(refreshXray)
+        if XrayConfig.Connection then XrayConfig.Connection:Disconnect() end
+        if XrayConfig.RemoveConnection then XrayConfig.RemoveConnection:Disconnect() end
+        XrayConfig.Connection = builtObjects.DescendantAdded:Connect(function(part)
+            if not XrayConfig.Enabled then return end
+            if part:IsA("MeshPart") then
+                local model = part:FindFirstAncestorWhichIsA("Model")
+                if not model or not XrayConfig.ExcludedModels[model.Name] then
+                    applyXrayToObject(part)
+                end
+            end
+        end)
+        XrayConfig.RemoveConnection = builtObjects.DescendantRemoving:Connect(function(part)
+            XrayConfig.OriginalTransparencies[part] = nil
+            XrayConfig.ProcessedParts[part] = nil
+        end)
+    else
+        if XrayConfig.Connection then
+            XrayConfig.Connection:Disconnect()
+            XrayConfig.Connection = nil
+        end
+        if XrayConfig.RemoveConnection then
+            XrayConfig.RemoveConnection:Disconnect()
+            XrayConfig.RemoveConnection = nil
+        end
+        task.spawn(function()
+            local count = 0
+            for part, originalTransparency in pairs(XrayConfig.OriginalTransparencies) do
+                if part and part.Parent then
+                    pcall(function()
+                        part.Transparency = originalTransparency
+                    end)
+                end
+                count = count + 1
+                if count % 400 == 0 then
+                    task.wait()
+                end
+            end
+
+            table.clear(XrayConfig.OriginalTransparencies)
+            table.clear(XrayConfig.ProcessedParts)
+        end)
+    end
+end
+
+local function toggleAimFov()
+    AimFovConfig.Enabled = not AimFovConfig.Enabled
+    
+    if AimFovConfig.Enabled then
+        createAimFovCircle()
+    else
+        if AimFovConfig.Circle then
+            AimFovConfig.Circle.Visible = false
+        end
+        if AimFovConfig.CircleOutline then
+            AimFovConfig.CircleOutline.Visible = false
+        end
+        if AimFovConfig.CircleOuter then
+            AimFovConfig.CircleOuter.Visible = false
+        end
+    end
+end
+
+-- Enhanced aimbot with snap functionality
+local function getClosestPlayerInFOV()
+    if not AimFovConfig.Enabled or not AimbotConfig.Enabled then return nil end
+    
+    local localChar = LocalPlayer.Character
+    if not localChar then return nil end
+    
+    local localRoot = localChar:FindFirstChild("HumanoidRootPart")
+    if not localRoot then return nil end
+    
+    local center = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
+    local closestPlayer = nil
+    local closestDistance = AimFovConfig.Radius
+    
+    for model, esp in pairs(ESPObjects) do
+        if model and model.Parent then
+            -- TeamCheck: Skip players with TeamDot if enabled
+            if TeamCheckConfig.Enabled and hasTeamDot(model) then
+                continue
+            end
+            
+            local head = model:FindFirstChild("Head")
+            local rootPart = model:FindFirstChild("HumanoidRootPart") or model:FindFirstChild("Torso")
+            
+            if head and rootPart then
+                local worldDistance = (localRoot.Position - rootPart.Position).Magnitude
+                
+                if worldDistance <= AimbotConfig.MaxDistance then
+                    local screenPos, onScreen = Camera:WorldToViewportPoint(head.Position)
+                    if onScreen then
+                        local screenPoint = Vector2.new(screenPos.X, screenPos.Y)
+                        local distance = (screenPoint - center).Magnitude
+                        
+                        if distance < closestDistance then
+                            closestDistance = distance
+                            closestPlayer = head
+                        end
+                    end
+                end
+            end
+        end
+    end
+    
+    return closestPlayer
+end
+
+-- Improved aimbot with snap functionality
+local function aimAtTarget(target)
+    if not target then return end
+    
+    local targetPos = target.Position
+    local cameraCFrame = Camera.CFrame
+    
+    local direction = (targetPos - cameraCFrame.Position).Unit
+    local newLookAt = cameraCFrame.Position + direction
+    local currentLookAt = cameraCFrame.Position + cameraCFrame.LookVector
+    
+    -- Calculate distance for snap threshold from screen center
+    local center = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
+    local screenPos, onScreen = Camera:WorldToViewportPoint(targetPos)
+    
+    if onScreen then
+        local screenPoint = Vector2.new(screenPos.X, screenPos.Y)
+        local screenDistance = (screenPoint - center).Magnitude
+        
+        -- Snap if within threshold, otherwise smooth aim
+        if screenDistance <= AimbotConfig.SnapThreshold then
+            Camera.CFrame = CFrame.lookAt(cameraCFrame.Position, newLookAt)
+        else
+            local lerpedLookAt = currentLookAt:Lerp(newLookAt, AimbotConfig.Smoothness)
+            Camera.CFrame = CFrame.lookAt(cameraCFrame.Position, lerpedLookAt)
+        end
+    end
+end
+
+local function toggleAimbot()
+    AimbotConfig.Enabled = not AimbotConfig.Enabled
+    
+    if not AimbotConfig.Enabled then
+        AimbotConfig.Aiming = false
+        AimbotConfig.Target = nil
+    end
+end
+
+local function updateStatusDisplay()
+    local flyStatus = (FlyConfig.IsFlying or NoClipConfig.IsActive) and "ON" or "OFF"
+    local noclipStatus = NoClipConfig.IsActive and "ON" or "OFF"
+    StatusLabel.Text = "Fly: " .. flyStatus .. "\nNoClip: " .. noclipStatus
+end
+
+local function toggleNightVision()
+    NightVisionConfig.Enabled = not NightVisionConfig.Enabled
+    
+    if NightVisionConfig.Enabled then
+        Lighting.Brightness = 2
+        Lighting.Ambient = Color3.fromRGB(255, 255, 255)
+        Lighting.OutdoorAmbient = Color3.fromRGB(255, 255, 255)
+        Lighting.FogEnd = 100000
+        
+        if NightVisionConfig.Connection then
+            NightVisionConfig.Connection:Disconnect()
+        end
+        
+        NightVisionConfig.Connection = Lighting.Changed:Connect(function(prop)
+            if NightVisionConfig.Enabled then
+                if prop == "Brightness" then
+                    Lighting.Brightness = 2
+                elseif prop == "Ambient" then
+                    Lighting.Ambient = Color3.fromRGB(255, 255, 255)
+                elseif prop == "OutdoorAmbient" then
+                    Lighting.OutdoorAmbient = Color3.fromRGB(255, 255, 255)
+                elseif prop == "FogEnd" then
+                    Lighting.FogEnd = 100000
+                end
+            end
+        end)
+    else
+        Lighting.Brightness = OriginalSettings.Brightness
+        Lighting.Ambient = OriginalSettings.Ambient
+        Lighting.OutdoorAmbient = OriginalSettings.OutdoorAmbient
+        Lighting.ColorShift_Top = OriginalSettings.ColorShiftTop
+        Lighting.FogEnd = OriginalSettings.FogEnd
+        
+        if NightVisionConfig.Connection then
+            NightVisionConfig.Connection:Disconnect()
+            NightVisionConfig.Connection = nil
+        end
+    end
+end
+
+local function toggleThirdPerson()
+    ThirdPersonConfig.Enabled = not ThirdPersonConfig.Enabled
+
+    if ThirdPersonConfig.Enabled then
+        LocalPlayer.CameraMaxZoomDistance = ThirdPersonConfig.Distance
+        LocalPlayer.CameraMinZoomDistance = ThirdPersonConfig.Distance
+        LocalPlayer.CameraMode = Enum.CameraMode.Classic
+
+        if ThirdPersonConfig.CameraConnection then
+            ThirdPersonConfig.CameraConnection:Disconnect()
+            ThirdPersonConfig.CameraConnection = nil
+        end
+        for _, conn in ipairs(ThirdPersonConfig.GhostConnections) do
+            conn:Disconnect()
+        end
+        ThirdPersonConfig.GhostConnections = {}
+
+        ThirdPersonConfig.CameraConnection = RunService.RenderStepped:Connect(function()
+            if Camera.CameraType ~= Enum.CameraType.Custom then
+                Camera.CameraType = Enum.CameraType.Custom
+            end
+        end)
+
+        local name = LocalPlayer.Name
+        local function watch(folder)
+            return folder.DescendantAdded:Connect(function(desc)
+                if desc:IsA("Model") and desc.Name == name then
+                    task.defer(function()
+                        if Players:GetPlayerFromCharacter(desc) ~= LocalPlayer then
+                            desc:Destroy()
+                        end
+                    end)
+                end
+            end)
+        end
+        table.insert(ThirdPersonConfig.GhostConnections, watch(workspace))
+        if PlayersFolder then
+            table.insert(ThirdPersonConfig.GhostConnections, watch(PlayersFolder))
+        end
+
+        removeGhosts()
+    else
+        LocalPlayer.CameraMode = OriginalSettings.CameraMode
+        LocalPlayer.CameraMaxZoomDistance = OriginalSettings.CameraMaxZoom
+        LocalPlayer.CameraMinZoomDistance = OriginalSettings.CameraMinZoom
+
+        if ThirdPersonConfig.CameraConnection then
+            ThirdPersonConfig.CameraConnection:Disconnect()
+            ThirdPersonConfig.CameraConnection = nil
+        end
+        for _, conn in ipairs(ThirdPersonConfig.GhostConnections) do
+            conn:Disconnect()
+        end
+        ThirdPersonConfig.GhostConnections = {}
+
+        removeGhosts()
+    end
+end
+
+local function updateFOV(value)
+    FOVConfig.Value = value
+    if FOVConfig.Enabled then
+        Camera.FieldOfView = value
+    end
+    FOVLabel.Text = "FOV: " .. math.floor(value)
+end
+
+local function toggleFOV()
+    FOVConfig.Enabled = not FOVConfig.Enabled
+    
+    if FOVConfig.Enabled then
+        Camera.FieldOfView = FOVConfig.Value
+        
+        if FOVConfig.Connection then
+            FOVConfig.Connection:Disconnect()
+        end
+        
+        FOVConfig.Connection = Camera:GetPropertyChangedSignal("FieldOfView"):Connect(function()
+            if FOVConfig.Enabled then
+                Camera.FieldOfView = FOVConfig.Value
+            end
+        end)
+    else
+        Camera.FieldOfView = OriginalSettings.FieldOfView
+        
+        if FOVConfig.Connection then
+            FOVConfig.Connection:Disconnect()
+            FOVConfig.Connection = nil
+        end
+    end
+end
+
+local aimFovDragging = false
+
+AimFovSliderHandle.MouseButton1Down:Connect(function()
+    aimFovDragging = true
+end)
+
+UserInputService.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        aimFovDragging = false
+    end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+    if aimFovDragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+        local relativeX = math.clamp((input.Position.X - AimFovSliderFrame.AbsolutePosition.X) / AimFovSliderFrame.AbsoluteSize.X, 0, 1)
+        local radius = 90 + (relativeX * 210)
+        
+        AimFovSliderBar.Size = UDim2.new(relativeX, 0, 1, 0)
+        AimFovSliderHandle.Position = UDim2.new(relativeX, -6, 0.5, -6)
+        updateAimFovRadius(radius)
+    end
+end)
+
+local fovDragging = false
+
+FOVSliderHandle.MouseButton1Down:Connect(function()
+    fovDragging = true
+end)
+
+UserInputService.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        fovDragging = false
+    end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+    if fovDragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+        local relativeX = math.clamp((input.Position.X - FOVSliderFrame.AbsolutePosition.X) / FOVSliderFrame.AbsoluteSize.X, 0, 1)
+        local fov = 30 + (relativeX * 90)
+
+        FOVSliderBar.Size = UDim2.new(relativeX, 0, 1, 0)
+        FOVSliderHandle.Position = UDim2.new(relativeX, -6, 0.5, -6)
+        updateFOV(fov)
+    end
+end)
+
+local xrayDragging = false
+
+XraySliderHandle.MouseButton1Down:Connect(function()
+    xrayDragging = true
+end)
+
+UserInputService.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        xrayDragging = false
+    end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+    if xrayDragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+        local relativeX = math.clamp((input.Position.X - XraySliderFrame.AbsolutePosition.X) / XraySliderFrame.AbsoluteSize.X, 0, 1)
+        XrayConfig.Transparency = relativeX
+        XraySliderBar.Size = UDim2.new(relativeX, 0, 1, 0)
+        XraySliderHandle.Position = UDim2.new(relativeX, -6, 0.5, -6)
+        if XrayLabel then
+            XrayLabel.Text = string.format("Alpha: %.2f", XrayConfig.Transparency)
+        end
+        updateXrayTransparency()
+    end
+end)
+
+local function noClipFunction(deltaTime)
+    if NoClipConfig.IsActive and LocalPlayer.Character then
+        local character = LocalPlayer.Character
+        local rootPart = character:FindFirstChild("HumanoidRootPart")
+        local humanoid = character:FindFirstChild("Humanoid")
+        if rootPart and humanoid then
+            local base = NoClipConfig.BaseCFrame or rootPart.CFrame
+
+            local moveVector = Vector3.new(0, 0, 0)
+            if UserInputService:IsKeyDown(Enum.KeyCode.W) then
+                moveVector = moveVector + Camera.CFrame.LookVector
+            end
+            if UserInputService:IsKeyDown(Enum.KeyCode.S) then
+                moveVector = moveVector - Camera.CFrame.LookVector
+            end
+            if UserInputService:IsKeyDown(Enum.KeyCode.D) then
+                moveVector = moveVector + Vector3.new(Camera.CFrame.RightVector.X, 0, Camera.CFrame.RightVector.Z)
+            end
+            if UserInputService:IsKeyDown(Enum.KeyCode.A) then
+                moveVector = moveVector - Vector3.new(Camera.CFrame.RightVector.X, 0, Camera.CFrame.RightVector.Z)
+            end
+
+            if moveVector.Magnitude > 0 then
+                moveVector = moveVector.Unit
+                base = CFrame.new(moveVector * NoClipConfig.FlySpeed * deltaTime) * base
+            end
+
+            NoClipConfig.BaseCFrame = base
+
+            if NoClipConfig.StoredY then
+                NoClipConfig.TargetOffset = math.max(NoClipConfig.StoredY - base.Position.Y, NoClipConfig.TargetOffset - NoClipConfig.OffsetStep)
+            else
+                NoClipConfig.TargetOffset = math.max(NoClipConfig.MaxOffset, NoClipConfig.TargetOffset - NoClipConfig.OffsetStep)
+            end
+
+            rootPart.Velocity = Vector3.zero
+            rootPart.CFrame = base * CFrame.new(0, NoClipConfig.TargetOffset, 0) * CFrame.Angles(0, 0, math.rad(180))
+
+            humanoid.PlatformStand = false
+        end
+    end
+end
+
+local function toggleNoClip()
+    NoClipConfig.IsActive = not NoClipConfig.IsActive
+
+    if NoClipConfig.IsActive then
+        local root = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+        NoClipConfig.BaseCFrame = nil
+        NoClipConfig.TargetOffset = 0
+        NoClipConfig.StoredY = root and (root.Position.Y + NoClipConfig.MaxOffset) or nil
+        NoClipConfig.OriginalY = root and root.Position.Y or nil
+        NoClipKeyLabel.TextColor3 = Color3.fromRGB(150, 100, 255)
+
+        if FlyConfig.IsFlying and FlyConfig.Connection then
+            FlyConfig.Connection:Disconnect()
+            FlyConfig.Connection = nil
+        end
+        FlyConfig.IsFlying = false
+        FlyKeyLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+
+        if NoClipConfig.Connection then
+            NoClipConfig.Connection:Disconnect()
+        end
+        NoClipConfig.Connection = RunService.Heartbeat:Connect(noClipFunction)
+    else
+        NoClipKeyLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+        if NoClipConfig.Connection then
+            NoClipConfig.Connection:Disconnect()
+            NoClipConfig.Connection = nil
+        end
+        if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") and NoClipConfig.BaseCFrame then
+            local rootPart = LocalPlayer.Character.HumanoidRootPart
+            if NoClipConfig.ReturnY and NoClipConfig.OriginalY then
+                local base = NoClipConfig.BaseCFrame
+                local pos = base.Position
+                rootPart.CFrame = CFrame.new(pos.X, NoClipConfig.OriginalY, pos.Z) * (base - pos)
+            else
+                rootPart.CFrame = NoClipConfig.BaseCFrame
+            end
+        end
+        NoClipConfig.BaseCFrame = nil
+        NoClipConfig.TargetOffset = 0
+        NoClipConfig.StoredY = nil
+        NoClipConfig.OriginalY = nil
+    end
+    
+    updateStatusDisplay()
+end
+
+local function infiniteFlyCorrection(character)
+    if not FlyConfig.IsFlying then return end
+    
+    local root = character:FindFirstChild("HumanoidRootPart")
+    if not root then return end
+    
+    local origin = root.Position
+    local result = workspace:Raycast(origin, Vector3.new(0, -1000, 0), RaycastParams)
+    
+    if result and result.Distance > 4 then
+        task.spawn(function()
+            local oldVel = root.Velocity
+            for _, part in character:GetChildren() do
+                if part:IsA("BasePart") or part:IsA("MeshPart") then
+                    part.Velocity = Vector3.new(0, -9999, 0)
+                end
+            end
+            RunService.RenderStepped:Wait()
+            for _, part in character:GetChildren() do
+                if part:IsA("BasePart") or part:IsA("MeshPart") then
+                    part.Velocity = oldVel
+                end
+            end
+        end)
+    end
+end
+
+local function flyFunction(deltaTime)
+    local character = LocalPlayer.Character
+    local root = character and character:FindFirstChild("HumanoidRootPart")
+    local humanoid = character and character:FindFirstChild("Humanoid")
+    
+    if not (character and root and humanoid and humanoid.Health > 0) then return end
+    
+    if FlyConfig.IsFlying then
+        local delta = deltaTime * FlyConfig.Speed * 3
+
+        local moveVector = Vector3.new(0, 0, 0)
+
+        if UserInputService:IsKeyDown(Enum.KeyCode.W) then
+            moveVector = moveVector + Camera.CFrame.LookVector
+        end
+        if UserInputService:IsKeyDown(Enum.KeyCode.S) then
+            moveVector = moveVector - Camera.CFrame.LookVector
+        end
+        if UserInputService:IsKeyDown(Enum.KeyCode.D) then
+            moveVector = moveVector + Camera.CFrame.RightVector
+        end
+        if UserInputService:IsKeyDown(Enum.KeyCode.A) then
+            moveVector = moveVector - Camera.CFrame.RightVector
+        end
+
+        if moveVector.Magnitude > 0 then
+            moveVector = moveVector.Unit
+            moveVector = Vector3.new(moveVector.X, moveVector.Y * FlyConfig.VerticalMult, moveVector.Z)
+            if math.abs(moveVector.Y) < 0.01 then
+                moveVector = moveVector + Vector3.new(0, -0.2, 0)
+            end
+        else
+            moveVector = Vector3.new(0, -0.2, 0)
+        end
+
+        local movementDelta = moveVector * delta
+        local position = root.CFrame.Position + movementDelta
+        
+        humanoid.PlatformStand = false
+        root.Velocity = Vector3.zero
+        root.CFrame = CFrame.new(position, position + Vector3.new(Camera.CFrame.LookVector.X, 0, Camera.CFrame.LookVector.Z))
+        
+        infiniteFlyCorrection(character)
+    else
+        if humanoid then
+            humanoid.PlatformStand = false
+        end
+    end
+end
+
+local function toggleFly()
+    FlyConfig.IsFlying = not FlyConfig.IsFlying
+    
+    if FlyConfig.IsFlying then
+        FlyKeyLabel.TextColor3 = Color3.fromRGB(150, 100, 255)
+        if FlyConfig.Connection then
+            FlyConfig.Connection:Disconnect()
+        end
+        FlyConfig.Connection = RunService.Heartbeat:Connect(flyFunction)
+    else
+        FlyKeyLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+        if FlyConfig.Connection then
+            FlyConfig.Connection:Disconnect()
+            FlyConfig.Connection = nil
+        end
+        
+        local character = LocalPlayer.Character
+        local humanoid = character and character:FindFirstChild("Humanoid")
+        if humanoid then
+            humanoid.PlatformStand = false
+        end
+    end
+    
+    updateStatusDisplay()
+end
+
+local timeDragging = false
+
+local function updateTimeFromSlider(xPos)
+    local relativeX = math.clamp((xPos - TimeSliderFrame.AbsolutePosition.X) / TimeSliderFrame.AbsoluteSize.X, 0, 1)
+    local time = relativeX * 24
+
+    TimeControl.CurrentTime = time
+    Lighting.ClockTime = time
+
+    TimeSliderBar.Size = UDim2.new(relativeX, 0, 1, 0)
+    TimeSliderHandle.Position = UDim2.new(relativeX, -6, 0.5, -6)
+    TimeLabel.Text = "Time: " .. string.format("%.1f", time)
+end
+
+TimeSliderHandle.MouseButton1Down:Connect(function()
+    timeDragging = true
+end)
+
+UserInputService.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        timeDragging = false
+    end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+    if timeDragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+        updateTimeFromSlider(input.Position.X)
+    end
+end)
+
+local function getModelRootPart(model)
+    if not model or not model.Parent then return nil end
+    local rootPart = model:FindFirstChild("HumanoidRootPart") or model:FindFirstChild("Torso") or model:FindFirstChild("UpperTorso")
+    if rootPart and rootPart:IsA("BasePart") then return rootPart end
+    return nil
+end
+
+local function isValidModel(model)
+    if not model or not model:IsA("Model") or not model.Parent then return false end
+    if LocalPlayer.Character and model == LocalPlayer.Character then return false end
+    return getModelRootPart(model) ~= nil
+end
+
+local function isDuplicateModel(model)
+    local modelName = model.Name
+    if playerTracker[modelName] then
+        local trackedModel = playerTracker[modelName]
+        if trackedModel and trackedModel.Parent and trackedModel ~= model then
+            local rootPart = getModelRootPart(model)
+            local trackedRoot = getModelRootPart(trackedModel)
+            if rootPart and trackedRoot then
+                local distance = (rootPart.Position - trackedRoot.Position).Magnitude
+                if distance < 5 then return true end
+            end
+        end
+    end
+    return false
+end
+
+local function getModelHead(model)
+    local head = model:FindFirstChild("Head")
+    if head and head:IsA("BasePart") then return head end
+    return getModelRootPart(model)
+end
+
+local function getPlayerFacingInfo(model)
+    local rootPart = getModelRootPart(model)
+    if not rootPart then return nil, false, false end
+    
+    local localChar = LocalPlayer.Character
+    if not localChar then return nil, false, false end
+    
+    local localRoot = localChar:FindFirstChild("HumanoidRootPart")
+    if not localRoot then return nil, false, false end
+    
+    local modelLookVector = rootPart.CFrame.LookVector
+    local toLocalPlayer = (localRoot.Position - rootPart.Position).Unit
+    local dotProduct = modelLookVector:Dot(toLocalPlayer)
+    
+    local angle = math.deg(math.acos(math.clamp(dotProduct, -1, 1)))
+    local isFacingTowards = dotProduct > 0.3
+    local isFacingAway = dotProduct < -0.3
+    
+    return angle, isFacingTowards, isFacingAway
+end
+
+local function getAccurateModelBounds(model)
+    local rootPart = getModelRootPart(model)
+    if not rootPart then return nil, nil, nil, nil end
+    
+    local humanoid = model:FindFirstChild("Humanoid")
+    local head = model:FindFirstChild("Head")
+    
+    local corners = {}
+    
+    if humanoid then
+        local rootPos = rootPart.Position
+        local hipHeight = humanoid.HipHeight or 0
+        
+        local modelHeight = 5.5
+        local modelWidth = 2
+        
+        if head then
+            modelHeight = (head.Position.Y - rootPos.Y) + head.Size.Y/2 + hipHeight + 1
+        end
+        
+        local cf = rootPart.CFrame
+        local right = cf.RightVector * modelWidth/2
+        local up = cf.UpVector
+        
+        local bottomY = rootPos.Y - rootPart.Size.Y/2 - hipHeight
+        local topY = rootPos.Y + modelHeight - hipHeight
+        
+        table.insert(corners, Vector3.new(rootPos.X - modelWidth/2, bottomY, rootPos.Z - modelWidth/2))
+        table.insert(corners, Vector3.new(rootPos.X + modelWidth/2, bottomY, rootPos.Z - modelWidth/2))
+        table.insert(corners, Vector3.new(rootPos.X - modelWidth/2, bottomY, rootPos.Z + modelWidth/2))
+        table.insert(corners, Vector3.new(rootPos.X + modelWidth/2, bottomY, rootPos.Z + modelWidth/2))
+        
+        table.insert(corners, Vector3.new(rootPos.X - modelWidth/2, topY, rootPos.Z - modelWidth/2))
+        table.insert(corners, Vector3.new(rootPos.X + modelWidth/2, topY, rootPos.Z - modelWidth/2))
+        table.insert(corners, Vector3.new(rootPos.X - modelWidth/2, topY, rootPos.Z + modelWidth/2))
+        table.insert(corners, Vector3.new(rootPos.X + modelWidth/2, topY, rootPos.Z + modelWidth/2))
+    else
+        local size = rootPart.Size
+        local cf = rootPart.CFrame
+        
+        for x = -1, 1, 2 do
+            for y = -1, 1, 2 do
+                for z = -1, 1, 2 do
+                    local corner = cf * CFrame.new(size.X/2 * x, size.Y/2 * y, size.Z/2 * z)
+                    table.insert(corners, corner.Position)
+                end
+            end
+        end
+    end
+    
+    local minX, minY = math.huge, math.huge
+    local maxX, maxY = -math.huge, -math.huge
+    local allBehind = true
+    local anyVisible = false
+    
+    for _, corner in ipairs(corners) do
+        local screenPos, onScreen = Camera:WorldToViewportPoint(corner)
+        
+        if onScreen and screenPos.Z > 0 then
+            anyVisible = true
+            minX = math.min(minX, screenPos.X)
+            minY = math.min(minY, screenPos.Y)
+            maxX = math.max(maxX, screenPos.X)
+            maxY = math.max(maxY, screenPos.Y)
+        end
+    end
+    
+    if not anyVisible then
+        return nil, nil, nil, nil
+    end
+    
+    return minX, minY, maxX, maxY
+end
+
+local function createESP(model)
+    if not isValidModel(model) or isDuplicateModel(model) then return end
+    
+    playerTracker[model.Name] = model
+    
+    local esp = {
+        Model = model,
+        Box = nil,
+        BoxOuter = nil,
+        BoxInner = nil,
+        DistanceText = nil,
+        NameText = nil,
+        HPText = nil,
+        HPBar = nil,
+        HPBarBack = nil,
+        Tracer = nil,
+        TracerOutline = nil,
+        Highlight = nil
+    }
+    
+    pcall(function()
+        local outer = Drawing.new("Square")
+        outer.Color = Color3.new(0, 0, 0)
+        outer.Thickness = 1
+        outer.Filled = false
+        outer.Visible = false
+        outer.Transparency = 0.4
+        esp.BoxOuter = outer
+
+        local mid = Drawing.new("Square")
+        mid.Color = ESP.BoxColor
+        mid.Thickness = 1
+        mid.Filled = false
+        mid.Visible = false
+        mid.Transparency = 1
+        esp.Box = mid
+
+        local inner = Drawing.new("Square")
+        inner.Color = Color3.new(0, 0, 0)
+        inner.Thickness = 1
+        inner.Filled = false
+        inner.Visible = false
+        inner.Transparency = 0.4
+        esp.BoxInner = inner
+    end)
+    
+    pcall(function()
+        local d = Drawing.new("Text")
+        d.Color = ESP.DistanceColor
+        d.Size = 14
+        d.Center = true
+        d.Outline = true
+        d.OutlineColor = Color3.new(0, 0, 0)
+        d.Visible = false
+        d.Font = 2
+        esp.DistanceText = d
+    end)
+
+    pcall(function()
+        local n = Drawing.new("Text")
+        n.Color = ESP.NameColor
+        n.Size = 14
+        n.Center = true
+        n.Outline = true
+        n.OutlineColor = Color3.new(0, 0, 0)
+        n.Visible = false
+        n.Font = 2
+        esp.NameText = n
+    end)
+
+    pcall(function()
+        local w = Drawing.new("Text")
+        w.Color = ESP.WeaponColor
+        w.Size = 14
+        w.Center = true
+        w.Outline = true
+        w.OutlineColor = Color3.new(0, 0, 0)
+        w.Visible = false
+        w.Font = 2
+        esp.WeaponText = w
+    end)
+    
+    pcall(function()
+        local h = Drawing.new("Text")
+        h.Color = Color3.new(1, 1, 0)
+        h.Size = 14
+        h.Center = true
+        h.Outline = true
+        h.OutlineColor = Color3.new(0, 0, 0)
+        h.Visible = false
+        h.Font = 2
+        esp.HPText = h
+    end)
+
+    pcall(function()
+        local bg = Drawing.new("Square")
+        bg.Color = Color3.new(0, 0, 0)
+        bg.Thickness = 1
+        bg.Filled = true
+        bg.Visible = false
+        esp.HPBarBack = bg
+
+        local hb = Drawing.new("Square")
+        hb.Color = Color3.new(0, 1, 0)
+        hb.Thickness = 1
+        hb.Filled = true
+        hb.Visible = false
+        esp.HPBar = hb
+    end)
+    
+    pcall(function()
+        local to = Drawing.new("Line")
+        to.Color = Color3.new(0, 0, 0)
+        to.Thickness = 3
+        to.Visible = false
+        to.Transparency = 1
+        to.ZIndex = 1
+        esp.TracerOutline = to
+
+        local t = Drawing.new("Line")
+        t.Color = ESP.TracerColor
+        t.Thickness = 2
+        t.Visible = false
+        t.Transparency = 1
+        t.ZIndex = 2
+        esp.Tracer = t
+    end)
+
+    pcall(function()
+        local hl = Drawing.new("Line")
+        hl.Color = Color3.new(1, 0, 0)
+        hl.Thickness = 2
+        hl.Visible = false
+        esp.HeadLine = hl
+    end)
+
+    ESPObjects[model] = esp
+end
+
+local function removeESP(model)
+    local esp = ESPObjects[model]
+    if not esp then return end
+    
+    pcall(function() if esp.Box then esp.Box:Remove() end end)
+    pcall(function() if esp.BoxOuter then esp.BoxOuter:Remove() end end)
+    pcall(function() if esp.BoxInner then esp.BoxInner:Remove() end end)
+    pcall(function() if esp.DistanceText then esp.DistanceText:Remove() end end)
+    pcall(function() if esp.NameText then esp.NameText:Remove() end end)
+    pcall(function() if esp.WeaponText then esp.WeaponText:Remove() end end)
+    pcall(function() if esp.HPText then esp.HPText:Remove() end end)
+    pcall(function() if esp.HPBar then esp.HPBar:Remove() end end)
+    pcall(function() if esp.HPBarBack then esp.HPBarBack:Remove() end end)
+    pcall(function() if esp.Tracer then esp.Tracer:Remove() end end)
+    pcall(function() if esp.TracerOutline then esp.TracerOutline:Remove() end end)
+    pcall(function() if esp.HeadLine then esp.HeadLine:Remove() end end)
+    pcall(function() if esp.Highlight then esp.Highlight:Destroy() end end)
+
+    ESPObjects[model] = nil
+    
+    if playerTracker[model.Name] == model then
+        playerTracker[model.Name] = nil
+    end
+end
+
+local function cleanupAllESP()
+    for model, esp in pairs(ESPObjects) do
+        removeESP(model)
+    end
+    ESPObjects = {}
+    for obj, esp in pairs(OreESPObjects) do
+        removeOreESP(obj)
+    end
+    OreESPObjects = {}
+    for obj, esp in pairs(DroppedESPObjects) do
+        removeDroppedESP(obj)
+    end
+    DroppedESPObjects = {}
+    for obj, esp in pairs(BackpackESPObjects) do
+        removeBackpackESP(obj)
+    end
+    BackpackESPObjects = {}
+    lastDroppedRefresh = 0
+    lastOreRefresh = 0
+    lastBackpackRefresh = 0
+    playerTracker = {}
+end
+
+local function hideESP(esp)
+    if esp.Box then esp.Box.Visible = false end
+    if esp.BoxOuter then esp.BoxOuter.Visible = false end
+    if esp.BoxInner then esp.BoxInner.Visible = false end
+    if esp.DistanceText then esp.DistanceText.Visible = false end
+    if esp.NameText then esp.NameText.Visible = false end
+    if esp.WeaponText then esp.WeaponText.Visible = false end
+    if esp.HPText then esp.HPText.Visible = false end
+    if esp.HPBar then esp.HPBar.Visible = false end
+    if esp.HPBarBack then esp.HPBarBack.Visible = false end
+    if esp.Tracer then esp.Tracer.Visible = false end
+    if esp.TracerOutline then esp.TracerOutline.Visible = false end
+    if esp.HeadLine then esp.HeadLine.Visible = false end
+end
+
+local function removeOreESP(obj)
+    local esp = OreESPObjects[obj]
+    if not esp then return end
+    pcall(function() if esp.Text then esp.Text:Remove() end end)
+    OreESPObjects[obj] = nil
+end
+
+local function hideOreESP(esp)
+    if esp and esp.Text then
+        esp.Text.Visible = false
+    end
+end
+
+local function isOreModel(obj)
+    if not obj or not obj:IsA("Model") then return false end
+    local name = obj.Name
+    return name == "Iron Ore" or name == "Brimstone Ore" or name == "Stone Ore"
+end
+
+local function createOreESP(ore)
+    local part = ore.PrimaryPart or ore:FindFirstChildWhichIsA("BasePart")
+    if not part then return end
+
+    local t = Drawing.new("Text")
+    t.Size = 14
+    t.Center = true
+    t.Outline = true
+    t.OutlineColor = Color3.new(0, 0, 0)
+    local name = ore.Name
+    local colorMap = {
+        ["Iron Ore"] = Color3.fromRGB(139, 69, 19),
+        ["Brimstone Ore"] = Color3.fromRGB(255, 255, 0),
+        ["Stone Ore"] = Color3.new(1, 1, 1)
+    }
+    t.Color = colorMap[name] or Color3.new(1, 1, 1)
+    t.Visible = false
+
+    OreESPObjects[ore] = {Text = t, Part = part, Name = name}
+end
+
+local function trackOreAdded(obj)
+    if not OreESP.Enabled or not isOreModel(obj) then return end
+
+    local name = obj.Name
+    local enabled = (name == "Iron Ore" and OreESP.IronEnabled)
+        or (name == "Brimstone Ore" and OreESP.BrimstoneEnabled)
+        or (name == "Stone Ore" and OreESP.StoneEnabled)
+
+    if enabled and not OreESPObjects[obj] then
+        createOreESP(obj)
+    end
+end
+
+local function trackOreRemoved(obj)
+    if OreESPObjects[obj] then
+        removeOreESP(obj)
+    end
+end
+
+local function connectResourceEvents()
+    if ResourcesConnections.Added then ResourcesConnections.Added:Disconnect() end
+    if ResourcesConnections.Removed then ResourcesConnections.Removed:Disconnect() end
+    ResourcesFolder = workspace:WaitForChild("Resources", 5)
+    if ResourcesFolder then
+        ResourcesConnections.Added = ResourcesFolder.DescendantAdded:Connect(trackOreAdded)
+        ResourcesConnections.Removed = ResourcesFolder.DescendantRemoving:Connect(trackOreRemoved)
+    end
+end
+
+local function refreshOreList()
+    if not ResourcesFolder then return end
+    for _, ore in ipairs(ResourcesFolder:GetDescendants()) do
+        trackOreAdded(ore)
+    end
+end
+
+connectResourceEvents()
+refreshOreList()
+
+local DroppedFolder
+local DroppedAddedConn, DroppedRemovedConn
+
+local function removeDroppedESP(obj)
+    local esp = DroppedESPObjects[obj]
+    if not esp then return end
+    pcall(function() if esp.Text then esp.Text:Remove() end end)
+    DroppedESPObjects[obj] = nil
+end
+
+local function hideDroppedESP(esp)
+    if esp and esp.Text then
+        esp.Text.Visible = false
+    end
+end
+
+local function createDroppedESP(model)
+    local part = model.PrimaryPart or model:FindFirstChildWhichIsA("BasePart")
+    if not part then return end
+    local t = Drawing.new("Text")
+    t.Size = 14
+    t.Center = true
+    t.Outline = true
+    t.OutlineColor = Color3.new(0, 0, 0)
+    t.Color = Color3.new(1, 1, 1)
+    t.Visible = false
+    DroppedESPObjects[model] = {Text = t, Part = part, Name = model.Name}
+end
+
+local function trackDroppedAdded(obj)
+    if not DroppedESP.Enabled or not obj:IsA("Model") then return end
+    local name = obj.Name
+    if DroppedESP.Items[name] and not DroppedESPObjects[obj] then
+        createDroppedESP(obj)
+    end
+end
+
+local function trackDroppedRemoved(obj)
+    if DroppedESPObjects[obj] then
+        removeDroppedESP(obj)
+    end
+end
+
+local function connectDroppedEvents()
+    if DroppedAddedConn then DroppedAddedConn:Disconnect() end
+    if DroppedRemovedConn then DroppedRemovedConn:Disconnect() end
+    DroppedFolder = workspace:WaitForChild("Dropped", 5)
+    if DroppedFolder then
+        DroppedAddedConn = DroppedFolder.DescendantAdded:Connect(trackDroppedAdded)
+        DroppedRemovedConn = DroppedFolder.DescendantRemoving:Connect(trackDroppedRemoved)
+    end
+end
+
+function refreshDroppedList()
+    if not DroppedFolder then return end
+    for _, obj in ipairs(DroppedFolder:GetDescendants()) do
+        trackDroppedAdded(obj)
+    end
+end
+
+connectDroppedEvents()
+refreshDroppedList()
+
+local BackpackFolder
+local BackpackAddedConn, BackpackRemovedConn
+
+local function removeBackpackESP(obj)
+    local esp = BackpackESPObjects[obj]
+    if not esp then return end
+    pcall(function() if esp.Text then esp.Text:Remove() end end)
+    BackpackESPObjects[obj] = nil
+end
+
+local function hideBackpackESP(esp)
+    if esp and esp.Text then
+        esp.Text.Visible = false
+    end
+end
+
+local function createBackpackESP(model)
+    local part = model.PrimaryPart or model:FindFirstChildWhichIsA("BasePart")
+    if not part then return end
+    local t = Drawing.new("Text")
+    t.Size = 14
+    t.Center = true
+    t.Outline = true
+    t.OutlineColor = Color3.new(0, 0, 0)
+    t.Color = Color3.new(1, 1, 1)
+    t.Visible = false
+    BackpackESPObjects[model] = {Text = t, Part = part, Name = model.Name}
+end
+
+local function trackBackpackAdded(obj)
+    if not BackpackESP.Enabled or not obj:IsA("Model") then return end
+    if not BackpackESPObjects[obj] then
+        createBackpackESP(obj)
+    end
+end
+
+local function trackBackpackRemoved(obj)
+    if BackpackESPObjects[obj] then
+        removeBackpackESP(obj)
+    end
+end
+
+local function connectBackpackEvents()
+    if BackpackAddedConn then BackpackAddedConn:Disconnect() end
+    if BackpackRemovedConn then BackpackRemovedConn:Disconnect() end
+    BackpackFolder = workspace:WaitForChild("DroppedPacks", 5)
+    if BackpackFolder then
+        BackpackAddedConn = BackpackFolder.DescendantAdded:Connect(trackBackpackAdded)
+        BackpackRemovedConn = BackpackFolder.DescendantRemoving:Connect(trackBackpackRemoved)
+    end
+end
+
+local function refreshBackpackList()
+    if not BackpackFolder then return end
+    for _, obj in ipairs(BackpackFolder:GetDescendants()) do
+        trackBackpackAdded(obj)
+    end
+end
+
+connectBackpackEvents()
+refreshBackpackList()
+
+local function updateHighlight(model, esp, distance)
+    if not HighlightConfig.Enabled then
+        if esp.Highlight then
+            esp.Highlight:Destroy()
+            esp.Highlight = nil
+        end
+        return
+    end
+
+    if distance and distance > ESP.MaxDistance then
+        if esp.Highlight then
+            esp.Highlight:Destroy()
+            esp.Highlight = nil
+        end
+        return
+    end
+
+    local hum = model:FindFirstChildOfClass("Humanoid")
+    if not hum or hum.Health <= 0 then
+        if esp.Highlight then
+            esp.Highlight:Destroy()
+            esp.Highlight = nil
+        end
+        return
+    end
+
+    local teamDot = model:FindFirstChild("TeamDot")
+    local shouldHighlight = false
+
+    if teamDot then
+        local success, enabled = pcall(function()
+            return teamDot.Enabled
+        end)
+        shouldHighlight = success and enabled == false
+    end
+
+    if shouldHighlight then
+        if not esp.Highlight or esp.Highlight.Parent ~= model then
+            local highlight = Instance.new("Highlight")
+            highlight.Name = "TeamDotHighlight"
+            highlight.FillTransparency = 1
+            highlight.OutlineColor = HighlightConfig.Color
+            highlight.Parent = model
+            esp.Highlight = highlight
+        else
+            esp.Highlight.Enabled = true
+        end
+    elseif esp.Highlight then
+        esp.Highlight:Destroy()
+        esp.Highlight = nil
+    end
+end
+
+local function updateOreESP()
+    if not ResourcesFolder then return end
+    if not OreESP.Enabled then
+        for ore, _ in pairs(OreESPObjects) do
+            removeOreESP(ore)
+        end
+        return
+    end
+
+    if tick() - lastOreRefresh > 1 then
+        refreshOreList()
+        lastOreRefresh = tick()
+    end
+
+    local localChar = LocalPlayer.Character
+    if not localChar then return end
+
+    local localRoot = localChar:FindFirstChild("HumanoidRootPart")
+    if not localRoot then return end
+
+    for ore, esp in pairs(OreESPObjects) do
+        if not ore or not ore.Parent then
+            removeOreESP(ore)
+        else
+            local name = esp.Name or ore.Name
+            local enabled = (name == "Iron Ore" and OreESP.IronEnabled)
+                or (name == "Brimstone Ore" and OreESP.BrimstoneEnabled)
+                or (name == "Stone Ore" and OreESP.StoneEnabled)
+
+            if not enabled then
+                removeOreESP(ore)
+            else
+                local part = esp.Part
+                if not part or not part.Parent then
+                    removeOreESP(ore)
+                else
+                    local distance = (localRoot.Position - part.Position).Magnitude
+                    if distance <= OreESP.MaxDistance then
+                        local screenPos, onScreen = Camera:WorldToViewportPoint(part.Position)
+                        if onScreen then
+                            esp.Text.Text = string.format("%s [%d]", name, distance)
+                            esp.Text.Position = Vector2.new(screenPos.X, screenPos.Y)
+                            esp.Text.Visible = true
+                        else
+                            esp.Text.Visible = false
+                        end
+                    else
+                        hideOreESP(esp)
+                    end
+                end
+            end
+        end
+    end
+end
+
+local function updateDroppedESP()
+    if not DroppedFolder then return end
+    if not DroppedESP.Enabled then
+        for obj, _ in pairs(DroppedESPObjects) do
+            removeDroppedESP(obj)
+        end
+        return
+    end
+
+    if tick() - lastDroppedRefresh > 1 then
+        refreshDroppedList()
+        lastDroppedRefresh = tick()
+    end
+
+    local localChar = LocalPlayer.Character
+    if not localChar then return end
+    local localRoot = localChar:FindFirstChild("HumanoidRootPart")
+    if not localRoot then return end
+
+    for obj, esp in pairs(DroppedESPObjects) do
+        if not obj or not obj.Parent then
+            removeDroppedESP(obj)
+        else
+            local name = esp.Name or obj.Name
+            if not DroppedESP.Items[name] then
+                removeDroppedESP(obj)
+            else
+                local part = esp.Part
+                if not part or not part.Parent then
+                    removeDroppedESP(obj)
+                else
+                    local distance = (localRoot.Position - part.Position).Magnitude
+                    if distance <= DroppedESP.MaxDistance then
+                        local screenPos, onScreen = Camera:WorldToViewportPoint(part.Position)
+                        if onScreen then
+                            esp.Text.Text = string.format("%s [%d]", name, distance)
+                            esp.Text.Position = Vector2.new(screenPos.X, screenPos.Y)
+                            esp.Text.Visible = true
+                        else
+                            esp.Text.Visible = false
+                        end
+                    else
+                        hideDroppedESP(esp)
+                    end
+                end
+            end
+        end
+    end
+end
+
+local function updateBackpackESP()
+    if not BackpackFolder then return end
+    if not BackpackESP.Enabled then
+        for obj, _ in pairs(BackpackESPObjects) do
+            removeBackpackESP(obj)
+        end
+        return
+    end
+
+    if tick() - lastBackpackRefresh > 1 then
+        refreshBackpackList()
+        lastBackpackRefresh = tick()
+    end
+
+    local localChar = LocalPlayer.Character
+    if not localChar then return end
+    local localRoot = localChar:FindFirstChild("HumanoidRootPart")
+    if not localRoot then return end
+
+    for obj, esp in pairs(BackpackESPObjects) do
+        if not obj or not obj.Parent then
+            removeBackpackESP(obj)
+        else
+            local part = esp.Part
+            if not part or not part.Parent then
+                removeBackpackESP(obj)
+            else
+                local screenPos, onScreen = Camera:WorldToViewportPoint(part.Position)
+                if onScreen then
+                    local dist = math.floor((localRoot.Position - part.Position).Magnitude)
+                    esp.Text.Text = string.format("%s [%d]", esp.Name or obj.Name, dist)
+                    esp.Text.Position = Vector2.new(screenPos.X, screenPos.Y)
+                    esp.Text.Visible = true
+                else
+                    esp.Text.Visible = false
+                end
+            end
+        end
+    end
+end
+
+local function updateMap()
+    if not MapConfig.Enabled or not MapConfig.Frame then return end
+    local localChar = LocalPlayer.Character
+    if not localChar then return end
+    local localRoot = localChar:FindFirstChild("HumanoidRootPart")
+    if not localRoot then return end
+
+    local camera = workspace.CurrentCamera
+    if camera and MapConfig.RotFrame then
+        local look = camera.CFrame.LookVector
+        -- Rotate minimap so the camera's facing direction points upward
+        MapConfig.RotFrame.Rotation = -math.deg(math.atan2(look.X, -look.Z))
+    end
+
+    for model, dot in pairs(MapConfig.Dots) do
+        local root = model:FindFirstChild("HumanoidRootPart")
+        if not model.Parent or not root then
+            dot:Destroy()
+            MapConfig.Dots[model] = nil
+        end
+    end
+
+    local radius = MapConfig.Frame.AbsoluteSize.X / 2
+    local range = MapConfig.Range
+
+    for _, model in ipairs(PlayersFolder:GetChildren()) do
+        if model.Name ~= LocalPlayer.Name then
+            local rootPart = model:FindFirstChild("HumanoidRootPart")
+            if rootPart then
+                local offset = rootPart.Position - localRoot.Position
+                local planar = Vector3.new(offset.X, 0, offset.Z)
+                local distance = planar.Magnitude
+                local dot = MapConfig.Dots[model]
+                if distance <= range then
+                    local mapX = (planar.X / range) * radius
+                    local mapY = (planar.Z / range) * radius
+                    local mag = math.sqrt(mapX * mapX + mapY * mapY)
+                    if mag > radius then
+                        mapX = mapX / mag * radius
+                        mapY = mapY / mag * radius
+                    end
+
+                    local dir = rootPart.CFrame.LookVector
+                    local rot = math.deg(math.atan2(dir.X, -dir.Z))
+
+                    if not dot then
+                        dot = Instance.new("TextLabel")
+                        dot.Size = UDim2.new(0, 10, 0, 10)
+                        dot.BackgroundTransparency = 1
+                        dot.AnchorPoint = Vector2.new(0.5, 0.5)
+                        dot.ZIndex = 2
+                        dot.FontFace = customFont
+                        dot.Text = "▶"
+                        dot.TextSize = 10
+                        dot.Parent = MapConfig.RotFrame
+                        MapConfig.Dots[model] = dot
+                    end
+
+                    dot.Position = UDim2.new(0.5, mapX, 0.5, mapY)
+                    dot.Rotation = rot - 90
+                    if TeamCheckConfig.Enabled and hasTeamDot(model) then
+                        dot.TextColor3 = Color3.new(0, 1, 0)
+                    else
+                        dot.TextColor3 = Color3.new(1, 0, 0)
+                    end
+                    dot.Visible = true
+                elseif dot then
+                    dot.Visible = false
+                end
+            end
+        end
+    end
+end
+
+function updateNews()
+    if not NewsConfig.Enabled or not NewsConfig.Label then return end
+    local ai = workspace:FindFirstChild("AI")
+    if ai and ai:FindFirstChild("Akira") then
+        NewsConfig.Label.Text = "Akiraが湧いています"
+        NewsConfig.Label.TextColor3 = Color3.fromRGB(0, 255, 0)
+    else
+        NewsConfig.Label.Text = "Akiraは倒されました"
+        NewsConfig.Label.TextColor3 = Color3.fromRGB(255, 0, 0)
+    end
+end
+
+local function updateBox(esp, minX, minY, maxX, maxY, distance)
+    local boxWidth = maxX - minX
+    local boxHeight = maxY - minY
+
+    if boxWidth < 8 then
+        boxWidth = math.max(12, 80 / math.max(distance / 20, 1))
+    end
+    if boxHeight < 10 then
+        boxHeight = math.max(16, 100 / math.max(distance / 20, 1))
+    end
+
+    local centerX = (minX + maxX) / 2
+    local centerY = (minY + maxY) / 2
+
+    local finalX = centerX - boxWidth / 2
+    local finalY = centerY - boxHeight / 2
+
+    esp.Box.Color = ESP.BoxColor
+
+    esp.BoxOuter.Size = Vector2.new(boxWidth + 4, boxHeight + 4)
+    esp.BoxOuter.Position = Vector2.new(finalX - 2, finalY - 2)
+    esp.BoxOuter.Visible = true
+
+    esp.Box.Size = Vector2.new(boxWidth + 2, boxHeight + 2)
+    esp.Box.Position = Vector2.new(finalX - 1, finalY - 1)
+    esp.Box.Visible = true
+
+    esp.BoxInner.Size = Vector2.new(boxWidth, boxHeight)
+    esp.BoxInner.Position = Vector2.new(finalX, finalY)
+    esp.BoxInner.Visible = true
+end
+
+local function updateDistanceText(esp, minX, maxX, minY, distance)
+    esp.DistanceText.Text = math.floor(distance) .. "m"
+    local offset
+    if ESP.NameEnabled then
+        offset = ESP.LabelOrder == "Distance" and -35 or -20
+    else
+        offset = -20
+    end
+    esp.DistanceText.Position = Vector2.new((minX + maxX) / 2, minY + offset)
+    esp.DistanceText.Color = ESP.DistanceColor
+    esp.DistanceText.Visible = true
+end
+
+local function updateNameText(esp, minX, maxX, minY, name)
+    esp.NameText.Text = name
+    local offset
+    if ESP.DistanceEnabled then
+        offset = ESP.LabelOrder == "Name" and -35 or -20
+    else
+        offset = -20
+    end
+    esp.NameText.Position = Vector2.new((minX + maxX) / 2, minY + offset)
+    esp.NameText.Color = ESP.NameColor
+    esp.NameText.Visible = true
+end
+
+local function updateWeaponText(esp, minX, maxX, maxY, weapon)
+    esp.WeaponText.Text = weapon
+    local offset
+    if ESP.HPEnabled and not ESP.HPBar then
+        offset = ESP.BottomLabelOrder == "Weapon" and 5 or 20
+    else
+        offset = 5
+    end
+    esp.WeaponText.Position = Vector2.new((minX + maxX) / 2, maxY + offset)
+    esp.WeaponText.Color = ESP.WeaponColor
+    esp.WeaponText.Visible = true
+end
+
+local function updateHP(esp, humanoid, minX, minY, maxX, maxY)
+    if esp.HPBar then esp.HPBar.Visible = false end
+    if esp.HPBarBack then esp.HPBarBack.Visible = false end
+    if esp.HPText then esp.HPText.Visible = false end
+
+    local maxHealth = humanoid.MaxHealth
+    if not maxHealth or maxHealth <= 0 or maxHealth ~= maxHealth then
+        return
+    end
+
+    local health = humanoid.Health
+    if not health or health <= 0 or health ~= health then
+        if humanoid:GetState() ~= Enum.HumanoidStateType.Dead then
+            health = math.max(1, maxHealth * 0.01)
+        else
+            return
+        end
+    end
+
+    local hpRatio = health / maxHealth
+    if hpRatio <= 0 or hpRatio ~= hpRatio then
+        hpRatio = 1
+    end
+    hpRatio = math.clamp(hpRatio, 0, 1)
+    local hpPercent = hpRatio * 100
+    if ESP.HPBar and esp.HPBar and esp.HPBarBack then
+        local boxWidth = maxX - minX
+        local boxHeight = maxY - minY
+        local barHeight = math.max(boxHeight, 20)
+        local gap = math.clamp(boxWidth * 0.05, 2, 8)
+        local barX = minX - 2 - gap
+        local barY = minY + (boxHeight - barHeight) / 2
+        local innerHeight = barHeight * hpRatio
+        if hpRatio > 0 and innerHeight < 1 then
+            innerHeight = 1
+        end
+
+        esp.HPBarBack.Size = Vector2.new(2, barHeight)
+        esp.HPBarBack.Position = Vector2.new(barX, barY)
+        esp.HPBarBack.Visible = true
+
+        esp.HPBar.Size = Vector2.new(2, innerHeight)
+        esp.HPBar.Position = Vector2.new(barX, barY + barHeight - innerHeight)
+
+        if hpPercent > 75 then
+            esp.HPBar.Color = Color3.new(0, 1, 0)
+        elseif hpPercent > 50 then
+            esp.HPBar.Color = Color3.new(1, 1, 0)
+        elseif hpPercent > 25 then
+            esp.HPBar.Color = Color3.new(1, 0.5, 0)
+        else
+            esp.HPBar.Color = Color3.new(1, 0, 0)
+        end
+
+        esp.HPBar.Visible = true
+        if esp.HPText then esp.HPText.Visible = false end
+    elseif esp.HPText then
+        esp.HPText.Text = math.floor(hpPercent) .. "%"
+        local offset
+        if ESP.WeaponEnabled then
+            offset = ESP.BottomLabelOrder == "HP" and 5 or 20
+        else
+            offset = 5
+        end
+        esp.HPText.Position = Vector2.new((minX + maxX) / 2, maxY + offset)
+
+        if hpPercent > 75 then
+            esp.HPText.Color = Color3.new(0, 1, 0)
+        elseif hpPercent > 50 then
+            esp.HPText.Color = Color3.new(1, 1, 0)
+        elseif hpPercent > 25 then
+            esp.HPText.Color = Color3.new(1, 0.5, 0)
+        else
+            esp.HPText.Color = Color3.new(1, 0, 0)
+        end
+
+        esp.HPText.Visible = true
+        if esp.HPBar then esp.HPBar.Visible = false end
+        if esp.HPBarBack then esp.HPBarBack.Visible = false end
+    end
+end
+
+local function updateTracer(esp, rootScreen)
+    esp.Tracer.Color = ESP.TracerColor
+    local fromPos = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y)
+    local toPos = Vector2.new(rootScreen.X, rootScreen.Y)
+
+    esp.TracerOutline.From = fromPos
+    esp.TracerOutline.To = toPos
+    esp.TracerOutline.Visible = true
+
+    esp.Tracer.From = fromPos
+    esp.Tracer.To = toPos
+    esp.Tracer.Visible = true
+
+    esp.TracerOutline.Visible = true
+end
+
+local function updateHeadLine(esp, headScreen, head)
+    local endPos = Camera:WorldToViewportPoint(head.Position + head.CFrame.LookVector * 3)
+    esp.HeadLine.Color = Color3.new(1, 0, 0)
+    esp.HeadLine.From = Vector2.new(headScreen.X, headScreen.Y)
+    esp.HeadLine.To = Vector2.new(endPos.X, endPos.Y)
+    esp.HeadLine.Visible = true
+end
+
+local function processESP(model, esp, localRoot)
+    if not model or not model.Parent then
+        removeESP(model)
+        return
+    end
+
+    local rootPart = getModelRootPart(model)
+    local head = getModelHead(model)
+    local humanoid = model:FindFirstChild("Humanoid")
+
+    if not rootPart then
+        hideESP(esp)
+        updateHighlight(model, esp)
+        return
+    end
+
+    local distance = (localRoot.Position - rootPart.Position).Magnitude
+    if distance > ESP.MaxDistance then
+        hideESP(esp)
+        updateHighlight(model, esp, distance)
+        return
+    end
+
+    updateHighlight(model, esp, distance)
+
+    if TeamCheckConfig.Enabled and hasTeamDot(model) then
+        hideESP(esp)
+        return
+    end
+
+    local rootScreen = Camera:WorldToViewportPoint(rootPart.Position)
+    local headScreen = head and Camera:WorldToViewportPoint(head.Position) or rootScreen
+
+    if rootScreen.Z <= 0 then
+        hideESP(esp)
+        return
+    end
+
+    local minX, minY, maxX, maxY = getAccurateModelBounds(model)
+    if not minX then
+        hideESP(esp)
+        return
+    end
+
+    if ESP.BoxEnabled and esp.Box and esp.BoxOuter and esp.BoxInner then
+        if not pcall(updateBox, esp, minX, minY, maxX, maxY, distance) then
+            esp.Box.Visible = false
+            esp.BoxOuter.Visible = false
+            esp.BoxInner.Visible = false
+        end
+    else
+        if esp.Box then esp.Box.Visible = false end
+        if esp.BoxOuter then esp.BoxOuter.Visible = false end
+        if esp.BoxInner then esp.BoxInner.Visible = false end
+    end
+
+    if ESP.DistanceEnabled and esp.DistanceText and head then
+        if not pcall(updateDistanceText, esp, minX, maxX, minY, distance) then
+            esp.DistanceText.Visible = false
+        end
+    elseif esp.DistanceText then
+        esp.DistanceText.Visible = false
+    end
+
+    if ESP.NameEnabled and esp.NameText and head then
+        if not pcall(updateNameText, esp, minX, maxX, minY, model.Name) then
+            esp.NameText.Visible = false
+        end
+    elseif esp.NameText then
+        esp.NameText.Visible = false
+    end
+
+    if ESP.WeaponEnabled and esp.WeaponText and head then
+        local weapon = getWeaponName(model) or "none"
+        if not pcall(updateWeaponText, esp, minX, maxX, maxY, weapon) then
+            esp.WeaponText.Visible = false
+        end
+    elseif esp.WeaponText then
+        esp.WeaponText.Visible = false
+    end
+
+    if ESP.HPEnabled and humanoid then
+        if not pcall(updateHP, esp, humanoid, minX, minY, maxX, maxY) then
+            if esp.HPText then esp.HPText.Visible = false end
+            if esp.HPBar then esp.HPBar.Visible = false end
+            if esp.HPBarBack then esp.HPBarBack.Visible = false end
+        end
+    else
+        if esp.HPText then esp.HPText.Visible = false end
+        if esp.HPBar then esp.HPBar.Visible = false end
+        if esp.HPBarBack then esp.HPBarBack.Visible = false end
+    end
+
+    if ESP.TracerEnabled and esp.Tracer and esp.TracerOutline then
+        if not pcall(updateTracer, esp, rootScreen) then
+            esp.Tracer.Visible = false
+            esp.TracerOutline.Visible = false
+        end
+    else
+        if esp.Tracer then esp.Tracer.Visible = false end
+        if esp.TracerOutline then esp.TracerOutline.Visible = false end
+    end
+
+    if ESP.HeadLineEnabled and esp.HeadLine and head then
+        if not pcall(updateHeadLine, esp, headScreen, head) then
+            esp.HeadLine.Visible = false
+        end
+    elseif esp.HeadLine then
+        esp.HeadLine.Visible = false
+    end
+end
+
+function updateESP()
+    local localChar = LocalPlayer.Character
+    if not localChar then return end
+
+    local localRoot = localChar:FindFirstChild("HumanoidRootPart")
+    if not localRoot then return end
+
+    for model, esp in pairs(ESPObjects) do
+        processESP(model, esp, localRoot)
+    end
+end
+
+function autoRefresh()
+    for _, child in pairs(PlayersFolder:GetChildren()) do
+        if isValidModel(child) and not ESPObjects[child] then
+            createESP(child)
+        end
+    end
+    
+    for model, esp in pairs(ESPObjects) do
+        if not model.Parent or not PlayersFolder:FindFirstChild(model.Name) then
+            removeESP(model)
+        end
+    end
+end
+
+function refreshModels()
+    for model, esp in pairs(ESPObjects) do
+        removeESP(model)
+    end
+    
+    playerTracker = {}
+    
+    for _, child in pairs(PlayersFolder:GetChildren()) do
+        if isValidModel(child) then
+            createESP(child)
+        end
+    end
+end
+
+ToggleBindings = {
+    {button = BoxToggle,        state = function() return ESP.BoxEnabled end},
+    {button = DistanceToggle,   state = function() return ESP.DistanceEnabled end},
+    {button = NameToggle,       state = function() return ESP.NameEnabled end},
+    {button = HPToggle,         state = function() return ESP.HPEnabled end},
+    {button = TracerToggle,     state = function() return ESP.TracerEnabled end},
+    {button = HighlightToggle,  state = function() return HighlightConfig.Enabled end},
+    {button = HeadLineToggle,   state = function() return ESP.HeadLineEnabled end},
+    {button = WeaponToggle,     state = function() return ESP.WeaponEnabled end},
+    {button = TeamCheckToggle,  state = function() return TeamCheckConfig.Enabled end},
+    {button = OreToggle,        state = function() return OreESP.Enabled end},
+    {button = IronToggle,       state = function() return OreESP.IronEnabled end},
+    {button = BrimstoneToggle,  state = function() return OreESP.BrimstoneEnabled end},
+    {button = StoneToggle,      state = function() return OreESP.StoneEnabled end},
+    {button = DroppedToggle,    state = function() return DroppedESP.Enabled end},
+    {button = BackpackToggle,   state = function() return BackpackESP.Enabled end},
+    {button = GodSkinChangerToggle, state = function() return GodSkinChanger.Enabled end},
+    {button = MapToggle,        state = function() return MapConfig.Enabled end},
+    {button = NewsToggle,       state = function() return NewsConfig.Enabled end},
+    {button = SkyColorToggle,   state = function() return SkyColorConfig.Enabled end},
+    {button = FlyToggle,        state = function() return FlyConfig.Enabled end},
+    {button = NoClipToggle,     state = function() return NoClipConfig.Enabled end},
+    {button = NoClipReturnToggle, state = function() return NoClipConfig.ReturnY end},
+    {button = XrayToggle,       state = function() return XrayConfig.Enabled end},
+    {button = ThirdPersonToggle,state = function() return ThirdPersonConfig.Enabled end},
+    {button = FOVToggle,        state = function() return FOVConfig.Enabled end},
+    {button = AimFovToggle,     state = function() return AimFovConfig.Enabled end},
+    {button = AimbotToggle,     state = function() return AimbotConfig.Enabled end},
+    {button = NightVisionToggle,state = function() return NightVisionConfig.Enabled end},
+    {button = CFrameSpeedToggle,state = function() return CFrameSpeedConfig.Enabled end},
+    {button = RemoveGrassToggle,state = function() return GrassRemoverConfig.Enabled end},
+    {button = TimeToggle,       state = function() return TimeControl.Enabled end},
+    {button = KeyListToggle,    state = function() return UIState.KeyListVisible end},
+    {button = StatsToggle,      state = function() return UIState.StatsVisible end},
+}
+
+function updateButtons()
+    for _, entry in ipairs(ToggleBindings) do
+        if entry.button and entry.button.Check then
+            entry.button.Check.Visible = entry.state()
+        end
+    end
+
+    if HPBarButton then
+        HPBarButton.Text = ESP.HPBar and "bar" or "text"
+    end
+
+    OreListFrame.Visible = UIState.oreListExpanded
+    if UIState.OreArrow then
+        UIState.OreArrow.Text = UIState.oreListExpanded and "v" or ">"
+    end
+    DroppedListFrame.Visible = UIState.droppedListExpanded
+    if UIState.DroppedArrow then
+        UIState.DroppedArrow.Text = UIState.droppedListExpanded and "v" or ">"
+    end
+    for name, tgl in pairs(DroppedToggles) do
+        tgl.Check.Visible = DroppedESP.Items[name]
+    end
+    if XraySliderFrame then XraySliderFrame.Visible = XrayConfig.Enabled end
+    if XrayLabel then XrayLabel.Visible = XrayConfig.Enabled end
+    if XrayConfig.Enabled then
+        local relativePos = XrayConfig.Transparency
+        XraySliderBar.Size = UDim2.new(relativePos, 0, 1, 0)
+        XraySliderHandle.Position = UDim2.new(relativePos, -6, 0.5, -6)
+        if XrayLabel then
+            XrayLabel.Text = string.format("Alpha: %.2f", XrayConfig.Transparency)
+        end
+    end
+end
+
+function updateTimeControlUI()
+    TimeLabel.Visible = TimeControl.Enabled
+    TimeSliderFrame.Visible = TimeControl.Enabled
+
+    if TimeControl.Enabled then
+        local currentTime = Lighting.ClockTime
+        local relativePos = currentTime / 24
+        TimeSliderBar.Size = UDim2.new(relativePos, 0, 1, 0)
+        TimeSliderHandle.Position = UDim2.new(relativePos, -6, 0.5, -6)
+        TimeLabel.Text = "Time: " .. string.format("%.1f", currentTime)
+    else
+        Lighting.ClockTime = TimeControl.OriginalTime
+        TimeLabel.Text = "Time: " .. string.format("%.1f", TimeControl.OriginalTime)
+    end
+end
+
+-- configuration save/load helpers
+ConfigFolder = "KUMAOConfigs"
+if makefolder and not isfolder(ConfigFolder) then
+    pcall(function() makefolder(ConfigFolder) end)
+end
+
+function colorToTable(c)
+    return {c.R, c.G, c.B}
+end
+
+function tableToColor(t)
+    return Color3.new(t[1], t[2], t[3])
+end
+function notifyConfig(msg)
+    if UIState.ConfigNotify then
+        UIState.ConfigNotify:Destroy()
+    end
+    local label = Instance.new("TextLabel")
+    UIState.ConfigNotify = label
+    label.Name = "ConfigNotify"
+    label.Size = UDim2.new(0, 200, 0, 30)
+    label.AnchorPoint = Vector2.new(1, 1)
+    label.Position = UDim2.new(1, 210, 1, -10)
+    label.BackgroundColor3 = Color3.new(0, 0, 0)
+    label.BackgroundTransparency = 0.3
+    label.TextColor3 = Color3.new(1, 1, 1)
+    label.Font = Enum.Font.SourceSans
+    label.TextSize = 20
+    label.Text = msg
+    label.Parent = ScreenGui
+    local tweenIn = TweenService:Create(label, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+        Position = UDim2.new(1, -10, 1, -10)
+    })
+    tweenIn:Play()
+    task.delay(2, function()
+        if label == UIState.ConfigNotify then
+            local tweenOut = TweenService:Create(label, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
+                Position = UDim2.new(1, 210, 1, -10)
+            })
+            tweenOut:Play()
+            tweenOut.Completed:Wait()
+            if label == UIState.ConfigNotify then
+                UIState.ConfigNotify:Destroy()
+                UIState.ConfigNotify = nil
+            end
+        end
+    end)
+end
+
+
+function collectConfig()
+    return {
+        ESP = {
+            BoxEnabled = ESP.BoxEnabled,
+            DistanceEnabled = ESP.DistanceEnabled,
+            NameEnabled = ESP.NameEnabled,
+            WeaponEnabled = ESP.WeaponEnabled,
+            HPEnabled = ESP.HPEnabled,
+            HPBar = ESP.HPBar,
+            TracerEnabled = ESP.TracerEnabled,
+            HeadLineEnabled = ESP.HeadLineEnabled,
+            BoxColor = colorToTable(ESP.BoxColor),
+            TracerColor = colorToTable(ESP.TracerColor),
+            DistanceColor = colorToTable(ESP.DistanceColor),
+            NameColor = colorToTable(ESP.NameColor),
+            WeaponColor = colorToTable(ESP.WeaponColor),
+            LabelOrder = ESP.LabelOrder,
+            BottomLabelOrder = ESP.BottomLabelOrder
+        },
+        TeamCheck = TeamCheckConfig.Enabled,
+        Highlight = {Enabled = HighlightConfig.Enabled, Color = colorToTable(HighlightConfig.Color)},
+        GodSkinChanger = GodSkinChanger.Enabled,
+        OreESP = {
+            Enabled = OreESP.Enabled,
+            IronEnabled = OreESP.IronEnabled,
+            BrimstoneEnabled = OreESP.BrimstoneEnabled,
+            StoneEnabled = OreESP.StoneEnabled
+        },
+        DroppedESP = {Enabled = DroppedESP.Enabled, Items = DroppedESP.Items},
+        BackpackESP = {Enabled = BackpackESP.Enabled},
+        Map = {
+            Enabled = MapConfig.Enabled,
+            Position = {MapConfig.Position.X.Scale, MapConfig.Position.X.Offset, MapConfig.Position.Y.Scale, MapConfig.Position.Y.Offset}
+        },
+        News = {
+            Enabled = NewsConfig.Enabled,
+            Position = {NewsConfig.Position.X.Scale, NewsConfig.Position.X.Offset, NewsConfig.Position.Y.Scale, NewsConfig.Position.Y.Offset}
+        },
+        SkyColor = {Enabled = SkyColorConfig.Enabled, Ambient = colorToTable(SkyColorConfig.Ambient), Top = colorToTable(SkyColorConfig.Top)},
+        Xray = {Enabled = XrayConfig.Enabled, Transparency = XrayConfig.Transparency},
+        AimFov = {Enabled = AimFovConfig.Enabled, Radius = AimFovConfig.Radius, Color = colorToTable(AimFovConfig.Color)},
+        Aimbot = {Enabled = AimbotConfig.Enabled, Smoothness = AimbotConfig.Smoothness},
+        NightVision = NightVisionConfig.Enabled,
+        Fly = FlyConfig.Enabled, -- only button state persists
+        NoClip = {Enabled = NoClipConfig.Enabled, ReturnY = NoClipConfig.ReturnY}, -- key toggle state ignored
+        ThirdPerson = {Enabled = ThirdPersonConfig.Enabled, Distance = ThirdPersonConfig.Distance},
+        FOV = {Enabled = FOVConfig.Enabled, Value = FOVConfig.Value},
+        CFrameSpeed = {Enabled = CFrameSpeedConfig.Enabled, Speed = CFrameSpeedConfig.Speed}, -- key toggle state ignored
+        RemoveGrass = GrassRemoverConfig.Enabled,
+        TimeControl = {Enabled = TimeControl.Enabled, CurrentTime = TimeControl.CurrentTime},
+        KeyList = UIState.KeyListVisible,
+        Stats = UIState.StatsVisible
+    }
+end
+
+function applyConfig(cfg)
+    if cfg.ESP then
+        ESP.BoxEnabled = cfg.ESP.BoxEnabled or false
+        ESP.DistanceEnabled = cfg.ESP.DistanceEnabled or false
+        ESP.NameEnabled = cfg.ESP.NameEnabled or false
+        ESP.WeaponEnabled = cfg.ESP.WeaponEnabled or false
+        ESP.HPEnabled = cfg.ESP.HPEnabled or false
+        ESP.HPBar = cfg.ESP.HPBar or false
+        ESP.TracerEnabled = cfg.ESP.TracerEnabled or false
+        ESP.HeadLineEnabled = cfg.ESP.HeadLineEnabled or false
+        if cfg.ESP.BoxColor then
+            local c = tableToColor(cfg.ESP.BoxColor)
+            ESP.BoxColor = c
+            BoxColorButton.BackgroundColor3 = c
+            if BoxColorPicker then BoxColorPicker.SetColor(c) end
+        end
+        if cfg.ESP.TracerColor then
+            local c = tableToColor(cfg.ESP.TracerColor)
+            ESP.TracerColor = c
+            TracerColorButton.BackgroundColor3 = c
+            if TracerColorPicker then TracerColorPicker.SetColor(c) end
+        end
+        if cfg.ESP.DistanceColor then
+            local c = tableToColor(cfg.ESP.DistanceColor)
+            ESP.DistanceColor = c
+            DistanceColorButton.BackgroundColor3 = c
+            if DistanceColorPicker then DistanceColorPicker.SetColor(c) end
+        end
+        if cfg.ESP.NameColor then
+            local c = tableToColor(cfg.ESP.NameColor)
+            ESP.NameColor = c
+            NameColorButton.BackgroundColor3 = c
+            if NameColorPicker then NameColorPicker.SetColor(c) end
+        end
+        if cfg.ESP.WeaponColor then
+            local c = tableToColor(cfg.ESP.WeaponColor)
+            ESP.WeaponColor = c
+            WeaponColorButton.BackgroundColor3 = c
+            if WeaponColorPicker then WeaponColorPicker.SetColor(c) end
+        end
+        if cfg.ESP.LabelOrder then
+            ESP.LabelOrder = cfg.ESP.LabelOrder
+        end
+        if cfg.ESP.BottomLabelOrder then
+            ESP.BottomLabelOrder = cfg.ESP.BottomLabelOrder
+        end
+        for _, esp in pairs(ESPObjects) do
+            if esp.DistanceText then esp.DistanceText.Color = ESP.DistanceColor end
+            if esp.NameText then esp.NameText.Color = ESP.NameColor end
+            if esp.WeaponText then esp.WeaponText.Color = ESP.WeaponColor end
+        end
+    end
+    if cfg.TeamCheck ~= nil then
+        TeamCheckConfig.Enabled = cfg.TeamCheck
+    end
+    if cfg.Highlight then
+        HighlightConfig.Enabled = cfg.Highlight.Enabled
+        if cfg.Highlight.Color then
+            local c = tableToColor(cfg.Highlight.Color)
+            HighlightConfig.Color = c
+            HighlightColorButton.BackgroundColor3 = c
+            if HighlightColorPicker then HighlightColorPicker.SetColor(c) end
+        end
+    end
+    if cfg.GodSkinChanger ~= nil then
+        GodSkinChanger.Enabled = cfg.GodSkinChanger
+    end
+    if cfg.OreESP then
+        OreESP.Enabled = cfg.OreESP.Enabled
+        OreESP.IronEnabled = cfg.OreESP.IronEnabled
+        OreESP.BrimstoneEnabled = cfg.OreESP.BrimstoneEnabled
+        OreESP.StoneEnabled = cfg.OreESP.StoneEnabled
+    end
+    if cfg.DroppedESP then
+        DroppedESP.Enabled = cfg.DroppedESP.Enabled
+        DroppedESP.Items = cfg.DroppedESP.Items or DroppedESP.Items
+        refreshDroppedList()
+    end
+    if cfg.BackpackESP then
+        BackpackESP.Enabled = cfg.BackpackESP.Enabled
+        connectBackpackEvents()
+        refreshBackpackList()
+    end
+    if cfg.Map then
+        if type(cfg.Map) == "table" then
+            MapConfig.Enabled = cfg.Map.Enabled
+            if cfg.Map.Position then
+                MapConfig.Position = UDim2.new(cfg.Map.Position[1], cfg.Map.Position[2], cfg.Map.Position[3], cfg.Map.Position[4])
+            end
+        else
+            MapConfig.Enabled = cfg.Map
+        end
+        if MapConfig.Enabled then
+            createMapFrame()
+            if MapConfig.Frame then
+                MapConfig.Frame.Position = MapConfig.Position
+            end
+            updateMap()
+        else
+            destroyMapFrame()
+        end
+    end
+    if cfg.News then
+        if type(cfg.News) == "table" then
+            NewsConfig.Enabled = cfg.News.Enabled
+            if cfg.News.Position then
+                NewsConfig.Position = UDim2.new(cfg.News.Position[1], cfg.News.Position[2], cfg.News.Position[3], cfg.News.Position[4])
+            end
+        else
+            NewsConfig.Enabled = cfg.News
+        end
+        if NewsConfig.Enabled then
+            createNewsFrame()
+            if NewsConfig.Frame then
+                NewsConfig.Frame.Position = NewsConfig.Position
+            end
+            updateNews()
+        else
+            destroyNewsFrame()
+        end
+    end
+    if cfg.SkyColor then
+        if cfg.SkyColor.Ambient then
+            local c = tableToColor(cfg.SkyColor.Ambient)
+            SkyColorConfig.Ambient = c
+            SkyAmbientButton.BackgroundColor3 = c
+            if SkyAmbientPicker then SkyAmbientPicker.SetColor(c) end
+        end
+        if cfg.SkyColor.Top then
+            local c = tableToColor(cfg.SkyColor.Top)
+            SkyColorConfig.Top = c
+            SkyTopButton.BackgroundColor3 = c
+            if SkyTopPicker then SkyTopPicker.SetColor(c) end
+        end
+        SkyColorConfig.Enabled = cfg.SkyColor.Enabled or false
+        if SkyColorConfig.Enabled then
+            Lighting.Ambient = SkyColorConfig.Ambient
+            Lighting.ColorShift_Top = SkyColorConfig.Top
+        else
+            Lighting.Ambient = OriginalSettings.Ambient
+            Lighting.ColorShift_Top = OriginalSettings.ColorShiftTop
+        end
+    end
+    if cfg.Xray then
+        XrayConfig.Transparency = cfg.Xray.Transparency or XrayConfig.Transparency
+        if cfg.Xray.Enabled ~= XrayConfig.Enabled then
+            toggleXray()
+        end
+    end
+    if cfg.AimFov then
+        AimFovConfig.Radius = cfg.AimFov.Radius or AimFovConfig.Radius
+        if cfg.AimFov.Color then
+            local c = tableToColor(cfg.AimFov.Color)
+            AimFovConfig.Color = c
+            AimFovColorButton.BackgroundColor3 = c
+            if AimFovColorPicker then AimFovColorPicker.SetColor(c) end
+            if AimFovConfig.CircleOutline then AimFovConfig.CircleOutline.Color = c end
+        end
+        if cfg.AimFov.Enabled ~= AimFovConfig.Enabled then
+            toggleAimFov()
+        end
+    end
+    if cfg.Aimbot and cfg.Aimbot.Enabled ~= AimbotConfig.Enabled then
+        toggleAimbot()
+    end
+    if cfg.Aimbot and cfg.Aimbot.Smoothness then
+        AimbotConfig.Smoothness = cfg.Aimbot.Smoothness
+    end
+    if cfg.NightVision ~= nil and cfg.NightVision ~= NightVisionConfig.Enabled then
+        toggleNightVision()
+    end
+    if cfg.CFrameSpeed then
+        CFrameSpeedConfig.Speed = cfg.CFrameSpeed.Speed or CFrameSpeedConfig.Speed
+        CFrameSpeedConfig.Enabled = cfg.CFrameSpeed.Enabled
+        if CFrameSpeedConfig.IsActive then
+            toggleCFrameSpeed()
+        end
+    end
+    if cfg.RemoveGrass ~= nil and cfg.RemoveGrass ~= GrassRemoverConfig.Enabled then
+        toggleRemoveAllGrass()
+    end
+    if cfg.TimeControl then
+        TimeControl.CurrentTime = cfg.TimeControl.CurrentTime or TimeControl.CurrentTime
+        if cfg.TimeControl.Enabled ~= TimeControl.Enabled then
+            TimeControl.Enabled = cfg.TimeControl.Enabled
+            if TimeControl.Enabled then
+                TimeControl.OriginalTime = Lighting.ClockTime
+                Lighting.ClockTime = TimeControl.CurrentTime
+            else
+                Lighting.ClockTime = TimeControl.OriginalTime
+            end
+        end
+        updateTimeControlUI()
+    end
+    if cfg.Fly ~= nil then
+        FlyConfig.Enabled = cfg.Fly
+        if FlyConfig.IsFlying then
+            toggleFly()
+        end
+    end
+    if cfg.NoClip then
+        NoClipConfig.Enabled = cfg.NoClip.Enabled
+        NoClipConfig.ReturnY = cfg.NoClip.ReturnY
+        if NoClipConfig.IsActive then
+            toggleNoClip()
+        end
+    end
+    if cfg.ThirdPerson then
+        ThirdPersonConfig.Distance = cfg.ThirdPerson.Distance or ThirdPersonConfig.Distance
+        if cfg.ThirdPerson.Enabled ~= ThirdPersonConfig.Enabled then
+            toggleThirdPerson()
+        end
+    end
+    if cfg.FOV then
+        FOVConfig.Value = cfg.FOV.Value or FOVConfig.Value
+        if cfg.FOV.Enabled ~= FOVConfig.Enabled then
+            toggleFOV()
+        end
+    end
+    if cfg.KeyList ~= nil then
+        UIState.KeyListVisible = cfg.KeyList
+        KeyListFrame.Visible = UIState.KeyListVisible
+    end
+    if cfg.Stats ~= nil then
+        UIState.StatsVisible = cfg.Stats
+        StatsFrame.Visible = UIState.StatsVisible
+    end
+end
+
+function saveConfig(name)
+    local path = ConfigFolder .. "/" .. name .. ".json"
+    local existed = isfile and isfile(path)
+    local data = collectConfig()
+    writefile(path, HttpService:JSONEncode(data))
+    ConfigNameBox.Text = ""
+    SelectedConfig = name
+    refreshConfigList()
+    if existed then
+        notifyConfig("Overwrote " .. name)
+    else
+        notifyConfig("Saved " .. name)
+    end
+end
+
+function loadConfigFile(name)
+    local path = ConfigFolder .. "/" .. name .. ".json"
+    if isfile(path) then
+        local data = HttpService:JSONDecode(readfile(path))
+        applyConfig(data)
+        updateButtons()
+        notifyConfig("Loaded " .. name)
+    end
+end
+
+function deleteConfigFile(name)
+    local path = ConfigFolder .. "/" .. name .. ".json"
+    if isfile and delfile and isfile(path) then
+        delfile(path)
+        repeat task.wait(0.05) until not isfile(path)
+        if listfiles then
+            repeat
+                local still = false
+                for _, f in ipairs(listfiles(ConfigFolder)) do
+                    if f:match("([^/\\]+)%.json$") == name then
+                        still = true
+                        break
+                    end
+                end
+                if still then task.wait(0.05) end
+            until not still
+        end
+        notifyConfig("Deleted " .. name)
+    end
+    SelectedConfig = nil
+    ConfigNameBox.Text = ""
+    refreshConfigList()
+end
+
+function refreshConfigList()
+    for _, btn in pairs(ConfigButtons) do
+        btn:Destroy()
+    end
+    table.clear(ConfigButtons)
+    if not listfiles then return end
+    local files = listfiles(ConfigFolder)
+    for _, file in ipairs(files) do
+        if file:sub(-5) == ".json" then
+            local name = file:match("([^/\\]+)%.json$")
+            if name then
+                local btn = Instance.new("TextButton")
+                btn.Parent = ConfigListFrame
+                btn.Size = UDim2.new(1, 0, 0, 20)
+                btn.BackgroundColor3 = defaultConfigColor
+                btn.BorderColor3 = Color3.fromRGB(255, 255, 255)
+                btn.FontFace = customFont
+                btn.TextSize = 12
+                btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+                btn.Text = name
+                btn.MouseButton1Click:Connect(function()
+                    SelectedConfig = name
+                    for _, b in pairs(ConfigButtons) do
+                        b.BackgroundColor3 = defaultConfigColor
+                    end
+                    btn.BackgroundColor3 = selectedConfigColor
+                end)
+                if name == SelectedConfig then
+                    btn.BackgroundColor3 = selectedConfigColor
+                end
+                table.insert(ConfigButtons, btn)
+            end
+        end
+    end
+end
+
+refreshConfigList()
+
+-- Button connections
+BoxToggle.Button.MouseButton1Click:Connect(function()
+    ESP.BoxEnabled = not ESP.BoxEnabled
+    updateButtons()
+end)
+
+DistanceToggle.Button.MouseButton1Click:Connect(function()
+    ESP.DistanceEnabled = not ESP.DistanceEnabled
+    if ESP.DistanceEnabled then
+        ESP.LabelOrder = "Distance"
+    elseif ESP.NameEnabled then
+        ESP.LabelOrder = "Name"
+    end
+    updateButtons()
+end)
+
+NameToggle.Button.MouseButton1Click:Connect(function()
+    ESP.NameEnabled = not ESP.NameEnabled
+    if ESP.NameEnabled then
+        ESP.LabelOrder = "Name"
+    elseif ESP.DistanceEnabled then
+        ESP.LabelOrder = "Distance"
+    end
+    updateButtons()
+end)
+
+HPToggle.Button.MouseButton1Click:Connect(function()
+    ESP.HPEnabled = not ESP.HPEnabled
+    if ESP.HPEnabled and not ESP.HPBar then
+        ESP.BottomLabelOrder = "HP"
+    elseif ESP.WeaponEnabled then
+        ESP.BottomLabelOrder = "Weapon"
+    end
+    updateButtons()
+end)
+
+HPBarButton.MouseButton1Click:Connect(function()
+    ESP.HPBar = not ESP.HPBar
+    if ESP.HPEnabled then
+        if not ESP.HPBar then
+            ESP.BottomLabelOrder = "HP"
+        elseif ESP.BottomLabelOrder == "HP" then
+            if ESP.WeaponEnabled then
+                ESP.BottomLabelOrder = "Weapon"
+            else
+                ESP.BottomLabelOrder = nil
+            end
+        end
+    end
+    updateButtons()
+end)
+
+WeaponToggle.Button.MouseButton1Click:Connect(function()
+    ESP.WeaponEnabled = not ESP.WeaponEnabled
+    if ESP.WeaponEnabled then
+        ESP.BottomLabelOrder = "Weapon"
+    elseif ESP.HPEnabled and not ESP.HPBar then
+        ESP.BottomLabelOrder = "HP"
+    end
+    updateButtons()
+end)
+
+TracerToggle.Button.MouseButton1Click:Connect(function()
+    ESP.TracerEnabled = not ESP.TracerEnabled
+    updateButtons()
+end)
+
+HighlightToggle.Button.MouseButton1Click:Connect(function()
+    HighlightConfig.Enabled = not HighlightConfig.Enabled
+
+    if not HighlightConfig.Enabled then
+        for model, esp in pairs(ESPObjects) do
+            if esp.Highlight then
+                esp.Highlight:Destroy()
+                esp.Highlight = nil
+            end
+        end
+    end
+
+    updateButtons()
+end)
+
+GodSkinChangerToggle.Button.MouseButton1Click:Connect(function()
+    GodSkinChanger.Enabled = not GodSkinChanger.Enabled
+    if not GodSkinChanger.Enabled then
+        for _, highlight in pairs(GodSkinChanger.Highlights) do
+            highlight:Destroy()
+        end
+        GodSkinChanger.Highlights = {}
+    end
+    updateButtons()
+end)
+
+TracerColorButton.MouseButton1Click:Connect(function()
+    if TracerColorPicker.Frame.Visible then
+        TracerColorPicker.Frame.Visible = false
+    else
+        hideAllPickers()
+        TracerColorPicker.SetColor(ESP.TracerColor)
+        TracerColorPicker.Frame.Visible = true
+    end
+end)
+
+HighlightColorButton.MouseButton1Click:Connect(function()
+    if HighlightColorPicker.Frame.Visible then
+        HighlightColorPicker.Frame.Visible = false
+    else
+        hideAllPickers()
+        HighlightColorPicker.SetColor(HighlightConfig.Color)
+        HighlightColorPicker.Frame.Visible = true
+    end
+end)
+
+BoxColorButton.MouseButton1Click:Connect(function()
+    if BoxColorPicker.Frame.Visible then
+        BoxColorPicker.Frame.Visible = false
+    else
+        hideAllPickers()
+        BoxColorPicker.SetColor(ESP.BoxColor)
+        BoxColorPicker.Frame.Visible = true
+    end
+end)
+
+DistanceColorButton.MouseButton1Click:Connect(function()
+    if DistanceColorPicker.Frame.Visible then
+        DistanceColorPicker.Frame.Visible = false
+    else
+        hideAllPickers()
+        DistanceColorPicker.SetColor(ESP.DistanceColor)
+        DistanceColorPicker.Frame.Visible = true
+    end
+end)
+
+NameColorButton.MouseButton1Click:Connect(function()
+    if NameColorPicker.Frame.Visible then
+        NameColorPicker.Frame.Visible = false
+    else
+        hideAllPickers()
+        NameColorPicker.SetColor(ESP.NameColor)
+        NameColorPicker.Frame.Visible = true
+    end
+end)
+
+WeaponColorButton.MouseButton1Click:Connect(function()
+    if WeaponColorPicker.Frame.Visible then
+        WeaponColorPicker.Frame.Visible = false
+    else
+        hideAllPickers()
+        WeaponColorPicker.SetColor(ESP.WeaponColor)
+        WeaponColorPicker.Frame.Visible = true
+    end
+end)
+
+SkyAmbientButton.MouseButton1Click:Connect(function()
+    if SkyAmbientPicker.Frame.Visible then
+        SkyAmbientPicker.Frame.Visible = false
+    else
+        hideAllPickers()
+        SkyAmbientPicker.SetColor(SkyColorConfig.Ambient)
+        SkyAmbientPicker.Frame.Visible = true
+    end
+end)
+
+SkyTopButton.MouseButton1Click:Connect(function()
+    if SkyTopPicker.Frame.Visible then
+        SkyTopPicker.Frame.Visible = false
+    else
+        hideAllPickers()
+        SkyTopPicker.SetColor(SkyColorConfig.Top)
+        SkyTopPicker.Frame.Visible = true
+    end
+end)
+
+AimFovColorButton.MouseButton1Click:Connect(function()
+    if AimFovColorPicker.Frame.Visible then
+        AimFovColorPicker.Frame.Visible = false
+    else
+        hideAllPickers()
+        AimFovColorPicker.SetColor(AimFovConfig.Color)
+        AimFovColorPicker.Frame.Visible = true
+    end
+end)
+
+ShivSkinButton.MouseButton1Click:Connect(function()
+    if ShivSkinListFrame.Visible then
+        ShivSkinListFrame.Visible = false
+    else
+        hideAllPickers()
+        ShivSkinListFrame.Visible = true
+    end
+end)
+
+-- TeamCheck Button Connection
+TeamCheckToggle.Button.MouseButton1Click:Connect(function()
+    TeamCheckConfig.Enabled = not TeamCheckConfig.Enabled
+    updateButtons()
+end)
+
+HeadLineToggle.Button.MouseButton1Click:Connect(function()
+    ESP.HeadLineEnabled = not ESP.HeadLineEnabled
+    updateButtons()
+end)
+
+MapToggle.Button.MouseButton1Click:Connect(function()
+    MapConfig.Enabled = not MapConfig.Enabled
+    if MapConfig.Enabled then
+        createMapFrame()
+        updateMap()
+    else
+        destroyMapFrame()
+    end
+    updateButtons()
+end)
+
+BackpackToggle.Button.MouseButton1Click:Connect(function()
+    BackpackESP.Enabled = not BackpackESP.Enabled
+    if not BackpackESP.Enabled then
+        hideAllPickers()
+        for obj, _ in pairs(BackpackESPObjects) do
+            removeBackpackESP(obj)
+        end
+    else
+        connectBackpackEvents()
+    end
+    refreshBackpackList()
+    updateButtons()
+end)
+
+NewsToggle.Button.MouseButton1Click:Connect(function()
+    NewsConfig.Enabled = not NewsConfig.Enabled
+    if NewsConfig.Enabled then
+        createNewsFrame()
+        updateNews()
+    else
+        destroyNewsFrame()
+    end
+    updateButtons()
+end)
+
+SkyColorToggle.Button.MouseButton1Click:Connect(function()
+    SkyColorConfig.Enabled = not SkyColorConfig.Enabled
+    if SkyColorConfig.Enabled then
+        Lighting.Ambient = SkyColorConfig.Ambient
+        Lighting.ColorShift_Top = SkyColorConfig.Top
+    else
+        Lighting.Ambient = OriginalSettings.Ambient
+        Lighting.ColorShift_Top = OriginalSettings.ColorShiftTop
+    end
+    updateButtons()
+end)
+
+OreToggle.Button.MouseButton1Click:Connect(function()
+    OreESP.Enabled = not OreESP.Enabled
+    if not OreESP.Enabled then
+        hideAllPickers()
+        for ore, _ in pairs(OreESPObjects) do
+            removeOreESP(ore)
+        end
+    else
+        connectResourceEvents()
+    end
+    refreshOreList()
+    updateButtons()
+end)
+
+UIState.OreArrow.MouseButton1Click:Connect(function()
+    if UIState.oreListExpanded then
+        UIState.oreListExpanded = false
+    else
+        hideAllPickers()
+        UIState.oreListExpanded = true
+        if oreListPos then
+            OreListFrame.Position = oreListPos
+        else
+            local offsetX = OreToggle.Holder.AbsolutePosition.X + OreToggle.Holder.AbsoluteSize.X + 5
+            local offsetY = OreToggle.Holder.AbsolutePosition.Y - 30
+            OreListFrame.Position = UDim2.new(0, offsetX, 0, offsetY)
+        end
+    end
+    updateButtons()
+end)
+
+IronToggle.Button.MouseButton1Click:Connect(function()
+    OreESP.IronEnabled = not OreESP.IronEnabled
+    refreshOreList()
+    updateButtons()
+end)
+
+BrimstoneToggle.Button.MouseButton1Click:Connect(function()
+    OreESP.BrimstoneEnabled = not OreESP.BrimstoneEnabled
+    refreshOreList()
+    updateButtons()
+end)
+
+StoneToggle.Button.MouseButton1Click:Connect(function()
+    OreESP.StoneEnabled = not OreESP.StoneEnabled
+    refreshOreList()
+    updateButtons()
+end)
+
+DroppedToggle.Button.MouseButton1Click:Connect(function()
+    DroppedESP.Enabled = not DroppedESP.Enabled
+    if not DroppedESP.Enabled then
+        hideAllPickers()
+        for obj, _ in pairs(DroppedESPObjects) do
+            removeDroppedESP(obj)
+        end
+    else
+        connectDroppedEvents()
+    end
+    refreshDroppedList()
+    updateButtons()
+end)
+
+UIState.DroppedArrow.MouseButton1Click:Connect(function()
+    if UIState.droppedListExpanded then
+        UIState.droppedListExpanded = false
+    else
+        hideAllPickers()
+        UIState.droppedListExpanded = true
+        if droppedListPos then
+            DroppedListFrame.Position = droppedListPos
+        else
+            local offsetX = DroppedToggle.Holder.AbsolutePosition.X + DroppedToggle.Holder.AbsoluteSize.X + 5
+            local offsetY = DroppedToggle.Holder.AbsolutePosition.Y - 30
+            DroppedListFrame.Position = UDim2.new(0, offsetX, 0, offsetY)
+        end
+    end
+    updateButtons()
+end)
+
+FlyToggle.Button.MouseButton1Click:Connect(function()
+    FlyConfig.Enabled = not FlyConfig.Enabled
+    updateButtons()
+
+    if not FlyConfig.Enabled then
+        if FlyConfig.IsFlying then
+            FlyConfig.IsFlying = false
+            FlyKeyLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+            if FlyConfig.Connection then
+                FlyConfig.Connection:Disconnect()
+                FlyConfig.Connection = nil
+            end
+        end
+    end
+    updateStatusDisplay()
+end)
+
+NoClipToggle.Button.MouseButton1Click:Connect(function()
+    NoClipConfig.Enabled = not NoClipConfig.Enabled
+    updateButtons()
+
+    if not NoClipConfig.Enabled then
+        if NoClipConfig.IsActive then
+            NoClipConfig.IsActive = false
+            NoClipKeyLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+            if NoClipConfig.Connection then
+                NoClipConfig.Connection:Disconnect()
+                NoClipConfig.Connection = nil
+            end
+        end
+    end
+    updateStatusDisplay()
+end)
+
+NoClipReturnToggle.Button.MouseButton1Click:Connect(function()
+    NoClipConfig.ReturnY = not NoClipConfig.ReturnY
+    updateButtons()
+end)
+
+XrayToggle.Button.MouseButton1Click:Connect(function()
+    toggleXray()
+    updateButtons()
+end)
+
+ThirdPersonToggle.Button.MouseButton1Click:Connect(function()
+    toggleThirdPerson()
+    updateButtons()
+end)
+
+FOVToggle.Button.MouseButton1Click:Connect(function()
+    toggleFOV()
+    updateButtons()
+    FOVSliderFrame.Visible = FOVConfig.Enabled
+    FOVLabel.Visible = FOVConfig.Enabled
+end)
+
+AimFovToggle.Button.MouseButton1Click:Connect(function()
+    toggleAimFov()
+    updateButtons()
+    AimFovSliderFrame.Visible = AimFovConfig.Enabled
+    AimFovValueLabel.Visible = AimFovConfig.Enabled
+end)
+
+AimbotToggle.Button.MouseButton1Click:Connect(function()
+    toggleAimbot()
+    updateButtons()
+end)
+
+NightVisionToggle.Button.MouseButton1Click:Connect(function()
+    toggleNightVision()
+    updateButtons()
+end)
+
+CFrameSpeedToggle.Button.MouseButton1Click:Connect(function()
+    CFrameSpeedConfig.Enabled = not CFrameSpeedConfig.Enabled
+    updateButtons()
+    if not CFrameSpeedConfig.Enabled and CFrameSpeedConfig.IsActive then
+        toggleCFrameSpeed()
+    end
+end)
+
+RemoveGrassToggle.Button.MouseButton1Click:Connect(function()
+    toggleRemoveAllGrass()
+    updateButtons()
+end)
+
+-- Key Configuration Button Connections
+FlyKeyButton.MouseButton1Click:Connect(function()
+    waitForKeyInput("FlyToggle", FlyKeyButton)
+end)
+
+NoClipKeyButton.MouseButton1Click:Connect(function()
+    waitForKeyInput("NoClipToggle", NoClipKeyButton)
+end)
+
+CFrameSpeedKeyButton.MouseButton1Click:Connect(function()
+    waitForKeyInput("CFrameSpeedToggle", CFrameSpeedKeyButton)
+end)
+
+
+TimeToggle.Button.MouseButton1Click:Connect(function()
+    TimeControl.Enabled = not TimeControl.Enabled
+
+    if TimeControl.Enabled then
+        TimeControl.OriginalTime = Lighting.ClockTime
+        TimeControl.CurrentTime = Lighting.ClockTime
+    end
+
+    updateTimeControlUI()
+    updateButtons()
+end)
+
+KeyListToggle.Button.MouseButton1Click:Connect(function()
+    UIState.KeyListVisible = not UIState.KeyListVisible
+    KeyListFrame.Visible = UIState.KeyListVisible
+    updateButtons()
+end)
+
+StatsToggle.Button.MouseButton1Click:Connect(function()
+    UIState.StatsVisible = not UIState.StatsVisible
+    StatsFrame.Visible = UIState.StatsVisible
+    updateButtons()
+end)
+
+-- Enhanced Input Handling with Custom Keys
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed then return end
+    
+    -- Handle key customization
+    if waitingForKey then
+        if input.KeyCode ~= Enum.KeyCode.Unknown then
+            KeyConfig[waitingForKey] = input.KeyCode
+            updateKeyLabels()
+            
+            -- Reset button appearance
+            if waitingForKey == "FlyToggle" then
+                FlyKeyButton.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+            elseif waitingForKey == "NoClipToggle" then
+                NoClipKeyButton.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+            elseif waitingForKey == "CFrameSpeedToggle" then
+                CFrameSpeedKeyButton.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+            end
+            
+            waitingForKey = nil
+            return
+        end
+    end
+    
+    if input.KeyCode == KeyConfig.FlyToggle and FlyConfig.Enabled then
+        toggleFly()
+    end
+    
+    if input.KeyCode == KeyConfig.NoClipToggle and NoClipConfig.Enabled then
+        toggleNoClip()
+    end
+
+    if input.KeyCode == KeyConfig.CFrameSpeedToggle and CFrameSpeedConfig.Enabled then
+        toggleCFrameSpeed()
+    end
+    
+    if input.KeyCode == KeyConfig.MenuToggle then
+        slideMenu(not MenuOpen)
+    end
+    
+    if input.UserInputType == KeyConfig.AimbotHold then
+        if AimbotConfig.Enabled and AimFovConfig.Enabled then
+            AimbotConfig.Aiming = true
+            AimbotConfig.Target = getClosestPlayerInFOV()
+        end
+    end
+end)
+
+UserInputService.InputEnded:Connect(function(input)
+    if input.UserInputType == KeyConfig.AimbotHold then
+        AimbotConfig.Aiming = false
+        AimbotConfig.Target = nil
+    end
+end)
+
+LocalPlayer.CharacterAdded:Connect(function()
+    cleanupAllESP()
+    
+    FlyConfig.IsFlying = false
+    FlyKeyLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+    if FlyConfig.Connection then
+        FlyConfig.Connection:Disconnect()
+        FlyConfig.Connection = nil
+    end
+    
+    NoClipConfig.IsActive = false
+    NoClipKeyLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+    if NoClipConfig.Connection then
+        NoClipConfig.Connection:Disconnect()
+        NoClipConfig.Connection = nil
+    end
+    
+    -- Clean up CFrameSpeed connection
+    if CFrameSpeedConfig.Connection then
+        CFrameSpeedConfig.Connection:Disconnect()
+        CFrameSpeedConfig.Connection = nil
+    end
+    CFrameSpeedConfig.IsActive = false
+    CFrameSpeedKeyLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+    
+    if ThirdPersonConfig.Enabled then
+        wait(0.5)
+        LocalPlayer.CameraMaxZoomDistance = ThirdPersonConfig.Distance
+        LocalPlayer.CameraMinZoomDistance = ThirdPersonConfig.Distance
+        LocalPlayer.CameraMode = Enum.CameraMode.Classic
+    end
+    
+    updateStatusDisplay()
+    
+    local character = LocalPlayer.Character
+    if character then
+        RaycastParams.FilterDescendantsInstances = {Camera, character}
+    end
+
+    wait(0.5)
+    refreshModels()
+    connectResourceEvents()
+    connectDroppedEvents()
+    connectBackpackEvents()
+    if OreESP.Enabled then
+        refreshOreList()
+        task.delay(1, function()
+            if OreESP.Enabled then
+                refreshOreList()
+            end
+        end)
+    end
+    if DroppedESP.Enabled then
+        refreshDroppedList()
+        task.delay(1, function()
+            if DroppedESP.Enabled then
+                refreshDroppedList()
+            end
+        end)
+    end
+    if BackpackESP.Enabled then
+        refreshBackpackList()
+        task.delay(1, function()
+            if BackpackESP.Enabled then
+                refreshBackpackList()
+            end
+        end)
+    end
+end)
+
+LocalPlayer.CharacterRemoving:Connect(function()
+    cleanupAllESP()
+end)
+
+refreshModels()
+updateButtons()
+updateTimeControlUI()
+updateStatusDisplay()
+updateKeyLabels()
+
+XraySliderBar.Size = UDim2.new(XrayConfig.Transparency, 0, 1, 0)
+XraySliderHandle.Position = UDim2.new(XrayConfig.Transparency, -6, 0.5, -6)
+if XrayLabel then
+    XrayLabel.Text = string.format("Alpha: %.2f", XrayConfig.Transparency)
+end
+
+FOVSliderBar.Size = UDim2.new((FOVConfig.DefaultFOV - 30) / 90, 0, 1, 0)
+FOVSliderHandle.Position = UDim2.new((FOVConfig.DefaultFOV - 30) / 90, -6, 0.5, -6)
+FOVLabel.Text = "FOV: " .. math.floor(FOVConfig.DefaultFOV)
+
+RunService.Heartbeat:Connect(function()
+    pcall(updateESP)
+
+    pcall(updateOreESP)
+
+    pcall(updateDroppedESP)
+
+    pcall(updateBackpackESP)
+
+    pcall(updateMap)
+
+    pcall(updateNews)
+
+    if AimFovConfig.Enabled then
+        pcall(updateAimFovPosition)
+    end
+
+    if AimbotConfig.Enabled and AimbotConfig.Aiming then
+        if AimbotConfig.Target and AimbotConfig.Target.Parent then
+            pcall(function()
+                aimAtTarget(AimbotConfig.Target)
+            end)
+        else
+            AimbotConfig.Target = getClosestPlayerInFOV()
+        end
+    end
+
+    if TimeControl.Enabled then
+        Lighting.ClockTime = TimeControl.CurrentTime
+    end
+end)
+
+task.spawn(function()
+    while ScreenGui.Parent do
+        wait(2)
+        pcall(autoRefresh)
+    end
+end)
+
+ScreenGui.AncestryChanged:Connect(function()
+    if not ScreenGui.Parent then
+        if TimeControl.Enabled then
+            Lighting.ClockTime = TimeControl.OriginalTime
+        end
+        
+        if XrayConfig.Enabled then
+            for part, originalTransparency in pairs(XrayConfig.OriginalTransparencies) do
+                if part and part.Parent then
+                    part.Transparency = originalTransparency
+                end
+            end
+        end
+        
+        if NightVisionConfig.Enabled then
+            Lighting.Brightness = OriginalSettings.Brightness
+            Lighting.Ambient = OriginalSettings.Ambient
+            Lighting.OutdoorAmbient = OriginalSettings.OutdoorAmbient
+            Lighting.ColorShift_Top = OriginalSettings.ColorShiftTop
+            Lighting.FogEnd = OriginalSettings.FogEnd
+        end
+
+        if SkyColorConfig.Enabled then
+            Lighting.Ambient = OriginalSettings.Ambient
+            Lighting.ColorShift_Top = OriginalSettings.ColorShiftTop
+        end
+        
+        if ThirdPersonConfig.Enabled then
+            LocalPlayer.CameraMode = OriginalSettings.CameraMode
+            LocalPlayer.CameraMaxZoomDistance = OriginalSettings.CameraMaxZoom
+            LocalPlayer.CameraMinZoomDistance = OriginalSettings.CameraMinZoom
+        end
+        
+        if FOVConfig.Enabled then
+            Camera.FieldOfView = OriginalSettings.FieldOfView
+        end
+        
+        if AimFovConfig.Circle then
+            pcall(function() AimFovConfig.Circle:Remove() end)
+        end
+        if AimFovConfig.CircleOutline then
+            pcall(function() AimFovConfig.CircleOutline:Remove() end)
+        end
+        if AimFovConfig.CircleOuter then
+            pcall(function() AimFovConfig.CircleOuter:Remove() end)
+        end
+        
+        if FlyConfig.Connection then FlyConfig.Connection:Disconnect() end
+        if NoClipConfig.Connection then NoClipConfig.Connection:Disconnect() end
+        if ThirdPersonConfig.CameraConnection then ThirdPersonConfig.CameraConnection:Disconnect() end
+        for _, conn in ipairs(ThirdPersonConfig.GhostConnections) do conn:Disconnect() end
+        ThirdPersonConfig.GhostConnections = {}
+        if FOVConfig.Connection then FOVConfig.Connection:Disconnect() end
+        if NightVisionConfig.Connection then NightVisionConfig.Connection:Disconnect() end
+        if CFrameSpeedConfig.Connection then CFrameSpeedConfig.Connection:Disconnect() end
+        
+        for model, esp in pairs(ESPObjects) do
+            removeESP(model)
+        end
+    end
+end)
+
+game:GetService("StarterGui"):SetCore("SendNotification", {
+    Title = "Enhanced Script Loaded";
+    Text = "TeamCheck, Custom Keys & Improved Aimbot Ready!";
+    Duration = 3;
+})
