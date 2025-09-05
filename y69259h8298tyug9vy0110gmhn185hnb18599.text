@@ -236,12 +236,17 @@ local function removeGhosts()
     local name = char.Name
 
     local function cleanup(model)
-        if model and model ~= char and model.Name == name and model:IsA("Model") then
-            model:Destroy()
+        if model and model ~= char and model:IsA("Model") then
+            local owner = Players:GetPlayerFromCharacter(model)
+            if owner == LocalPlayer or model.Name == name then
+                model:Destroy()
+            end
         end
     end
 
-    cleanup(workspace:FindFirstChild(name))
+    for _, model in ipairs(workspace:GetChildren()) do
+        cleanup(model)
+    end
     if PlayersFolder then
         for _, model in ipairs(PlayersFolder:GetChildren()) do
             cleanup(model)
@@ -2315,10 +2320,13 @@ local function toggleThirdPerson()
         local name = LocalPlayer.Name
         local function watch(folder)
             return folder.DescendantAdded:Connect(function(desc)
-                if desc:IsA("Model") and desc.Name == name then
+                if desc:IsA("Model") then
                     task.defer(function()
-                        if Players:GetPlayerFromCharacter(desc) ~= LocalPlayer then
-                            desc:Destroy()
+                        if desc ~= LocalPlayer.Character then
+                            local owner = Players:GetPlayerFromCharacter(desc)
+                            if owner == LocalPlayer or desc.Name == name then
+                                desc:Destroy()
+                            end
                         end
                     end)
                 end
