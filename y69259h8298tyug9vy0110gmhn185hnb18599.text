@@ -4133,6 +4133,7 @@ end
 
 
 function collectConfig()
+    local chPos = crosshairListPos or CrosshairListFrame.Position
     return {
         ESP = {
             BoxEnabled = ESP.BoxEnabled,
@@ -4178,7 +4179,17 @@ function collectConfig()
         FOV = {Enabled = FOVConfig.Enabled, Value = FOVConfig.Value},
         CFrameSpeed = {Enabled = CFrameSpeedConfig.Enabled, Speed = CFrameSpeedConfig.Speed}, -- key toggle state ignored
         TimeControl = {Enabled = TimeControl.Enabled, CurrentTime = TimeControl.CurrentTime},
-        Crosshair = {Enabled = CrosshairConfig.Enabled, Speed = CrosshairConfig.Speed, Size = CrosshairConfig.Size, Thickness = CrosshairConfig.Thickness, Color = colorToTable(CrosshairConfig.Color)},
+        Crosshair = {
+            Enabled = CrosshairConfig.Enabled,
+            Speed = CrosshairConfig.Speed,
+            Size = CrosshairConfig.Size,
+            Thickness = CrosshairConfig.Thickness,
+            Color = colorToTable(CrosshairConfig.Color),
+            List = {
+                Expanded = UIState.crosshairListExpanded,
+                Position = {chPos.X.Scale, chPos.X.Offset, chPos.Y.Scale, chPos.Y.Offset}
+            }
+        },
         KeyList = UIState.KeyListVisible,
         Stats = UIState.StatsVisible
     }
@@ -4406,6 +4417,16 @@ function applyConfig(cfg)
         updateCrosshairSpeed(CrosshairConfig.Speed)
         updateCrosshairSize(CrosshairConfig.Size)
         updateCrosshairThickness(CrosshairConfig.Thickness)
+        if cfg.Crosshair.List then
+            UIState.crosshairListExpanded = cfg.Crosshair.List.Expanded or false
+            CrosshairListFrame.Visible = UIState.crosshairListExpanded
+            UIState.CrosshairArrow.Text = UIState.crosshairListExpanded and "v" or ">"
+            local p = cfg.Crosshair.List.Position
+            if p then
+                CrosshairListFrame.Position = UDim2.new(p[1], p[2], p[3], p[4])
+                crosshairListPos = CrosshairListFrame.Position
+            end
+        end
         if cfg.Crosshair.Enabled ~= CrosshairConfig.Enabled then
             toggleCrosshair()
         end
