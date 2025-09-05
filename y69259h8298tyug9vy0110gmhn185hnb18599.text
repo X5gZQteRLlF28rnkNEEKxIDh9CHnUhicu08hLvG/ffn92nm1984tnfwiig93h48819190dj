@@ -187,6 +187,17 @@ AimFovConfig = {
     CircleOuter = nil
 }
 
+CrosshairConfig = {
+    Enabled = false,
+    Speed = 2,
+    Angle = 0,
+    Size = 8,
+    Thickness = 1,
+    Color = Color3.new(1, 1, 1),
+    Lines = {},
+    Connection = nil
+}
+
 AimbotConfig = {
     Enabled = false,
     Aiming = false,
@@ -253,6 +264,8 @@ UIState = {
     OreArrow = nil,
     droppedListExpanded = false,
     DroppedArrow = nil,
+    crosshairListExpanded = false,
+    CrosshairArrow = nil,
     ConfigNotify = nil,
 }
 
@@ -1109,6 +1122,20 @@ AimbotToggle = createToggle(MiscTab, "AimbotToggle", "Aimbot", 100)
 NightVisionToggle = createToggle(MiscTab, "NightVisionToggle", "Night Vision", 130)
 CFrameSpeedToggle = createToggle(MiscTab, "CFrameSpeedToggle", "CFrameSpeed", 160)
 TimeToggle = createToggle(MiscTab, "TimeToggle", "Time Control", 190)
+CrosshairToggle = createToggle(MiscTab, "CrosshairToggle", "Crosshair", 220)
+CrosshairToggle.Holder.Size = UDim2.new(0.9, 0, 0, 20)
+CrosshairColorButton = createColorButton(CrosshairToggle.Holder, "CrosshairColorButton", CrosshairConfig.Color)
+UIState.CrosshairArrow = Instance.new("TextButton")
+UIState.CrosshairArrow.Parent = CrosshairToggle.Holder
+UIState.CrosshairArrow.BackgroundTransparency = 1
+UIState.CrosshairArrow.BorderSizePixel = 0
+UIState.CrosshairArrow.Position = UDim2.new(1, -40, 0, 0)
+UIState.CrosshairArrow.Size = UDim2.new(0, 20, 0, 20)
+UIState.CrosshairArrow.Text = ">"
+UIState.CrosshairArrow.FontFace = customFont
+UIState.CrosshairArrow.TextSize = 16
+UIState.CrosshairArrow.TextColor3 = Color3.fromRGB(255, 255, 255)
+UIState.CrosshairArrow.AutoButtonColor = false
 
 FlyKeyButton = createKeyButton(SettingTab, "FlyKeyButton", "Fly key", KeyConfig.FlyToggle, 10)
 NoClipKeyButton = createKeyButton(SettingTab, "NoClipKeyButton", "Noclip key", KeyConfig.NoClipToggle, 40)
@@ -1450,6 +1477,13 @@ SkyTopPicker = createColorPicker(290, SkyColorConfig.Top, function(color)
         Lighting.ColorShift_Top = color
     end
 end)
+CrosshairColorPicker = createColorPicker(320, CrosshairConfig.Color, function(color)
+    CrosshairConfig.Color = color
+    CrosshairColorButton.BackgroundColor3 = color
+    for _, line in ipairs(CrosshairConfig.Lines) do
+        line.Color = color
+    end
+end)
 local function hideAllPickers()
     TracerColorPicker.Frame.Visible = false
     HighlightColorPicker.Frame.Visible = false
@@ -1460,6 +1494,7 @@ local function hideAllPickers()
     AimFovColorPicker.Frame.Visible = false
     SkyAmbientPicker.Frame.Visible = false
     SkyTopPicker.Frame.Visible = false
+    CrosshairColorPicker.Frame.Visible = false
 end
 
 local function createMapFrame()
@@ -1776,6 +1811,154 @@ TimeSliderHandle.Position = UDim2.new(0, -6, 0.5, -6)
 TimeSliderHandle.Size = UDim2.new(0, 12, 0, 12)
 TimeSliderHandle.Text = ""
 
+-- Crosshair settings list
+local CrosshairListFrame = Instance.new("Frame")
+CrosshairListFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+CrosshairListFrame.BorderColor3 = Color3.fromRGB(100, 100, 100)
+CrosshairListFrame.BorderSizePixel = 1
+CrosshairListFrame.Size = UDim2.new(0, 170, 0, 120)
+CrosshairListFrame.BackgroundTransparency = 0.3
+CrosshairListFrame.Visible = false
+CrosshairListFrame.Active = true
+CrosshairListFrame.Parent = ScreenGui
+local CrosshairCorner = Instance.new("UICorner")
+CrosshairCorner.CornerRadius = UDim.new(0, 6)
+CrosshairCorner.Parent = CrosshairListFrame
+local CrosshairTitle = Instance.new("TextLabel")
+CrosshairTitle.Parent = CrosshairListFrame
+CrosshairTitle.BackgroundTransparency = 1
+CrosshairTitle.Size = UDim2.new(1, 0, 0, 20)
+CrosshairTitle.FontFace = customFont
+CrosshairTitle.Text = "Crosshair List"
+CrosshairTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
+CrosshairTitle.TextSize = 14
+CrosshairTitle.TextStrokeTransparency = 0.5
+CrosshairTitle.TextStrokeColor3 = Color3.new(0, 0, 0)
+local chListDragging = false
+local chListDragStart, chListStartPos
+local crosshairListPos
+CrosshairListFrame.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        chListDragging = true
+        chListDragStart = input.Position
+        chListStartPos = CrosshairListFrame.Position
+    end
+end)
+UserInputService.InputChanged:Connect(function(input)
+    if chListDragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+        local delta = input.Position - chListDragStart
+        CrosshairListFrame.Position = UDim2.new(chListStartPos.X.Scale, chListStartPos.X.Offset + delta.X, chListStartPos.Y.Scale, chListStartPos.Y.Offset + delta.Y)
+    end
+end)
+UserInputService.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 and chListDragging then
+        chListDragging = false
+        crosshairListPos = CrosshairListFrame.Position
+    end
+end)
+
+CrosshairSliderFrame = Instance.new("Frame")
+CrosshairSliderFrame.Parent = CrosshairListFrame
+CrosshairSliderFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+CrosshairSliderFrame.BorderSizePixel = 0
+CrosshairSliderFrame.Position = UDim2.new(0.05, 0, 0, 30)
+CrosshairSliderFrame.Size = UDim2.new(0.6, 0, 0, 16)
+
+CrosshairSliderBar = Instance.new("Frame")
+CrosshairSliderBar.Parent = CrosshairSliderFrame
+CrosshairSliderBar.BackgroundColor3 = Color3.fromRGB(0, 150, 255)
+CrosshairSliderBar.BorderSizePixel = 0
+CrosshairSliderBar.Size = UDim2.new(CrosshairConfig.Speed / 10, 0, 1, 0)
+
+CrosshairSliderHandle = Instance.new("TextButton")
+CrosshairSliderHandle.Parent = CrosshairSliderFrame
+CrosshairSliderHandle.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+CrosshairSliderHandle.BorderSizePixel = 0
+CrosshairSliderHandle.Position = UDim2.new(CrosshairConfig.Speed / 10, -6, 0.5, -6)
+CrosshairSliderHandle.Size = UDim2.new(0, 12, 0, 12)
+CrosshairSliderHandle.Text = ""
+
+CrosshairValueLabel = Instance.new("TextLabel")
+CrosshairValueLabel.Parent = CrosshairListFrame
+CrosshairValueLabel.BackgroundTransparency = 1
+CrosshairValueLabel.Position = UDim2.new(0.7, 0, 0, 30)
+CrosshairValueLabel.Size = UDim2.new(0.25, 0, 0, 20)
+CrosshairValueLabel.FontFace = customFont
+CrosshairValueLabel.Text = "Speed: " .. CrosshairConfig.Speed
+CrosshairValueLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+CrosshairValueLabel.TextSize = 10
+CrosshairValueLabel.TextXAlignment = Enum.TextXAlignment.Left
+CrosshairValueLabel.TextStrokeTransparency = 0.5
+CrosshairValueLabel.TextStrokeColor3 = Color3.new(0, 0, 0)
+
+CrosshairSizeSliderFrame = Instance.new("Frame")
+CrosshairSizeSliderFrame.Parent = CrosshairListFrame
+CrosshairSizeSliderFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+CrosshairSizeSliderFrame.BorderSizePixel = 0
+CrosshairSizeSliderFrame.Position = UDim2.new(0.05, 0, 0, 60)
+CrosshairSizeSliderFrame.Size = UDim2.new(0.6, 0, 0, 16)
+
+CrosshairSizeSliderBar = Instance.new("Frame")
+CrosshairSizeSliderBar.Parent = CrosshairSizeSliderFrame
+CrosshairSizeSliderBar.BackgroundColor3 = Color3.fromRGB(0, 150, 255)
+CrosshairSizeSliderBar.BorderSizePixel = 0
+CrosshairSizeSliderBar.Size = UDim2.new((CrosshairConfig.Size - 4) / 16, 0, 1, 0)
+
+CrosshairSizeSliderHandle = Instance.new("TextButton")
+CrosshairSizeSliderHandle.Parent = CrosshairSizeSliderFrame
+CrosshairSizeSliderHandle.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+CrosshairSizeSliderHandle.BorderSizePixel = 0
+CrosshairSizeSliderHandle.Position = UDim2.new((CrosshairConfig.Size - 4) / 16, -6, 0.5, -6)
+CrosshairSizeSliderHandle.Size = UDim2.new(0, 12, 0, 12)
+CrosshairSizeSliderHandle.Text = ""
+
+CrosshairSizeValueLabel = Instance.new("TextLabel")
+CrosshairSizeValueLabel.Parent = CrosshairListFrame
+CrosshairSizeValueLabel.BackgroundTransparency = 1
+CrosshairSizeValueLabel.Position = UDim2.new(0.7, 0, 0, 60)
+CrosshairSizeValueLabel.Size = UDim2.new(0.25, 0, 0, 20)
+CrosshairSizeValueLabel.FontFace = customFont
+CrosshairSizeValueLabel.Text = "Size: " .. CrosshairConfig.Size
+CrosshairSizeValueLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+CrosshairSizeValueLabel.TextSize = 10
+CrosshairSizeValueLabel.TextXAlignment = Enum.TextXAlignment.Left
+CrosshairSizeValueLabel.TextStrokeTransparency = 0.5
+CrosshairSizeValueLabel.TextStrokeColor3 = Color3.new(0, 0, 0)
+
+CrosshairThicknessSliderFrame = Instance.new("Frame")
+CrosshairThicknessSliderFrame.Parent = CrosshairListFrame
+CrosshairThicknessSliderFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+CrosshairThicknessSliderFrame.BorderSizePixel = 0
+CrosshairThicknessSliderFrame.Position = UDim2.new(0.05, 0, 0, 90)
+CrosshairThicknessSliderFrame.Size = UDim2.new(0.6, 0, 0, 16)
+
+CrosshairThicknessSliderBar = Instance.new("Frame")
+CrosshairThicknessSliderBar.Parent = CrosshairThicknessSliderFrame
+CrosshairThicknessSliderBar.BackgroundColor3 = Color3.fromRGB(0, 150, 255)
+CrosshairThicknessSliderBar.BorderSizePixel = 0
+CrosshairThicknessSliderBar.Size = UDim2.new((CrosshairConfig.Thickness - 1) / 9, 0, 1, 0)
+
+CrosshairThicknessSliderHandle = Instance.new("TextButton")
+CrosshairThicknessSliderHandle.Parent = CrosshairThicknessSliderFrame
+CrosshairThicknessSliderHandle.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+CrosshairThicknessSliderHandle.BorderSizePixel = 0
+CrosshairThicknessSliderHandle.Position = UDim2.new((CrosshairConfig.Thickness - 1) / 9, -6, 0.5, -6)
+CrosshairThicknessSliderHandle.Size = UDim2.new(0, 12, 0, 12)
+CrosshairThicknessSliderHandle.Text = ""
+
+CrosshairThicknessValueLabel = Instance.new("TextLabel")
+CrosshairThicknessValueLabel.Parent = CrosshairListFrame
+CrosshairThicknessValueLabel.BackgroundTransparency = 1
+CrosshairThicknessValueLabel.Position = UDim2.new(0.7, 0, 0, 90)
+CrosshairThicknessValueLabel.Size = UDim2.new(0.25, 0, 0, 20)
+CrosshairThicknessValueLabel.FontFace = customFont
+CrosshairThicknessValueLabel.Text = "Thickness: " .. CrosshairConfig.Thickness
+CrosshairThicknessValueLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+CrosshairThicknessValueLabel.TextSize = 10
+CrosshairThicknessValueLabel.TextXAlignment = Enum.TextXAlignment.Left
+CrosshairThicknessValueLabel.TextStrokeTransparency = 0.5
+CrosshairThicknessValueLabel.TextStrokeColor3 = Color3.new(0, 0, 0)
+
 -- Function to check if player has TeamDot with Enabled = true
 local function hasTeamDot(model)
     if not model or not model:IsA("Model") then return false end
@@ -1945,6 +2128,27 @@ local function updateAimFovPosition()
     end
 end
 
+local function updateCrosshairSpeed(value)
+    CrosshairConfig.Speed = math.max(0.1, value)
+    CrosshairValueLabel.Text = "Speed: " .. string.format("%.1f", CrosshairConfig.Speed)
+end
+
+local function updateCrosshairSize(value)
+    CrosshairConfig.Size = value
+    if CrosshairSizeValueLabel then
+        CrosshairSizeValueLabel.Text = "Size: " .. string.format("%.0f", value)
+    end
+end
+
+local function updateCrosshairThickness(value)
+    CrosshairConfig.Thickness = value
+    if CrosshairThicknessValueLabel then
+        CrosshairThicknessValueLabel.Text = "Thickness: " .. string.format("%.1f", value)
+    end
+    for _, line in ipairs(CrosshairConfig.Lines) do
+        line.Thickness = value
+    end
+end
 
 local function applyXrayToObject(obj)
     if obj:IsA("MeshPart") and obj.Parent then
@@ -2080,6 +2284,51 @@ local function toggleAimFov()
         end
         if AimFovConfig.CircleOuter then
             AimFovConfig.CircleOuter.Visible = false
+        end
+    end
+end
+
+local function toggleCrosshair()
+    CrosshairConfig.Enabled = not CrosshairConfig.Enabled
+
+    if CrosshairConfig.Enabled then
+        CrosshairConfig.Angle = 0
+        for i = 1, 4 do
+            local line = Drawing.new("Line")
+            line.Color = CrosshairConfig.Color
+            line.Thickness = CrosshairConfig.Thickness
+            line.Visible = true
+            CrosshairConfig.Lines[i] = line
+        end
+        if CrosshairConfig.Connection then
+            CrosshairConfig.Connection:Disconnect()
+        end
+        CrosshairConfig.Connection = RunService.RenderStepped:Connect(function(dt)
+            CrosshairConfig.Angle = (CrosshairConfig.Angle + CrosshairConfig.Speed * dt) % (math.pi * 2)
+            local center = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
+            local inner = CrosshairConfig.Size / 2
+            local outer = CrosshairConfig.Size
+            for i = 1, 4 do
+                local ang = CrosshairConfig.Angle + (i - 1) * (math.pi / 2)
+                local dir = Vector2.new(math.cos(ang), math.sin(ang))
+                local from = center + dir * inner
+                local to = center + dir * outer
+                local line = CrosshairConfig.Lines[i]
+                line.From = from
+                line.To = to
+                line.Visible = true
+                line.Color = CrosshairConfig.Color
+                line.Thickness = CrosshairConfig.Thickness
+            end
+        end)
+    else
+        if CrosshairConfig.Connection then
+            CrosshairConfig.Connection:Disconnect()
+            CrosshairConfig.Connection = nil
+        end
+        for i, line in ipairs(CrosshairConfig.Lines) do
+            pcall(function() line:Remove() end)
+            CrosshairConfig.Lines[i] = nil
         end
     end
 end
@@ -2318,6 +2567,52 @@ UserInputService.InputChanged:Connect(function(input)
     end
 end)
 
+local crosshairDragging = false
+local crosshairSizeDragging = false
+local crosshairThicknessDragging = false
+
+CrosshairSliderHandle.MouseButton1Down:Connect(function()
+    crosshairDragging = true
+end)
+
+CrosshairSizeSliderHandle.MouseButton1Down:Connect(function()
+    crosshairSizeDragging = true
+end)
+
+CrosshairThicknessSliderHandle.MouseButton1Down:Connect(function()
+    crosshairThicknessDragging = true
+end)
+
+UserInputService.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        crosshairDragging = false
+        crosshairSizeDragging = false
+        crosshairThicknessDragging = false
+    end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseMovement then
+        if crosshairDragging then
+            local relativeX = math.clamp((input.Position.X - CrosshairSliderFrame.AbsolutePosition.X) / CrosshairSliderFrame.AbsoluteSize.X, 0, 1)
+            updateCrosshairSpeed(relativeX * 10)
+            local adjusted = CrosshairConfig.Speed / 10
+            CrosshairSliderBar.Size = UDim2.new(adjusted, 0, 1, 0)
+            CrosshairSliderHandle.Position = UDim2.new(adjusted, -6, 0.5, -6)
+        elseif crosshairSizeDragging then
+            local relativeX = math.clamp((input.Position.X - CrosshairSizeSliderFrame.AbsolutePosition.X) / CrosshairSizeSliderFrame.AbsoluteSize.X, 0, 1)
+            CrosshairSizeSliderBar.Size = UDim2.new(relativeX, 0, 1, 0)
+            CrosshairSizeSliderHandle.Position = UDim2.new(relativeX, -6, 0.5, -6)
+            updateCrosshairSize(4 + relativeX * 16)
+        elseif crosshairThicknessDragging then
+            local relativeX = math.clamp((input.Position.X - CrosshairThicknessSliderFrame.AbsolutePosition.X) / CrosshairThicknessSliderFrame.AbsoluteSize.X, 0, 1)
+            CrosshairThicknessSliderBar.Size = UDim2.new(relativeX, 0, 1, 0)
+            CrosshairThicknessSliderHandle.Position = UDim2.new(relativeX, -6, 0.5, -6)
+            updateCrosshairThickness(1 + relativeX * 9)
+        end
+    end
+end)
+
 local function noClipFunction(deltaTime)
     if NoClipConfig.IsActive and LocalPlayer.Character then
         local character = LocalPlayer.Character
@@ -2404,7 +2699,7 @@ local function toggleNoClip()
         NoClipConfig.StoredY = nil
         NoClipConfig.OriginalY = nil
     end
-    
+
     updateStatusDisplay()
 end
 
@@ -3020,20 +3315,20 @@ refreshDroppedList()
 local BackpackFolder
 local BackpackAddedConn, BackpackRemovedConn
 
-local function removeBackpackESP(obj)
+function removeBackpackESP(obj)
     local esp = BackpackESPObjects[obj]
     if not esp then return end
     pcall(function() if esp.Text then esp.Text:Remove() end end)
     BackpackESPObjects[obj] = nil
 end
 
-local function hideBackpackESP(esp)
+function hideBackpackESP(esp)
     if esp and esp.Text then
         esp.Text.Visible = false
     end
 end
 
-local function createBackpackESP(model)
+function createBackpackESP(model)
     local part = model.PrimaryPart or model:FindFirstChildWhichIsA("BasePart")
     if not part then return end
     local t = Drawing.new("Text")
@@ -3046,20 +3341,20 @@ local function createBackpackESP(model)
     BackpackESPObjects[model] = {Text = t, Part = part, Name = model.Name}
 end
 
-local function trackBackpackAdded(obj)
+function trackBackpackAdded(obj)
     if not BackpackESP.Enabled or not obj:IsA("Model") then return end
     if not BackpackESPObjects[obj] then
         createBackpackESP(obj)
     end
 end
 
-local function trackBackpackRemoved(obj)
+function trackBackpackRemoved(obj)
     if BackpackESPObjects[obj] then
         removeBackpackESP(obj)
     end
 end
 
-local function connectBackpackEvents()
+function connectBackpackEvents()
     if BackpackAddedConn then BackpackAddedConn:Disconnect() end
     if BackpackRemovedConn then BackpackRemovedConn:Disconnect() end
     BackpackFolder = workspace:WaitForChild("DroppedPacks", 5)
@@ -3069,7 +3364,7 @@ local function connectBackpackEvents()
     end
 end
 
-local function refreshBackpackList()
+function refreshBackpackList()
     if not BackpackFolder then return end
     for _, obj in ipairs(BackpackFolder:GetDescendants()) do
         trackBackpackAdded(obj)
@@ -3079,7 +3374,7 @@ end
 connectBackpackEvents()
 refreshBackpackList()
 
-local function updateHighlight(model, esp, distance)
+function updateHighlight(model, esp, distance)
     if not HighlightConfig.Enabled then
         if esp.Highlight then
             esp.Highlight:Destroy()
@@ -3132,7 +3427,7 @@ local function updateHighlight(model, esp, distance)
     end
 end
 
-local function updateOreESP()
+function updateOreESP()
     if not ResourcesFolder then return end
     if not OreESP.Enabled then
         for ore, _ in pairs(OreESPObjects) do
@@ -3187,7 +3482,7 @@ local function updateOreESP()
     end
 end
 
-local function updateDroppedESP()
+function updateDroppedESP()
     if not DroppedFolder then return end
     if not DroppedESP.Enabled then
         for obj, _ in pairs(DroppedESPObjects) do
@@ -3237,7 +3532,7 @@ local function updateDroppedESP()
     end
 end
 
-local function updateBackpackESP()
+function updateBackpackESP()
     if not BackpackFolder then return end
     if not BackpackESP.Enabled then
         for obj, _ in pairs(BackpackESPObjects) do
@@ -3278,7 +3573,7 @@ local function updateBackpackESP()
     end
 end
 
-local function updateMap()
+function updateMap()
     if not MapConfig.Enabled or not MapConfig.Frame then return end
     local localChar = LocalPlayer.Character
     if not localChar then return end
@@ -3364,7 +3659,7 @@ function updateNews()
     end
 end
 
-local function updateBox(esp, minX, minY, maxX, maxY, distance)
+function updateBox(esp, minX, minY, maxX, maxY, distance)
     local boxWidth = maxX - minX
     local boxHeight = maxY - minY
 
@@ -3396,37 +3691,37 @@ local function updateBox(esp, minX, minY, maxX, maxY, distance)
     esp.BoxInner.Visible = true
 end
 
-local function updateDistanceText(esp, minX, maxX, maxY, distance)
+function updateDistanceText(esp, minX, maxX, maxY, distance)
     esp.DistanceText.Text = math.floor(distance) .. "m"
     local idx = getIndex(ESP.BottomOrder, "Distance")
     if not idx then return end
-    local offset = 5 + (idx - 1) * 15
+    local offset = 5 + (idx - 1) * 12
     esp.DistanceText.Position = Vector2.new((minX + maxX) / 2, maxY + offset)
     esp.DistanceText.Color = ESP.DistanceColor
     esp.DistanceText.Visible = true
 end
 
-local function updateNameText(esp, minX, maxX, minY, name)
+function updateNameText(esp, minX, maxX, minY, name)
     esp.NameText.Text = name
     local idx = getIndex(ESP.TopOrder, "Name")
     if not idx then return end
-    local offset = -20 - (idx - 1) * 15
+    local offset = -20 - (idx - 1) * 12
     esp.NameText.Position = Vector2.new((minX + maxX) / 2, minY + offset)
     esp.NameText.Color = ESP.NameColor
     esp.NameText.Visible = true
 end
 
-local function updateWeaponText(esp, minX, maxX, maxY, weapon)
+function updateWeaponText(esp, minX, maxX, maxY, weapon)
     esp.WeaponText.Text = weapon
     local idx = getIndex(ESP.BottomOrder, "Weapon")
     if not idx then return end
-    local offset = 5 + (idx - 1) * 15
+    local offset = 5 + (idx - 1) * 12
     esp.WeaponText.Position = Vector2.new((minX + maxX) / 2, maxY + offset)
     esp.WeaponText.Color = ESP.WeaponColor
     esp.WeaponText.Visible = true
 end
 
-local function updateHP(esp, humanoid, minX, minY, maxX, maxY)
+function updateHP(esp, humanoid, minX, minY, maxX, maxY)
     if esp.HPBar then esp.HPBar.Visible = false end
     if esp.HPBarBack then esp.HPBarBack.Visible = false end
     if esp.HPText then esp.HPText.Visible = false end
@@ -3486,7 +3781,7 @@ local function updateHP(esp, humanoid, minX, minY, maxX, maxY)
         esp.HPText.Text = math.floor(hpPercent) .. "%"
         local idx = getIndex(ESP.BottomOrder, "HP")
         if idx then
-            local offset = 5 + (idx - 1) * 15
+            local offset = 5 + (idx - 1) * 12
             esp.HPText.Position = Vector2.new((minX + maxX) / 2, maxY + offset)
 
             if hpPercent > 75 then
@@ -3508,7 +3803,7 @@ local function updateHP(esp, humanoid, minX, minY, maxX, maxY)
     end
 end
 
-local function updateTracer(esp, rootScreen)
+function updateTracer(esp, rootScreen)
     esp.Tracer.Color = ESP.TracerColor
     local fromPos = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y)
     local toPos = Vector2.new(rootScreen.X, rootScreen.Y)
@@ -3524,7 +3819,7 @@ local function updateTracer(esp, rootScreen)
     esp.TracerOutline.Visible = true
 end
 
-local function updateHeadLine(esp, headScreen, head)
+function updateHeadLine(esp, headScreen, head)
     local endPos = Camera:WorldToViewportPoint(head.Position + head.CFrame.LookVector * 3)
     esp.HeadLine.Color = Color3.new(1, 0, 0)
     esp.HeadLine.From = Vector2.new(headScreen.X, headScreen.Y)
@@ -3532,7 +3827,7 @@ local function updateHeadLine(esp, headScreen, head)
     esp.HeadLine.Visible = true
 end
 
-local function processESP(model, esp, localRoot)
+function processESP(model, esp, localRoot)
     if not model or not model.Parent then
         removeESP(model)
         return
@@ -3714,6 +4009,7 @@ ToggleBindings = {
     {button = NightVisionToggle,state = function() return NightVisionConfig.Enabled end},
     {button = CFrameSpeedToggle,state = function() return CFrameSpeedConfig.Enabled end},
     {button = TimeToggle,       state = function() return TimeControl.Enabled end},
+    {button = CrosshairToggle,  state = function() return CrosshairConfig.Enabled end},
     {button = KeyListToggle,    state = function() return UIState.KeyListVisible end},
     {button = StatsToggle,      state = function() return UIState.StatsVisible end},
 }
@@ -3737,6 +4033,10 @@ function updateButtons()
     if UIState.DroppedArrow then
         UIState.DroppedArrow.Text = UIState.droppedListExpanded and "v" or ">"
     end
+    CrosshairListFrame.Visible = UIState.crosshairListExpanded
+    if UIState.CrosshairArrow then
+        UIState.CrosshairArrow.Text = UIState.crosshairListExpanded and "v" or ">"
+    end
     for name, tgl in pairs(DroppedToggles) do
         tgl.Check.Visible = DroppedESP.Items[name]
     end
@@ -3749,6 +4049,20 @@ function updateButtons()
         if XrayLabel then
             XrayLabel.Text = string.format("Alpha: %.2f", XrayConfig.Transparency)
         end
+    end
+    if UIState.crosshairListExpanded then
+        local relative = math.clamp(CrosshairConfig.Speed / 10, 0, 1)
+        CrosshairSliderBar.Size = UDim2.new(relative, 0, 1, 0)
+        CrosshairSliderHandle.Position = UDim2.new(relative, -6, 0.5, -6)
+        CrosshairValueLabel.Text = "Speed: " .. string.format("%.1f", CrosshairConfig.Speed)
+        local sizeRelative = (CrosshairConfig.Size - 4) / 16
+        CrosshairSizeSliderBar.Size = UDim2.new(sizeRelative, 0, 1, 0)
+        CrosshairSizeSliderHandle.Position = UDim2.new(sizeRelative, -6, 0.5, -6)
+        CrosshairSizeValueLabel.Text = "Size: " .. string.format("%.0f", CrosshairConfig.Size)
+        local thickRelative = (CrosshairConfig.Thickness - 1) / 9
+        CrosshairThicknessSliderBar.Size = UDim2.new(thickRelative, 0, 1, 0)
+        CrosshairThicknessSliderHandle.Position = UDim2.new(thickRelative, -6, 0.5, -6)
+        CrosshairThicknessValueLabel.Text = "Thickness: " .. string.format("%.1f", CrosshairConfig.Thickness)
     end
 end
 
@@ -3818,7 +4132,12 @@ function notifyConfig(msg)
 end
 
 
+function notify(msg)
+    notifyConfig(msg)
+end
+
 function collectConfig()
+    local chPos = crosshairListPos or CrosshairListFrame.Position
     return {
         ESP = {
             BoxEnabled = ESP.BoxEnabled,
@@ -3864,6 +4183,17 @@ function collectConfig()
         FOV = {Enabled = FOVConfig.Enabled, Value = FOVConfig.Value},
         CFrameSpeed = {Enabled = CFrameSpeedConfig.Enabled, Speed = CFrameSpeedConfig.Speed}, -- key toggle state ignored
         TimeControl = {Enabled = TimeControl.Enabled, CurrentTime = TimeControl.CurrentTime},
+        Crosshair = {
+            Enabled = CrosshairConfig.Enabled,
+            Speed = CrosshairConfig.Speed,
+            Size = CrosshairConfig.Size,
+            Thickness = CrosshairConfig.Thickness,
+            Color = colorToTable(CrosshairConfig.Color),
+            List = {
+                Expanded = UIState.crosshairListExpanded,
+                Position = {chPos.X.Scale, chPos.X.Offset, chPos.Y.Scale, chPos.Y.Offset}
+            }
+        },
         KeyList = UIState.KeyListVisible,
         Stats = UIState.StatsVisible
     }
@@ -4077,6 +4407,32 @@ function applyConfig(cfg)
         FOVConfig.Value = cfg.FOV.Value or FOVConfig.Value
         if cfg.FOV.Enabled ~= FOVConfig.Enabled then
             toggleFOV()
+        end
+    end
+    if cfg.Crosshair then
+        CrosshairConfig.Speed = cfg.Crosshair.Speed or CrosshairConfig.Speed
+        CrosshairConfig.Size = cfg.Crosshair.Size or CrosshairConfig.Size
+        CrosshairConfig.Thickness = cfg.Crosshair.Thickness or CrosshairConfig.Thickness
+        if cfg.Crosshair.Color then
+            CrosshairConfig.Color = tableToColor(cfg.Crosshair.Color)
+            CrosshairColorButton.BackgroundColor3 = CrosshairConfig.Color
+            if CrosshairColorPicker then CrosshairColorPicker.SetColor(CrosshairConfig.Color) end
+        end
+        updateCrosshairSpeed(CrosshairConfig.Speed)
+        updateCrosshairSize(CrosshairConfig.Size)
+        updateCrosshairThickness(CrosshairConfig.Thickness)
+        if cfg.Crosshair.List then
+            UIState.crosshairListExpanded = cfg.Crosshair.List.Expanded or false
+            CrosshairListFrame.Visible = UIState.crosshairListExpanded
+            UIState.CrosshairArrow.Text = UIState.crosshairListExpanded and "v" or ">"
+            local p = cfg.Crosshair.List.Position
+            if p then
+                CrosshairListFrame.Position = UDim2.new(p[1], p[2], p[3], p[4])
+                crosshairListPos = CrosshairListFrame.Position
+            end
+        end
+        if cfg.Crosshair.Enabled ~= CrosshairConfig.Enabled then
+            toggleCrosshair()
         end
     end
     if cfg.KeyList ~= nil then
@@ -4354,6 +4710,15 @@ AimFovColorButton.MouseButton1Click:Connect(function()
         AimFovColorPicker.Frame.Visible = true
     end
 end)
+CrosshairColorButton.MouseButton1Click:Connect(function()
+    if CrosshairColorPicker.Frame.Visible then
+        CrosshairColorPicker.Frame.Visible = false
+    else
+        hideAllPickers()
+        CrosshairColorPicker.SetColor(CrosshairConfig.Color)
+        CrosshairColorPicker.Frame.Visible = true
+    end
+end)
 
 ShivSkinButton.MouseButton1Click:Connect(function()
     if ShivSkinListFrame.Visible then
@@ -4503,6 +4868,23 @@ UIState.DroppedArrow.MouseButton1Click:Connect(function()
     updateButtons()
 end)
 
+UIState.CrosshairArrow.MouseButton1Click:Connect(function()
+    if UIState.crosshairListExpanded then
+        UIState.crosshairListExpanded = false
+    else
+        hideAllPickers()
+        UIState.crosshairListExpanded = true
+        if crosshairListPos then
+            CrosshairListFrame.Position = crosshairListPos
+        else
+            local offsetX = CrosshairToggle.Holder.AbsolutePosition.X + CrosshairToggle.Holder.AbsoluteSize.X + 5
+            local offsetY = CrosshairToggle.Holder.AbsolutePosition.Y - 30
+            CrosshairListFrame.Position = UDim2.new(0, offsetX, 0, offsetY)
+        end
+    end
+    updateButtons()
+end)
+
 FlyToggle.Button.MouseButton1Click:Connect(function()
     FlyConfig.Enabled = not FlyConfig.Enabled
     updateButtons()
@@ -4523,7 +4905,6 @@ end)
 NoClipToggle.Button.MouseButton1Click:Connect(function()
     NoClipConfig.Enabled = not NoClipConfig.Enabled
     updateButtons()
-
     if not NoClipConfig.Enabled then
         if NoClipConfig.IsActive then
             NoClipConfig.IsActive = false
@@ -4601,6 +4982,11 @@ TimeToggle.Button.MouseButton1Click:Connect(function()
     end
 
     updateTimeControlUI()
+    updateButtons()
+end)
+
+CrosshairToggle.Button.MouseButton1Click:Connect(function()
+    toggleCrosshair()
     updateButtons()
 end)
 
