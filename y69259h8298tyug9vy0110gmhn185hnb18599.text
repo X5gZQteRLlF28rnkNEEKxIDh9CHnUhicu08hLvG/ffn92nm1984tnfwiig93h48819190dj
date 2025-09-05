@@ -263,6 +263,8 @@ UIState = {
     OreArrow = nil,
     droppedListExpanded = false,
     DroppedArrow = nil,
+    crosshairListExpanded = false,
+    CrosshairArrow = nil,
     ConfigNotify = nil,
 }
 
@@ -1122,6 +1124,17 @@ TimeToggle = createToggle(MiscTab, "TimeToggle", "Time Control", 190)
 CrosshairToggle = createToggle(MiscTab, "CrosshairToggle", "Crosshair", 220)
 CrosshairToggle.Holder.Size = UDim2.new(0.9, 0, 0, 40)
 CrosshairColorButton = createColorButton(CrosshairToggle.Holder, "CrosshairColorButton", CrosshairConfig.Color)
+UIState.CrosshairArrow = Instance.new("TextButton")
+UIState.CrosshairArrow.Parent = CrosshairToggle.Holder
+UIState.CrosshairArrow.BackgroundTransparency = 1
+UIState.CrosshairArrow.BorderSizePixel = 0
+UIState.CrosshairArrow.Position = UDim2.new(1, -40, 0, 0)
+UIState.CrosshairArrow.Size = UDim2.new(0, 20, 0, 20)
+UIState.CrosshairArrow.Text = ">"
+UIState.CrosshairArrow.FontFace = customFont
+UIState.CrosshairArrow.TextSize = 16
+UIState.CrosshairArrow.TextColor3 = Color3.fromRGB(255, 255, 255)
+UIState.CrosshairArrow.AutoButtonColor = false
 
 FlyKeyButton = createKeyButton(SettingTab, "FlyKeyButton", "Fly key", KeyConfig.FlyToggle, 10)
 NoClipKeyButton = createKeyButton(SettingTab, "NoClipKeyButton", "Noclip key", KeyConfig.NoClipToggle, 40)
@@ -1797,13 +1810,58 @@ TimeSliderHandle.Position = UDim2.new(0, -6, 0.5, -6)
 TimeSliderHandle.Size = UDim2.new(0, 12, 0, 12)
 TimeSliderHandle.Text = ""
 
+-- Crosshair settings list
+local CrosshairListFrame = Instance.new("Frame")
+CrosshairListFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+CrosshairListFrame.BorderColor3 = Color3.fromRGB(100, 100, 100)
+CrosshairListFrame.BorderSizePixel = 1
+CrosshairListFrame.Size = UDim2.new(0, 170, 0, 90)
+CrosshairListFrame.BackgroundTransparency = 0.3
+CrosshairListFrame.Visible = false
+CrosshairListFrame.Active = true
+CrosshairListFrame.Parent = ScreenGui
+local CrosshairCorner = Instance.new("UICorner")
+CrosshairCorner.CornerRadius = UDim.new(0, 6)
+CrosshairCorner.Parent = CrosshairListFrame
+local CrosshairTitle = Instance.new("TextLabel")
+CrosshairTitle.Parent = CrosshairListFrame
+CrosshairTitle.BackgroundTransparency = 1
+CrosshairTitle.Size = UDim2.new(1, 0, 0, 20)
+CrosshairTitle.FontFace = customFont
+CrosshairTitle.Text = "Crosshair List"
+CrosshairTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
+CrosshairTitle.TextSize = 14
+CrosshairTitle.TextStrokeTransparency = 0.5
+CrosshairTitle.TextStrokeColor3 = Color3.new(0, 0, 0)
+local chListDragging = false
+local chListDragStart, chListStartPos
+local crosshairListPos
+CrosshairListFrame.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        chListDragging = true
+        chListDragStart = input.Position
+        chListStartPos = CrosshairListFrame.Position
+    end
+end)
+UserInputService.InputChanged:Connect(function(input)
+    if chListDragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+        local delta = input.Position - chListDragStart
+        CrosshairListFrame.Position = UDim2.new(chListStartPos.X.Scale, chListStartPos.X.Offset + delta.X, chListStartPos.Y.Scale, chListStartPos.Y.Offset + delta.Y)
+    end
+end)
+UserInputService.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 and chListDragging then
+        chListDragging = false
+        crosshairListPos = CrosshairListFrame.Position
+    end
+end)
+
 CrosshairSliderFrame = Instance.new("Frame")
-CrosshairSliderFrame.Parent = CrosshairToggle.Holder
+CrosshairSliderFrame.Parent = CrosshairListFrame
 CrosshairSliderFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
 CrosshairSliderFrame.BorderSizePixel = 0
-CrosshairSliderFrame.Position = UDim2.new(0.4, 0, 0, 2)
-CrosshairSliderFrame.Size = UDim2.new(0.45, 0, 0, 16)
-CrosshairSliderFrame.Visible = false
+CrosshairSliderFrame.Position = UDim2.new(0.05, 0, 0, 30)
+CrosshairSliderFrame.Size = UDim2.new(0.6, 0, 0, 16)
 
 CrosshairSliderBar = Instance.new("Frame")
 CrosshairSliderBar.Parent = CrosshairSliderFrame
@@ -1820,26 +1878,24 @@ CrosshairSliderHandle.Size = UDim2.new(0, 12, 0, 12)
 CrosshairSliderHandle.Text = ""
 
 CrosshairValueLabel = Instance.new("TextLabel")
-CrosshairValueLabel.Parent = CrosshairToggle.Holder
+CrosshairValueLabel.Parent = CrosshairListFrame
 CrosshairValueLabel.BackgroundTransparency = 1
-CrosshairValueLabel.Position = UDim2.new(0.87, 0, 0, 0)
-CrosshairValueLabel.Size = UDim2.new(0.13, 0, 0, 20)
+CrosshairValueLabel.Position = UDim2.new(0.7, 0, 0, 30)
+CrosshairValueLabel.Size = UDim2.new(0.25, 0, 0, 20)
 CrosshairValueLabel.FontFace = customFont
 CrosshairValueLabel.Text = "Speed: " .. CrosshairConfig.Speed
 CrosshairValueLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
 CrosshairValueLabel.TextSize = 10
 CrosshairValueLabel.TextXAlignment = Enum.TextXAlignment.Left
-CrosshairValueLabel.Visible = false
 CrosshairValueLabel.TextStrokeTransparency = 0.5
 CrosshairValueLabel.TextStrokeColor3 = Color3.new(0, 0, 0)
 
 CrosshairSizeSliderFrame = Instance.new("Frame")
-CrosshairSizeSliderFrame.Parent = CrosshairToggle.Holder
+CrosshairSizeSliderFrame.Parent = CrosshairListFrame
 CrosshairSizeSliderFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
 CrosshairSizeSliderFrame.BorderSizePixel = 0
-CrosshairSizeSliderFrame.Position = UDim2.new(0.4, 0, 0, 22)
-CrosshairSizeSliderFrame.Size = UDim2.new(0.45, 0, 0, 16)
-CrosshairSizeSliderFrame.Visible = false
+CrosshairSizeSliderFrame.Position = UDim2.new(0.05, 0, 0, 60)
+CrosshairSizeSliderFrame.Size = UDim2.new(0.6, 0, 0, 16)
 
 CrosshairSizeSliderBar = Instance.new("Frame")
 CrosshairSizeSliderBar.Parent = CrosshairSizeSliderFrame
@@ -1856,16 +1912,15 @@ CrosshairSizeSliderHandle.Size = UDim2.new(0, 12, 0, 12)
 CrosshairSizeSliderHandle.Text = ""
 
 CrosshairSizeValueLabel = Instance.new("TextLabel")
-CrosshairSizeValueLabel.Parent = CrosshairToggle.Holder
+CrosshairSizeValueLabel.Parent = CrosshairListFrame
 CrosshairSizeValueLabel.BackgroundTransparency = 1
-CrosshairSizeValueLabel.Position = UDim2.new(0.87, 0, 0, 20)
-CrosshairSizeValueLabel.Size = UDim2.new(0.13, 0, 0, 20)
+CrosshairSizeValueLabel.Position = UDim2.new(0.7, 0, 0, 60)
+CrosshairSizeValueLabel.Size = UDim2.new(0.25, 0, 0, 20)
 CrosshairSizeValueLabel.FontFace = customFont
 CrosshairSizeValueLabel.Text = "Size: " .. CrosshairConfig.Size
 CrosshairSizeValueLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
 CrosshairSizeValueLabel.TextSize = 10
 CrosshairSizeValueLabel.TextXAlignment = Enum.TextXAlignment.Left
-CrosshairSizeValueLabel.Visible = false
 CrosshairSizeValueLabel.TextStrokeTransparency = 0.5
 CrosshairSizeValueLabel.TextStrokeColor3 = Color3.new(0, 0, 0)
 
@@ -3921,6 +3976,10 @@ function updateButtons()
     if UIState.DroppedArrow then
         UIState.DroppedArrow.Text = UIState.droppedListExpanded and "v" or ">"
     end
+    CrosshairListFrame.Visible = UIState.crosshairListExpanded
+    if UIState.CrosshairArrow then
+        UIState.CrosshairArrow.Text = UIState.crosshairListExpanded and "v" or ">"
+    end
     for name, tgl in pairs(DroppedToggles) do
         tgl.Check.Visible = DroppedESP.Items[name]
     end
@@ -3934,17 +3993,15 @@ function updateButtons()
             XrayLabel.Text = string.format("Alpha: %.2f", XrayConfig.Transparency)
         end
     end
-    if CrosshairSliderFrame then CrosshairSliderFrame.Visible = CrosshairConfig.Enabled end
-    if CrosshairValueLabel then CrosshairValueLabel.Visible = CrosshairConfig.Enabled end
-    if CrosshairSizeSliderFrame then CrosshairSizeSliderFrame.Visible = CrosshairConfig.Enabled end
-    if CrosshairSizeValueLabel then CrosshairSizeValueLabel.Visible = CrosshairConfig.Enabled end
-    if CrosshairConfig.Enabled then
+    if UIState.crosshairListExpanded then
         local relative = math.clamp(CrosshairConfig.Speed / 10, 0, 1)
         CrosshairSliderBar.Size = UDim2.new(relative, 0, 1, 0)
         CrosshairSliderHandle.Position = UDim2.new(relative, -6, 0.5, -6)
+        CrosshairValueLabel.Text = "Speed: " .. string.format("%.1f", CrosshairConfig.Speed)
         local sizeRelative = (CrosshairConfig.Size - 4) / 16
         CrosshairSizeSliderBar.Size = UDim2.new(sizeRelative, 0, 1, 0)
         CrosshairSizeSliderHandle.Position = UDim2.new(sizeRelative, -6, 0.5, -6)
+        CrosshairSizeValueLabel.Text = "Size: " .. string.format("%.0f", CrosshairConfig.Size)
     end
 end
 
@@ -4723,6 +4780,23 @@ UIState.DroppedArrow.MouseButton1Click:Connect(function()
     updateButtons()
 end)
 
+UIState.CrosshairArrow.MouseButton1Click:Connect(function()
+    if UIState.crosshairListExpanded then
+        UIState.crosshairListExpanded = false
+    else
+        hideAllPickers()
+        UIState.crosshairListExpanded = true
+        if crosshairListPos then
+            CrosshairListFrame.Position = crosshairListPos
+        else
+            local offsetX = CrosshairToggle.Holder.AbsolutePosition.X + CrosshairToggle.Holder.AbsoluteSize.X + 5
+            local offsetY = CrosshairToggle.Holder.AbsolutePosition.Y - 30
+            CrosshairListFrame.Position = UDim2.new(0, offsetX, 0, offsetY)
+        end
+    end
+    updateButtons()
+end)
+
 FlyToggle.Button.MouseButton1Click:Connect(function()
     FlyConfig.Enabled = not FlyConfig.Enabled
     updateButtons()
@@ -4827,10 +4901,6 @@ end)
 CrosshairToggle.Button.MouseButton1Click:Connect(function()
     toggleCrosshair()
     updateButtons()
-    CrosshairSliderFrame.Visible = CrosshairConfig.Enabled
-    CrosshairValueLabel.Visible = CrosshairConfig.Enabled
-    CrosshairSizeSliderFrame.Visible = CrosshairConfig.Enabled
-    CrosshairSizeValueLabel.Visible = CrosshairConfig.Enabled
 end)
 
 KeyListToggle.Button.MouseButton1Click:Connect(function()
