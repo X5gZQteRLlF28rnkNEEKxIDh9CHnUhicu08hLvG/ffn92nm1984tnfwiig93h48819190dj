@@ -3390,7 +3390,7 @@ local function updateBackpackESP()
     end
 end
 
-local function updateMap()
+function updateMap()
     if not MapConfig.Enabled or not MapConfig.Frame then return end
     local localChar = LocalPlayer.Character
     if not localChar then return end
@@ -3476,7 +3476,7 @@ function updateNews()
     end
 end
 
-local function updateBox(esp, minX, minY, maxX, maxY, distance)
+function updateBox(esp, minX, minY, maxX, maxY, distance)
     local boxWidth = maxX - minX
     local boxHeight = maxY - minY
 
@@ -3508,7 +3508,7 @@ local function updateBox(esp, minX, minY, maxX, maxY, distance)
     esp.BoxInner.Visible = true
 end
 
-local function updateDistanceText(esp, minX, maxX, maxY, distance)
+function updateDistanceText(esp, minX, maxX, maxY, distance)
     esp.DistanceText.Text = math.floor(distance) .. "m"
     local idx = getIndex(ESP.BottomOrder, "Distance")
     if not idx then return end
@@ -3518,7 +3518,7 @@ local function updateDistanceText(esp, minX, maxX, maxY, distance)
     esp.DistanceText.Visible = true
 end
 
-local function updateNameText(esp, minX, maxX, minY, name)
+function updateNameText(esp, minX, maxX, minY, name)
     esp.NameText.Text = name
     local idx = getIndex(ESP.TopOrder, "Name")
     if not idx then return end
@@ -3528,7 +3528,7 @@ local function updateNameText(esp, minX, maxX, minY, name)
     esp.NameText.Visible = true
 end
 
-local function updateWeaponText(esp, minX, maxX, maxY, weapon)
+function updateWeaponText(esp, minX, maxX, maxY, weapon)
     esp.WeaponText.Text = weapon
     local idx = getIndex(ESP.BottomOrder, "Weapon")
     if not idx then return end
@@ -3538,7 +3538,7 @@ local function updateWeaponText(esp, minX, maxX, maxY, weapon)
     esp.WeaponText.Visible = true
 end
 
-local function updateHP(esp, humanoid, minX, minY, maxX, maxY)
+function updateHP(esp, humanoid, minX, minY, maxX, maxY)
     if esp.HPBar then esp.HPBar.Visible = false end
     if esp.HPBarBack then esp.HPBarBack.Visible = false end
     if esp.HPText then esp.HPText.Visible = false end
@@ -3620,7 +3620,7 @@ local function updateHP(esp, humanoid, minX, minY, maxX, maxY)
     end
 end
 
-local function updateTracer(esp, rootScreen)
+function updateTracer(esp, rootScreen)
     esp.Tracer.Color = ESP.TracerColor
     local fromPos = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y)
     local toPos = Vector2.new(rootScreen.X, rootScreen.Y)
@@ -3636,7 +3636,7 @@ local function updateTracer(esp, rootScreen)
     esp.TracerOutline.Visible = true
 end
 
-local function updateHeadLine(esp, headScreen, head)
+function updateHeadLine(esp, headScreen, head)
     local endPos = Camera:WorldToViewportPoint(head.Position + head.CFrame.LookVector * 3)
     esp.HeadLine.Color = Color3.new(1, 0, 0)
     esp.HeadLine.From = Vector2.new(headScreen.X, headScreen.Y)
@@ -3644,7 +3644,7 @@ local function updateHeadLine(esp, headScreen, head)
     esp.HeadLine.Visible = true
 end
 
-local function processESP(model, esp, localRoot)
+function processESP(model, esp, localRoot)
     if not model or not model.Parent then
         removeESP(model)
         return
