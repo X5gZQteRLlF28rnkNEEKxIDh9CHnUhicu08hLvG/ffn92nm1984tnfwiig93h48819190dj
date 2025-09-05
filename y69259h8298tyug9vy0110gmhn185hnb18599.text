@@ -77,9 +77,32 @@ local ESP = {
     DistanceColor = Color3.new(1, 1, 1),
     NameColor = Color3.new(1, 1, 1),
     WeaponColor = Color3.new(1, 1, 1),
-    LabelOrder = "Name",
-    BottomLabelOrder = "Weapon"
+    TopOrder = {},
+    BottomOrder = {}
 }
+
+local function addOrder(list, name)
+    for _, v in ipairs(list) do
+        if v == name then return end
+    end
+    table.insert(list, name)
+end
+
+local function removeOrder(list, name)
+    for i, v in ipairs(list) do
+        if v == name then
+            table.remove(list, i)
+            return
+        end
+    end
+end
+
+local function getIndex(list, name)
+    for i, v in ipairs(list) do
+        if v == name then return i end
+    end
+    return nil
+end
 
 TeamCheckConfig = {
     Enabled = false
@@ -204,13 +227,6 @@ NoClipConfig = {
     ReturnY = false,
 }
 
-ThirdPersonConfig = {
-    Enabled = false,
-    Distance = 10,
-    CameraConnection = nil,
-    GhostConnections = {}
-}
-
 FOVConfig = {
     Enabled = false,
     Value = 90,
@@ -228,30 +244,6 @@ CFrameSpeedConfig = {
     IsActive = false,
     Speed = 0.4,
     Connection = nil
-}
-
-local function removeGhosts()
-    local char = LocalPlayer.Character
-    if not char then return end
-    local name = char.Name
-
-    local function cleanup(model)
-        if model and model ~= char and model.Name == name and model:IsA("Model") then
-            model:Destroy()
-        end
-    end
-
-    cleanup(workspace:FindFirstChild(name))
-    if PlayersFolder then
-        for _, model in ipairs(PlayersFolder:GetChildren()) do
-            cleanup(model)
-        end
-    end
-end
-
-GrassRemoverConfig = {
-    Enabled = false,
-    RemovedGrass = false
 }
 
 UIState = {
@@ -296,6 +288,11 @@ for _, folder in ipairs(ToolPrefabs:GetChildren()) do
     if folder:IsA("Folder") then
         local wm = folder:FindFirstChild("Worldmodel")
         if wm then
+            local assetId = folder:GetAttribute("AssetId")
+            local assetIdObj = folder:FindFirstChild("AssetId")
+            if assetIdObj and assetIdObj.Value then
+                assetId = assetIdObj.Value
+            end
             local names = {}
             for _, obj in ipairs(wm:GetDescendants()) do
                 if not obj:IsA("Folder") then
@@ -304,8 +301,8 @@ for _, folder in ipairs(ToolPrefabs:GetChildren()) do
             end
             table.sort(names)
             local key = table.concat(names, "|")
-            WeaponLookup[key] = folder.Name
-            table.insert(WeaponPartSets, {names = names, name = folder.Name})
+            WeaponLookup[key] = {name = folder.Name, assetId = assetId}
+            table.insert(WeaponPartSets, {names = names, name = folder.Name, assetId = assetId})
         end
     end
 end
@@ -313,6 +310,13 @@ end
 local function getWeaponName(model)
     local wm = model:FindFirstChild("Worldmodel")
     if not wm then return nil end
+    local assetId
+    local assetIdObj = model:FindFirstChild("AssetId")
+    if assetIdObj and assetIdObj.Value then
+        assetId = assetIdObj.Value
+    else
+        assetId = model:GetAttribute("AssetId")
+    end
     local nameSet = {}
     local hasPart = false
     for _, obj in ipairs(wm:GetDescendants()) do
@@ -330,8 +334,10 @@ local function getWeaponName(model)
     end
     table.sort(names)
     local direct = WeaponLookup[table.concat(names, "|")]
-    if direct then
-        return direct
+    if type(direct) == "table" then
+        if not direct.assetId or not assetId or direct.assetId == assetId then
+            return direct.name
+        end
     end
     for _, info in ipairs(WeaponPartSets) do
         local match = true
@@ -341,7 +347,7 @@ local function getWeaponName(model)
                 break
             end
         end
-        if match then
+        if match and (not info.assetId or not assetId or info.assetId == assetId) then
             return info.name
         end
     end
@@ -635,7 +641,7 @@ OreTitle.Parent = OreListFrame
 OreTitle.BackgroundTransparency = 1
 OreTitle.Size = UDim2.new(1, 0, 0, 20)
 OreTitle.FontFace = customFont
-OreTitle.Text = "ORE ESP"
+OreTitle.Text = "Ore List"
 OreTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
 OreTitle.TextSize = 14
 OreTitle.TextStrokeTransparency = 0.5
@@ -690,7 +696,7 @@ DroppedTitle.Parent = DroppedListFrame
 DroppedTitle.BackgroundTransparency = 1
 DroppedTitle.Size = UDim2.new(1, 0, 0, 20)
 DroppedTitle.FontFace = customFont
-DroppedTitle.Text = "DROPPED ESP"
+DroppedTitle.Text = "Dropped List"
 DroppedTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
 DroppedTitle.TextSize = 14
 DroppedTitle.TextStrokeTransparency = 0.5
@@ -1009,7 +1015,7 @@ UIState.OreArrow.AutoButtonColor = false
 
 OreListFrame.Parent = ScreenGui
 OreListFrame.Position = UDim2.new(0, 0, 0, 0)
-OreTitle.Visible = false
+OreTitle.Visible = true
 
 IronToggle = createToggle(OreListFrame, "IronToggle", "Iron Ore", 30)
 BrimstoneToggle = createToggle(OreListFrame, "BrimstoneToggle", "Brimstone Ore", 50)
@@ -1031,7 +1037,7 @@ UIState.DroppedArrow.AutoButtonColor = false
 
 DroppedListFrame.Parent = ScreenGui
 DroppedListFrame.Position = UDim2.new(0, 0, 0, 0)
-DroppedTitle.Visible = false
+DroppedTitle.Visible = true
 
 local refreshDroppedList
 local DroppedToggles = {}
@@ -1096,15 +1102,13 @@ NoClipReturnToggle = createToggle(MainTab, "NoClipReturnToggle", "Reset Y on NoC
 
 -- Misc tab toggles
 XrayToggle = createToggle(MiscTab, "XrayToggle", "Xray Feature", 10)
-ThirdPersonToggle = createToggle(MiscTab, "ThirdPersonToggle", "Third Person", 40)
-FOVToggle = createToggle(MiscTab, "FOVToggle", "FOV Changer", 70)
-AimFovToggle = createToggle(MiscTab, "AimFovToggle", "Aim FOV", 100)
+FOVToggle = createToggle(MiscTab, "FOVToggle", "FOV Changer", 40)
+AimFovToggle = createToggle(MiscTab, "AimFovToggle", "Show FOV", 70)
 AimFovColorButton = createColorButton(AimFovToggle.Holder, "AimFovColorButton", AimFovConfig.Color)
-AimbotToggle = createToggle(MiscTab, "AimbotToggle", "Aimbot", 130)
-NightVisionToggle = createToggle(MiscTab, "NightVisionToggle", "Night Vision", 160)
-CFrameSpeedToggle = createToggle(MiscTab, "CFrameSpeedToggle", "CFrameSpeed", 190)
-RemoveGrassToggle = createToggle(MiscTab, "RemoveGrassToggle", "Remove All Grass", 220)
-TimeToggle = createToggle(MiscTab, "TimeToggle", "Time Control", 250)
+AimbotToggle = createToggle(MiscTab, "AimbotToggle", "Aimbot", 100)
+NightVisionToggle = createToggle(MiscTab, "NightVisionToggle", "Night Vision", 130)
+CFrameSpeedToggle = createToggle(MiscTab, "CFrameSpeedToggle", "CFrameSpeed", 160)
+TimeToggle = createToggle(MiscTab, "TimeToggle", "Time Control", 190)
 
 FlyKeyButton = createKeyButton(SettingTab, "FlyKeyButton", "Fly key", KeyConfig.FlyToggle, 10)
 NoClipKeyButton = createKeyButton(SettingTab, "NoClipKeyButton", "Noclip key", KeyConfig.NoClipToggle, 40)
@@ -1880,71 +1884,6 @@ local function toggleCFrameSpeed()
     end
 end
 
--- Remove All Grass Functions
-local function removeTerrainDecoration()
-    pcall(function()
-        if sethiddenproperty then
-            sethiddenproperty(workspace.Terrain, "Decoration", false)
-        end
-    end)
-end
-
-local function removeGrassModels()
-    local grassNames = {
-        "grass",
-        "flower",
-        "bush",
-        "shrub",
-        "weed",
-        "fern",
-        "moss",
-        "leaves",
-        "leaf",
-        "plant",
-        "vegetation"
-    }
-    
-    local function SearchAndDestroy(parent)
-        for _, child in pairs(parent:GetChildren()) do
-            if child:IsA("Model") or child:IsA("Part") or child:IsA("MeshPart") then
-                local childNameLower = string.lower(child.Name)
-                for _, grassName in pairs(grassNames) do
-                    if string.find(childNameLower, grassName) then
-                        child:Destroy()
-                        break
-                    end
-                end
-                
-                if child:IsA("Part") or child:IsA("MeshPart") then
-                    if (child.Material == Enum.Material.Grass or 
-                        child.Material == Enum.Material.LeafyGrass or
-                        child.Material == Enum.Material.Pebble) and
-                       child.Size.Y < 5 and 
-                       child.CanCollide == false then
-                        child:Destroy()
-                    end
-                end
-            end
-            
-            if child:IsA("Folder") or child:IsA("Model") then
-                SearchAndDestroy(child)
-            end
-        end
-    end
-    
-    SearchAndDestroy(workspace)
-end
-
-local function toggleRemoveAllGrass()
-    GrassRemoverConfig.Enabled = not GrassRemoverConfig.Enabled
-    
-    if GrassRemoverConfig.Enabled and not GrassRemoverConfig.RemovedGrass then
-        removeTerrainDecoration()
-        removeGrassModels()
-        GrassRemoverConfig.RemovedGrass = true
-    end
-end
-
 local function createAimFovCircle()
     if AimFovConfig.Circle or AimFovConfig.CircleOutline or AimFovConfig.CircleOuter then
         return
@@ -2272,65 +2211,6 @@ local function toggleNightVision()
             NightVisionConfig.Connection:Disconnect()
             NightVisionConfig.Connection = nil
         end
-    end
-end
-
-local function toggleThirdPerson()
-    ThirdPersonConfig.Enabled = not ThirdPersonConfig.Enabled
-
-    if ThirdPersonConfig.Enabled then
-        LocalPlayer.CameraMaxZoomDistance = ThirdPersonConfig.Distance
-        LocalPlayer.CameraMinZoomDistance = ThirdPersonConfig.Distance
-        LocalPlayer.CameraMode = Enum.CameraMode.Classic
-
-        if ThirdPersonConfig.CameraConnection then
-            ThirdPersonConfig.CameraConnection:Disconnect()
-            ThirdPersonConfig.CameraConnection = nil
-        end
-        for _, conn in ipairs(ThirdPersonConfig.GhostConnections) do
-            conn:Disconnect()
-        end
-        ThirdPersonConfig.GhostConnections = {}
-
-        ThirdPersonConfig.CameraConnection = RunService.RenderStepped:Connect(function()
-            if Camera.CameraType ~= Enum.CameraType.Custom then
-                Camera.CameraType = Enum.CameraType.Custom
-            end
-        end)
-
-        local name = LocalPlayer.Name
-        local function watch(folder)
-            return folder.DescendantAdded:Connect(function(desc)
-                if desc:IsA("Model") and desc.Name == name then
-                    task.defer(function()
-                        if Players:GetPlayerFromCharacter(desc) ~= LocalPlayer then
-                            desc:Destroy()
-                        end
-                    end)
-                end
-            end)
-        end
-        table.insert(ThirdPersonConfig.GhostConnections, watch(workspace))
-        if PlayersFolder then
-            table.insert(ThirdPersonConfig.GhostConnections, watch(PlayersFolder))
-        end
-
-        removeGhosts()
-    else
-        LocalPlayer.CameraMode = OriginalSettings.CameraMode
-        LocalPlayer.CameraMaxZoomDistance = OriginalSettings.CameraMaxZoom
-        LocalPlayer.CameraMinZoomDistance = OriginalSettings.CameraMinZoom
-
-        if ThirdPersonConfig.CameraConnection then
-            ThirdPersonConfig.CameraConnection:Disconnect()
-            ThirdPersonConfig.CameraConnection = nil
-        end
-        for _, conn in ipairs(ThirdPersonConfig.GhostConnections) do
-            conn:Disconnect()
-        end
-        ThirdPersonConfig.GhostConnections = {}
-
-        removeGhosts()
     end
 end
 
@@ -2891,6 +2771,7 @@ local function createESP(model)
         bg.Thickness = 1
         bg.Filled = true
         bg.Visible = false
+        bg.ZIndex = 1
         esp.HPBarBack = bg
 
         local hb = Drawing.new("Square")
@@ -2898,6 +2779,7 @@ local function createESP(model)
         hb.Thickness = 1
         hb.Filled = true
         hb.Visible = false
+        hb.ZIndex = 2
         esp.HPBar = hb
     end)
     
@@ -3514,27 +3396,21 @@ local function updateBox(esp, minX, minY, maxX, maxY, distance)
     esp.BoxInner.Visible = true
 end
 
-local function updateDistanceText(esp, minX, maxX, minY, distance)
+local function updateDistanceText(esp, minX, maxX, maxY, distance)
     esp.DistanceText.Text = math.floor(distance) .. "m"
-    local offset
-    if ESP.NameEnabled then
-        offset = ESP.LabelOrder == "Distance" and -35 or -20
-    else
-        offset = -20
-    end
-    esp.DistanceText.Position = Vector2.new((minX + maxX) / 2, minY + offset)
+    local idx = getIndex(ESP.BottomOrder, "Distance")
+    if not idx then return end
+    local offset = 5 + (idx - 1) * 15
+    esp.DistanceText.Position = Vector2.new((minX + maxX) / 2, maxY + offset)
     esp.DistanceText.Color = ESP.DistanceColor
     esp.DistanceText.Visible = true
 end
 
 local function updateNameText(esp, minX, maxX, minY, name)
     esp.NameText.Text = name
-    local offset
-    if ESP.DistanceEnabled then
-        offset = ESP.LabelOrder == "Name" and -35 or -20
-    else
-        offset = -20
-    end
+    local idx = getIndex(ESP.TopOrder, "Name")
+    if not idx then return end
+    local offset = -20 - (idx - 1) * 15
     esp.NameText.Position = Vector2.new((minX + maxX) / 2, minY + offset)
     esp.NameText.Color = ESP.NameColor
     esp.NameText.Visible = true
@@ -3542,12 +3418,9 @@ end
 
 local function updateWeaponText(esp, minX, maxX, maxY, weapon)
     esp.WeaponText.Text = weapon
-    local offset
-    if ESP.HPEnabled and not ESP.HPBar then
-        offset = ESP.BottomLabelOrder == "Weapon" and 5 or 20
-    else
-        offset = 5
-    end
+    local idx = getIndex(ESP.BottomOrder, "Weapon")
+    if not idx then return end
+    local offset = 5 + (idx - 1) * 15
     esp.WeaponText.Position = Vector2.new((minX + maxX) / 2, maxY + offset)
     esp.WeaponText.Color = ESP.WeaponColor
     esp.WeaponText.Visible = true
@@ -3611,25 +3484,25 @@ local function updateHP(esp, humanoid, minX, minY, maxX, maxY)
         if esp.HPText then esp.HPText.Visible = false end
     elseif esp.HPText then
         esp.HPText.Text = math.floor(hpPercent) .. "%"
-        local offset
-        if ESP.WeaponEnabled then
-            offset = ESP.BottomLabelOrder == "HP" and 5 or 20
-        else
-            offset = 5
-        end
-        esp.HPText.Position = Vector2.new((minX + maxX) / 2, maxY + offset)
+        local idx = getIndex(ESP.BottomOrder, "HP")
+        if idx then
+            local offset = 5 + (idx - 1) * 15
+            esp.HPText.Position = Vector2.new((minX + maxX) / 2, maxY + offset)
 
-        if hpPercent > 75 then
-            esp.HPText.Color = Color3.new(0, 1, 0)
-        elseif hpPercent > 50 then
-            esp.HPText.Color = Color3.new(1, 1, 0)
-        elseif hpPercent > 25 then
-            esp.HPText.Color = Color3.new(1, 0.5, 0)
-        else
-            esp.HPText.Color = Color3.new(1, 0, 0)
-        end
+            if hpPercent > 75 then
+                esp.HPText.Color = Color3.new(0, 1, 0)
+            elseif hpPercent > 50 then
+                esp.HPText.Color = Color3.new(1, 1, 0)
+            elseif hpPercent > 25 then
+                esp.HPText.Color = Color3.new(1, 0.5, 0)
+            else
+                esp.HPText.Color = Color3.new(1, 0, 0)
+            end
 
-        esp.HPText.Visible = true
+            esp.HPText.Visible = true
+        else
+            esp.HPText.Visible = false
+        end
         if esp.HPBar then esp.HPBar.Visible = false end
         if esp.HPBarBack then esp.HPBarBack.Visible = false end
     end
@@ -3716,7 +3589,7 @@ local function processESP(model, esp, localRoot)
     end
 
     if ESP.DistanceEnabled and esp.DistanceText and head then
-        if not pcall(updateDistanceText, esp, minX, maxX, minY, distance) then
+        if not pcall(updateDistanceText, esp, minX, maxX, maxY, distance) then
             esp.DistanceText.Visible = false
         end
     elseif esp.DistanceText then
@@ -3835,13 +3708,11 @@ ToggleBindings = {
     {button = NoClipToggle,     state = function() return NoClipConfig.Enabled end},
     {button = NoClipReturnToggle, state = function() return NoClipConfig.ReturnY end},
     {button = XrayToggle,       state = function() return XrayConfig.Enabled end},
-    {button = ThirdPersonToggle,state = function() return ThirdPersonConfig.Enabled end},
     {button = FOVToggle,        state = function() return FOVConfig.Enabled end},
     {button = AimFovToggle,     state = function() return AimFovConfig.Enabled end},
     {button = AimbotToggle,     state = function() return AimbotConfig.Enabled end},
     {button = NightVisionToggle,state = function() return NightVisionConfig.Enabled end},
     {button = CFrameSpeedToggle,state = function() return CFrameSpeedConfig.Enabled end},
-    {button = RemoveGrassToggle,state = function() return GrassRemoverConfig.Enabled end},
     {button = TimeToggle,       state = function() return TimeControl.Enabled end},
     {button = KeyListToggle,    state = function() return UIState.KeyListVisible end},
     {button = StatsToggle,      state = function() return UIState.StatsVisible end},
@@ -3962,9 +3833,7 @@ function collectConfig()
             TracerColor = colorToTable(ESP.TracerColor),
             DistanceColor = colorToTable(ESP.DistanceColor),
             NameColor = colorToTable(ESP.NameColor),
-            WeaponColor = colorToTable(ESP.WeaponColor),
-            LabelOrder = ESP.LabelOrder,
-            BottomLabelOrder = ESP.BottomLabelOrder
+            WeaponColor = colorToTable(ESP.WeaponColor)
         },
         TeamCheck = TeamCheckConfig.Enabled,
         Highlight = {Enabled = HighlightConfig.Enabled, Color = colorToTable(HighlightConfig.Color)},
@@ -3992,10 +3861,8 @@ function collectConfig()
         NightVision = NightVisionConfig.Enabled,
         Fly = FlyConfig.Enabled, -- only button state persists
         NoClip = {Enabled = NoClipConfig.Enabled, ReturnY = NoClipConfig.ReturnY}, -- key toggle state ignored
-        ThirdPerson = {Enabled = ThirdPersonConfig.Enabled, Distance = ThirdPersonConfig.Distance},
         FOV = {Enabled = FOVConfig.Enabled, Value = FOVConfig.Value},
         CFrameSpeed = {Enabled = CFrameSpeedConfig.Enabled, Speed = CFrameSpeedConfig.Speed}, -- key toggle state ignored
-        RemoveGrass = GrassRemoverConfig.Enabled,
         TimeControl = {Enabled = TimeControl.Enabled, CurrentTime = TimeControl.CurrentTime},
         KeyList = UIState.KeyListVisible,
         Stats = UIState.StatsVisible
@@ -4004,12 +3871,18 @@ end
 
 function applyConfig(cfg)
     if cfg.ESP then
+        ESP.TopOrder = {}
+        ESP.BottomOrder = {}
         ESP.BoxEnabled = cfg.ESP.BoxEnabled or false
         ESP.DistanceEnabled = cfg.ESP.DistanceEnabled or false
+        if ESP.DistanceEnabled then addOrder(ESP.BottomOrder, "Distance") end
         ESP.NameEnabled = cfg.ESP.NameEnabled or false
+        if ESP.NameEnabled then addOrder(ESP.TopOrder, "Name") end
         ESP.WeaponEnabled = cfg.ESP.WeaponEnabled or false
+        if ESP.WeaponEnabled then addOrder(ESP.BottomOrder, "Weapon") end
         ESP.HPEnabled = cfg.ESP.HPEnabled or false
         ESP.HPBar = cfg.ESP.HPBar or false
+        if ESP.HPEnabled and not ESP.HPBar then addOrder(ESP.BottomOrder, "HP") end
         ESP.TracerEnabled = cfg.ESP.TracerEnabled or false
         ESP.HeadLineEnabled = cfg.ESP.HeadLineEnabled or false
         if cfg.ESP.BoxColor then
@@ -4041,12 +3914,6 @@ function applyConfig(cfg)
             ESP.WeaponColor = c
             WeaponColorButton.BackgroundColor3 = c
             if WeaponColorPicker then WeaponColorPicker.SetColor(c) end
-        end
-        if cfg.ESP.LabelOrder then
-            ESP.LabelOrder = cfg.ESP.LabelOrder
-        end
-        if cfg.ESP.BottomLabelOrder then
-            ESP.BottomLabelOrder = cfg.ESP.BottomLabelOrder
         end
         for _, esp in pairs(ESPObjects) do
             if esp.DistanceText then esp.DistanceText.Color = ESP.DistanceColor end
@@ -4180,9 +4047,6 @@ function applyConfig(cfg)
             toggleCFrameSpeed()
         end
     end
-    if cfg.RemoveGrass ~= nil and cfg.RemoveGrass ~= GrassRemoverConfig.Enabled then
-        toggleRemoveAllGrass()
-    end
     if cfg.TimeControl then
         TimeControl.CurrentTime = cfg.TimeControl.CurrentTime or TimeControl.CurrentTime
         if cfg.TimeControl.Enabled ~= TimeControl.Enabled then
@@ -4207,12 +4071,6 @@ function applyConfig(cfg)
         NoClipConfig.ReturnY = cfg.NoClip.ReturnY
         if NoClipConfig.IsActive then
             toggleNoClip()
-        end
-    end
-    if cfg.ThirdPerson then
-        ThirdPersonConfig.Distance = cfg.ThirdPerson.Distance or ThirdPersonConfig.Distance
-        if cfg.ThirdPerson.Enabled ~= ThirdPersonConfig.Enabled then
-            toggleThirdPerson()
         end
     end
     if cfg.FOV then
@@ -4327,9 +4185,9 @@ end)
 DistanceToggle.Button.MouseButton1Click:Connect(function()
     ESP.DistanceEnabled = not ESP.DistanceEnabled
     if ESP.DistanceEnabled then
-        ESP.LabelOrder = "Distance"
-    elseif ESP.NameEnabled then
-        ESP.LabelOrder = "Name"
+        addOrder(ESP.BottomOrder, "Distance")
+    else
+        removeOrder(ESP.BottomOrder, "Distance")
     end
     updateButtons()
 end)
@@ -4337,9 +4195,9 @@ end)
 NameToggle.Button.MouseButton1Click:Connect(function()
     ESP.NameEnabled = not ESP.NameEnabled
     if ESP.NameEnabled then
-        ESP.LabelOrder = "Name"
-    elseif ESP.DistanceEnabled then
-        ESP.LabelOrder = "Distance"
+        addOrder(ESP.TopOrder, "Name")
+    else
+        removeOrder(ESP.TopOrder, "Name")
     end
     updateButtons()
 end)
@@ -4347,9 +4205,9 @@ end)
 HPToggle.Button.MouseButton1Click:Connect(function()
     ESP.HPEnabled = not ESP.HPEnabled
     if ESP.HPEnabled and not ESP.HPBar then
-        ESP.BottomLabelOrder = "HP"
-    elseif ESP.WeaponEnabled then
-        ESP.BottomLabelOrder = "Weapon"
+        addOrder(ESP.BottomOrder, "HP")
+    else
+        removeOrder(ESP.BottomOrder, "HP")
     end
     updateButtons()
 end)
@@ -4357,14 +4215,10 @@ end)
 HPBarButton.MouseButton1Click:Connect(function()
     ESP.HPBar = not ESP.HPBar
     if ESP.HPEnabled then
-        if not ESP.HPBar then
-            ESP.BottomLabelOrder = "HP"
-        elseif ESP.BottomLabelOrder == "HP" then
-            if ESP.WeaponEnabled then
-                ESP.BottomLabelOrder = "Weapon"
-            else
-                ESP.BottomLabelOrder = nil
-            end
+        if ESP.HPBar then
+            removeOrder(ESP.BottomOrder, "HP")
+        else
+            addOrder(ESP.BottomOrder, "HP")
         end
     end
     updateButtons()
@@ -4373,9 +4227,9 @@ end)
 WeaponToggle.Button.MouseButton1Click:Connect(function()
     ESP.WeaponEnabled = not ESP.WeaponEnabled
     if ESP.WeaponEnabled then
-        ESP.BottomLabelOrder = "Weapon"
-    elseif ESP.HPEnabled and not ESP.HPBar then
-        ESP.BottomLabelOrder = "HP"
+        addOrder(ESP.BottomOrder, "Weapon")
+    else
+        removeOrder(ESP.BottomOrder, "Weapon")
     end
     updateButtons()
 end)
@@ -4692,12 +4546,6 @@ XrayToggle.Button.MouseButton1Click:Connect(function()
     toggleXray()
     updateButtons()
 end)
-
-ThirdPersonToggle.Button.MouseButton1Click:Connect(function()
-    toggleThirdPerson()
-    updateButtons()
-end)
-
 FOVToggle.Button.MouseButton1Click:Connect(function()
     toggleFOV()
     updateButtons()
@@ -4728,11 +4576,6 @@ CFrameSpeedToggle.Button.MouseButton1Click:Connect(function()
     if not CFrameSpeedConfig.Enabled and CFrameSpeedConfig.IsActive then
         toggleCFrameSpeed()
     end
-end)
-
-RemoveGrassToggle.Button.MouseButton1Click:Connect(function()
-    toggleRemoveAllGrass()
-    updateButtons()
 end)
 
 -- Key Configuration Button Connections
@@ -4852,13 +4695,6 @@ LocalPlayer.CharacterAdded:Connect(function()
     end
     CFrameSpeedConfig.IsActive = false
     CFrameSpeedKeyLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
-    
-    if ThirdPersonConfig.Enabled then
-        wait(0.5)
-        LocalPlayer.CameraMaxZoomDistance = ThirdPersonConfig.Distance
-        LocalPlayer.CameraMinZoomDistance = ThirdPersonConfig.Distance
-        LocalPlayer.CameraMode = Enum.CameraMode.Classic
-    end
     
     updateStatusDisplay()
     
@@ -4984,12 +4820,6 @@ ScreenGui.AncestryChanged:Connect(function()
             Lighting.ColorShift_Top = OriginalSettings.ColorShiftTop
         end
         
-        if ThirdPersonConfig.Enabled then
-            LocalPlayer.CameraMode = OriginalSettings.CameraMode
-            LocalPlayer.CameraMaxZoomDistance = OriginalSettings.CameraMaxZoom
-            LocalPlayer.CameraMinZoomDistance = OriginalSettings.CameraMinZoom
-        end
-        
         if FOVConfig.Enabled then
             Camera.FieldOfView = OriginalSettings.FieldOfView
         end
@@ -5006,9 +4836,6 @@ ScreenGui.AncestryChanged:Connect(function()
         
         if FlyConfig.Connection then FlyConfig.Connection:Disconnect() end
         if NoClipConfig.Connection then NoClipConfig.Connection:Disconnect() end
-        if ThirdPersonConfig.CameraConnection then ThirdPersonConfig.CameraConnection:Disconnect() end
-        for _, conn in ipairs(ThirdPersonConfig.GhostConnections) do conn:Disconnect() end
-        ThirdPersonConfig.GhostConnections = {}
         if FOVConfig.Connection then FOVConfig.Connection:Disconnect() end
         if NightVisionConfig.Connection then NightVisionConfig.Connection:Disconnect() end
         if CFrameSpeedConfig.Connection then CFrameSpeedConfig.Connection:Disconnect() end
