@@ -204,13 +204,6 @@ NoClipConfig = {
     ReturnY = false,
 }
 
-ThirdPersonConfig = {
-    Enabled = false,
-    Distance = 10,
-    CameraConnection = nil,
-    GhostConnections = {}
-}
-
 FOVConfig = {
     Enabled = false,
     Value = 90,
@@ -229,31 +222,6 @@ CFrameSpeedConfig = {
     Speed = 0.4,
     Connection = nil
 }
-
-local function removeGhosts()
-    local char = LocalPlayer.Character
-    if not char then return end
-    local name = char.Name
-
-    local function cleanup(model)
-        if model and model ~= char and model:IsA("Model") then
-            local owner = Players:GetPlayerFromCharacter(model)
-            if owner == LocalPlayer or model.Name == name then
-                model:Destroy()
-            end
-        end
-    end
-
-    for _, model in ipairs(workspace:GetDescendants()) do
-        cleanup(model)
-    end
-    if PlayersFolder then
-        for _, model in ipairs(PlayersFolder:GetDescendants()) do
-            cleanup(model)
-        end
-    end
-end
-
 GrassRemoverConfig = {
     Enabled = false,
     RemovedGrass = false
@@ -1115,14 +1083,13 @@ NoClipReturnToggle = createToggle(MainTab, "NoClipReturnToggle", "Reset Y on NoC
 
 -- Misc tab toggles
 XrayToggle = createToggle(MiscTab, "XrayToggle", "Xray Feature", 10)
-ThirdPersonToggle = createToggle(MiscTab, "ThirdPersonToggle", "Third Person", 40)
-FOVToggle = createToggle(MiscTab, "FOVToggle", "FOV Changer", 70)
-AimFovToggle = createToggle(MiscTab, "AimFovToggle", "Aim FOV", 100)
+FOVToggle = createToggle(MiscTab, "FOVToggle", "FOV Changer", 40)
+AimFovToggle = createToggle(MiscTab, "AimFovToggle", "Aim FOV", 70)
 AimFovColorButton = createColorButton(AimFovToggle.Holder, "AimFovColorButton", AimFovConfig.Color)
-AimbotToggle = createToggle(MiscTab, "AimbotToggle", "Aimbot", 130)
-NightVisionToggle = createToggle(MiscTab, "NightVisionToggle", "Night Vision", 160)
-CFrameSpeedToggle = createToggle(MiscTab, "CFrameSpeedToggle", "CFrameSpeed", 190)
-RemoveGrassToggle = createToggle(MiscTab, "RemoveGrassToggle", "Remove All Grass", 220)
+AimbotToggle = createToggle(MiscTab, "AimbotToggle", "Aimbot", 100)
+NightVisionToggle = createToggle(MiscTab, "NightVisionToggle", "Night Vision", 130)
+CFrameSpeedToggle = createToggle(MiscTab, "CFrameSpeedToggle", "CFrameSpeed", 160)
+RemoveGrassToggle = createToggle(MiscTab, "RemoveGrassToggle", "Remove All Grass", 190)
 TimeToggle = createToggle(MiscTab, "TimeToggle", "Time Control", 250)
 
 FlyKeyButton = createKeyButton(SettingTab, "FlyKeyButton", "Fly key", KeyConfig.FlyToggle, 10)
@@ -2291,68 +2258,6 @@ local function toggleNightVision()
             NightVisionConfig.Connection:Disconnect()
             NightVisionConfig.Connection = nil
         end
-    end
-end
-
-local function toggleThirdPerson()
-    ThirdPersonConfig.Enabled = not ThirdPersonConfig.Enabled
-
-    if ThirdPersonConfig.Enabled then
-        LocalPlayer.CameraMaxZoomDistance = ThirdPersonConfig.Distance
-        LocalPlayer.CameraMinZoomDistance = ThirdPersonConfig.Distance
-        LocalPlayer.CameraMode = Enum.CameraMode.Classic
-
-        if ThirdPersonConfig.CameraConnection then
-            ThirdPersonConfig.CameraConnection:Disconnect()
-            ThirdPersonConfig.CameraConnection = nil
-        end
-        for _, conn in ipairs(ThirdPersonConfig.GhostConnections) do
-            conn:Disconnect()
-        end
-        ThirdPersonConfig.GhostConnections = {}
-
-        ThirdPersonConfig.CameraConnection = RunService.RenderStepped:Connect(function()
-            if Camera.CameraType ~= Enum.CameraType.Custom then
-                Camera.CameraType = Enum.CameraType.Custom
-            end
-        end)
-
-        local name = LocalPlayer.Name
-        local function watch(folder)
-            return folder.DescendantAdded:Connect(function(desc)
-                if desc:IsA("Model") then
-                    task.defer(function()
-                        if desc ~= LocalPlayer.Character then
-                            local owner = Players:GetPlayerFromCharacter(desc)
-                            if owner == LocalPlayer or desc.Name == name then
-                                desc:Destroy()
-                            end
-                        end
-                    end)
-                end
-            end)
-        end
-        table.insert(ThirdPersonConfig.GhostConnections, watch(workspace))
-        if PlayersFolder then
-            table.insert(ThirdPersonConfig.GhostConnections, watch(PlayersFolder))
-        end
-
-        removeGhosts()
-    else
-        LocalPlayer.CameraMode = OriginalSettings.CameraMode
-        LocalPlayer.CameraMaxZoomDistance = OriginalSettings.CameraMaxZoom
-        LocalPlayer.CameraMinZoomDistance = OriginalSettings.CameraMinZoom
-
-        if ThirdPersonConfig.CameraConnection then
-            ThirdPersonConfig.CameraConnection:Disconnect()
-            ThirdPersonConfig.CameraConnection = nil
-        end
-        for _, conn in ipairs(ThirdPersonConfig.GhostConnections) do
-            conn:Disconnect()
-        end
-        ThirdPersonConfig.GhostConnections = {}
-
-        removeGhosts()
     end
 end
 
@@ -3538,15 +3443,15 @@ local function updateBox(esp, minX, minY, maxX, maxY, distance)
     esp.BoxInner.Visible = true
 end
 
-local function updateDistanceText(esp, minX, maxX, minY, distance)
+local function updateDistanceText(esp, minX, maxX, maxY, distance)
     esp.DistanceText.Text = math.floor(distance) .. "m"
     local offset
     if ESP.NameEnabled then
-        offset = ESP.LabelOrder == "Distance" and -35 or -20
+        offset = ESP.LabelOrder == "Distance" and 35 or 20
     else
-        offset = -20
+        offset = 20
     end
-    esp.DistanceText.Position = Vector2.new((minX + maxX) / 2, minY + offset)
+    esp.DistanceText.Position = Vector2.new((minX + maxX) / 2, maxY + offset)
     esp.DistanceText.Color = ESP.DistanceColor
     esp.DistanceText.Visible = true
 end
@@ -3740,7 +3645,7 @@ local function processESP(model, esp, localRoot)
     end
 
     if ESP.DistanceEnabled and esp.DistanceText and head then
-        if not pcall(updateDistanceText, esp, minX, maxX, minY, distance) then
+        if not pcall(updateDistanceText, esp, minX, maxX, maxY, distance) then
             esp.DistanceText.Visible = false
         end
     elseif esp.DistanceText then
@@ -3859,7 +3764,6 @@ ToggleBindings = {
     {button = NoClipToggle,     state = function() return NoClipConfig.Enabled end},
     {button = NoClipReturnToggle, state = function() return NoClipConfig.ReturnY end},
     {button = XrayToggle,       state = function() return XrayConfig.Enabled end},
-    {button = ThirdPersonToggle,state = function() return ThirdPersonConfig.Enabled end},
     {button = FOVToggle,        state = function() return FOVConfig.Enabled end},
     {button = AimFovToggle,     state = function() return AimFovConfig.Enabled end},
     {button = AimbotToggle,     state = function() return AimbotConfig.Enabled end},
@@ -4016,7 +3920,6 @@ function collectConfig()
         NightVision = NightVisionConfig.Enabled,
         Fly = FlyConfig.Enabled, -- only button state persists
         NoClip = {Enabled = NoClipConfig.Enabled, ReturnY = NoClipConfig.ReturnY}, -- key toggle state ignored
-        ThirdPerson = {Enabled = ThirdPersonConfig.Enabled, Distance = ThirdPersonConfig.Distance},
         FOV = {Enabled = FOVConfig.Enabled, Value = FOVConfig.Value},
         CFrameSpeed = {Enabled = CFrameSpeedConfig.Enabled, Speed = CFrameSpeedConfig.Speed}, -- key toggle state ignored
         RemoveGrass = GrassRemoverConfig.Enabled,
@@ -4231,12 +4134,6 @@ function applyConfig(cfg)
         NoClipConfig.ReturnY = cfg.NoClip.ReturnY
         if NoClipConfig.IsActive then
             toggleNoClip()
-        end
-    end
-    if cfg.ThirdPerson then
-        ThirdPersonConfig.Distance = cfg.ThirdPerson.Distance or ThirdPersonConfig.Distance
-        if cfg.ThirdPerson.Enabled ~= ThirdPersonConfig.Enabled then
-            toggleThirdPerson()
         end
     end
     if cfg.FOV then
@@ -4716,12 +4613,6 @@ XrayToggle.Button.MouseButton1Click:Connect(function()
     toggleXray()
     updateButtons()
 end)
-
-ThirdPersonToggle.Button.MouseButton1Click:Connect(function()
-    toggleThirdPerson()
-    updateButtons()
-end)
-
 FOVToggle.Button.MouseButton1Click:Connect(function()
     toggleFOV()
     updateButtons()
@@ -4877,13 +4768,6 @@ LocalPlayer.CharacterAdded:Connect(function()
     CFrameSpeedConfig.IsActive = false
     CFrameSpeedKeyLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
     
-    if ThirdPersonConfig.Enabled then
-        wait(0.5)
-        LocalPlayer.CameraMaxZoomDistance = ThirdPersonConfig.Distance
-        LocalPlayer.CameraMinZoomDistance = ThirdPersonConfig.Distance
-        LocalPlayer.CameraMode = Enum.CameraMode.Classic
-    end
-    
     updateStatusDisplay()
     
     local character = LocalPlayer.Character
@@ -5008,12 +4892,6 @@ ScreenGui.AncestryChanged:Connect(function()
             Lighting.ColorShift_Top = OriginalSettings.ColorShiftTop
         end
         
-        if ThirdPersonConfig.Enabled then
-            LocalPlayer.CameraMode = OriginalSettings.CameraMode
-            LocalPlayer.CameraMaxZoomDistance = OriginalSettings.CameraMaxZoom
-            LocalPlayer.CameraMinZoomDistance = OriginalSettings.CameraMinZoom
-        end
-        
         if FOVConfig.Enabled then
             Camera.FieldOfView = OriginalSettings.FieldOfView
         end
@@ -5030,9 +4908,6 @@ ScreenGui.AncestryChanged:Connect(function()
         
         if FlyConfig.Connection then FlyConfig.Connection:Disconnect() end
         if NoClipConfig.Connection then NoClipConfig.Connection:Disconnect() end
-        if ThirdPersonConfig.CameraConnection then ThirdPersonConfig.CameraConnection:Disconnect() end
-        for _, conn in ipairs(ThirdPersonConfig.GhostConnections) do conn:Disconnect() end
-        ThirdPersonConfig.GhostConnections = {}
         if FOVConfig.Connection then FOVConfig.Connection:Disconnect() end
         if NightVisionConfig.Connection then NightVisionConfig.Connection:Disconnect() end
         if CFrameSpeedConfig.Connection then CFrameSpeedConfig.Connection:Disconnect() end
