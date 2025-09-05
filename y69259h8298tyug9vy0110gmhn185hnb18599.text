@@ -244,11 +244,11 @@ local function removeGhosts()
         end
     end
 
-    for _, model in ipairs(workspace:GetChildren()) do
+    for _, model in ipairs(workspace:GetDescendants()) do
         cleanup(model)
     end
     if PlayersFolder then
-        for _, model in ipairs(PlayersFolder:GetChildren()) do
+        for _, model in ipairs(PlayersFolder:GetDescendants()) do
             cleanup(model)
         end
     end
