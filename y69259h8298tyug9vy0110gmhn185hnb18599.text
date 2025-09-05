@@ -296,6 +296,11 @@ for _, folder in ipairs(ToolPrefabs:GetChildren()) do
     if folder:IsA("Folder") then
         local wm = folder:FindFirstChild("Worldmodel")
         if wm then
+            local assetId = folder:GetAttribute("AssetId")
+            local assetIdObj = folder:FindFirstChild("AssetId")
+            if assetIdObj and assetIdObj.Value then
+                assetId = assetIdObj.Value
+            end
             local names = {}
             for _, obj in ipairs(wm:GetDescendants()) do
                 if not obj:IsA("Folder") then
@@ -304,8 +309,8 @@ for _, folder in ipairs(ToolPrefabs:GetChildren()) do
             end
             table.sort(names)
             local key = table.concat(names, "|")
-            WeaponLookup[key] = folder.Name
-            table.insert(WeaponPartSets, {names = names, name = folder.Name})
+            WeaponLookup[key] = {name = folder.Name, assetId = assetId}
+            table.insert(WeaponPartSets, {names = names, name = folder.Name, assetId = assetId})
         end
     end
 end
@@ -313,6 +318,13 @@ end
 local function getWeaponName(model)
     local wm = model:FindFirstChild("Worldmodel")
     if not wm then return nil end
+    local assetId
+    local assetIdObj = model:FindFirstChild("AssetId")
+    if assetIdObj and assetIdObj.Value then
+        assetId = assetIdObj.Value
+    else
+        assetId = model:GetAttribute("AssetId")
+    end
     local nameSet = {}
     local hasPart = false
     for _, obj in ipairs(wm:GetDescendants()) do
@@ -330,8 +342,10 @@ local function getWeaponName(model)
     end
     table.sort(names)
     local direct = WeaponLookup[table.concat(names, "|")]
-    if direct then
-        return direct
+    if type(direct) == "table" then
+        if not direct.assetId or not assetId or direct.assetId == assetId then
+            return direct.name
+        end
     end
     for _, info in ipairs(WeaponPartSets) do
         local match = true
@@ -341,7 +355,7 @@ local function getWeaponName(model)
                 break
             end
         end
-        if match then
+        if match and (not info.assetId or not assetId or info.assetId == assetId) then
             return info.name
         end
     end
@@ -2891,6 +2905,7 @@ local function createESP(model)
         bg.Thickness = 1
         bg.Filled = true
         bg.Visible = false
+        bg.ZIndex = 1
         esp.HPBarBack = bg
 
         local hb = Drawing.new("Square")
@@ -2898,6 +2913,7 @@ local function createESP(model)
         hb.Thickness = 1
         hb.Filled = true
         hb.Visible = false
+        hb.ZIndex = 2
         esp.HPBar = hb
     end)
     
