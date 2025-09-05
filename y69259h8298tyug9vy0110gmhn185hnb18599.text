@@ -3258,20 +3258,20 @@ refreshDroppedList()
 local BackpackFolder
 local BackpackAddedConn, BackpackRemovedConn
 
-local function removeBackpackESP(obj)
+function removeBackpackESP(obj)
     local esp = BackpackESPObjects[obj]
     if not esp then return end
     pcall(function() if esp.Text then esp.Text:Remove() end end)
     BackpackESPObjects[obj] = nil
 end
 
-local function hideBackpackESP(esp)
+function hideBackpackESP(esp)
     if esp and esp.Text then
         esp.Text.Visible = false
     end
 end
 
-local function createBackpackESP(model)
+function createBackpackESP(model)
     local part = model.PrimaryPart or model:FindFirstChildWhichIsA("BasePart")
     if not part then return end
     local t = Drawing.new("Text")
@@ -3284,20 +3284,20 @@ local function createBackpackESP(model)
     BackpackESPObjects[model] = {Text = t, Part = part, Name = model.Name}
 end
 
-local function trackBackpackAdded(obj)
+function trackBackpackAdded(obj)
     if not BackpackESP.Enabled or not obj:IsA("Model") then return end
     if not BackpackESPObjects[obj] then
         createBackpackESP(obj)
     end
 end
 
-local function trackBackpackRemoved(obj)
+function trackBackpackRemoved(obj)
     if BackpackESPObjects[obj] then
         removeBackpackESP(obj)
     end
 end
 
-local function connectBackpackEvents()
+function connectBackpackEvents()
     if BackpackAddedConn then BackpackAddedConn:Disconnect() end
     if BackpackRemovedConn then BackpackRemovedConn:Disconnect() end
     BackpackFolder = workspace:WaitForChild("DroppedPacks", 5)
@@ -3307,7 +3307,7 @@ local function connectBackpackEvents()
     end
 end
 
-local function refreshBackpackList()
+function refreshBackpackList()
     if not BackpackFolder then return end
     for _, obj in ipairs(BackpackFolder:GetDescendants()) do
         trackBackpackAdded(obj)
@@ -3317,7 +3317,7 @@ end
 connectBackpackEvents()
 refreshBackpackList()
 
-local function updateHighlight(model, esp, distance)
+function updateHighlight(model, esp, distance)
     if not HighlightConfig.Enabled then
         if esp.Highlight then
             esp.Highlight:Destroy()
@@ -3370,7 +3370,7 @@ local function updateHighlight(model, esp, distance)
     end
 end
 
-local function updateOreESP()
+function updateOreESP()
     if not ResourcesFolder then return end
     if not OreESP.Enabled then
         for ore, _ in pairs(OreESPObjects) do
@@ -3425,7 +3425,7 @@ local function updateOreESP()
     end
 end
 
-local function updateDroppedESP()
+function updateDroppedESP()
     if not DroppedFolder then return end
     if not DroppedESP.Enabled then
         for obj, _ in pairs(DroppedESPObjects) do
@@ -3475,7 +3475,7 @@ local function updateDroppedESP()
     end
 end
 
-local function updateBackpackESP()
+function updateBackpackESP()
     if not BackpackFolder then return end
     if not BackpackESP.Enabled then
         for obj, _ in pairs(BackpackESPObjects) do
