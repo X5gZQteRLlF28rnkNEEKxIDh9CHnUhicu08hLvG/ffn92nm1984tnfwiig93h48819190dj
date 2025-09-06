@@ -216,7 +216,7 @@ TimeControl = {
 
 FlyConfig = {
     Enabled = false,
-    Speed = 5,
+    Speed = 3,
     VerticalMult = 2,
     IsFlying = false,
     Connection = nil,
