@@ -216,7 +216,7 @@ TimeControl = {
 
 FlyConfig = {
     Enabled = false,
-    Speed = 6,
+    Speed = 5,
     VerticalMult = 2,
     IsFlying = false,
     Connection = nil,
@@ -4095,6 +4095,10 @@ end
 function tableToColor(t)
     return Color3.new(t[1], t[2], t[3])
 end
+
+function enumToString(e)
+    return tostring(e):match("%w+$")
+end
 function notifyConfig(msg)
     if UIState.ConfigNotify then
         UIState.ConfigNotify:Destroy()
@@ -4193,6 +4197,13 @@ function collectConfig()
                 Expanded = UIState.crosshairListExpanded,
                 Position = {chPos.X.Scale, chPos.X.Offset, chPos.Y.Scale, chPos.Y.Offset}
             }
+        },
+        Keys = {
+            MenuToggle = enumToString(KeyConfig.MenuToggle),
+            FlyToggle = enumToString(KeyConfig.FlyToggle),
+            NoClipToggle = enumToString(KeyConfig.NoClipToggle),
+            CFrameSpeedToggle = enumToString(KeyConfig.CFrameSpeedToggle),
+            AimbotHold = enumToString(KeyConfig.AimbotHold)
         },
         KeyList = UIState.KeyListVisible,
         Stats = UIState.StatsVisible
@@ -4434,6 +4445,24 @@ function applyConfig(cfg)
         if cfg.Crosshair.Enabled ~= CrosshairConfig.Enabled then
             toggleCrosshair()
         end
+    end
+    if cfg.Keys then
+        if cfg.Keys.MenuToggle then
+            KeyConfig.MenuToggle = Enum.KeyCode[cfg.Keys.MenuToggle] or KeyConfig.MenuToggle
+        end
+        if cfg.Keys.FlyToggle then
+            KeyConfig.FlyToggle = Enum.KeyCode[cfg.Keys.FlyToggle] or KeyConfig.FlyToggle
+        end
+        if cfg.Keys.NoClipToggle then
+            KeyConfig.NoClipToggle = Enum.KeyCode[cfg.Keys.NoClipToggle] or KeyConfig.NoClipToggle
+        end
+        if cfg.Keys.CFrameSpeedToggle then
+            KeyConfig.CFrameSpeedToggle = Enum.KeyCode[cfg.Keys.CFrameSpeedToggle] or KeyConfig.CFrameSpeedToggle
+        end
+        if cfg.Keys.AimbotHold then
+            KeyConfig.AimbotHold = Enum.UserInputType[cfg.Keys.AimbotHold] or KeyConfig.AimbotHold
+        end
+        updateKeyLabels()
     end
     if cfg.KeyList ~= nil then
         UIState.KeyListVisible = cfg.KeyList
