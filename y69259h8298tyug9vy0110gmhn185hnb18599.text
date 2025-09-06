@@ -3626,13 +3626,6 @@ function updateBox(esp, minX, minY, maxX, maxY, distance)
     local boxWidth = maxX - minX
     local boxHeight = maxY - minY
 
-    if boxWidth < 8 then
-        boxWidth = math.max(12, 80 / math.max(distance / 20, 1))
-    end
-    if boxHeight < 10 then
-        boxHeight = math.max(16, 100 / math.max(distance / 20, 1))
-    end
-
     local centerX = (minX + maxX) / 2
     local centerY = (minY + maxY) / 2
 
