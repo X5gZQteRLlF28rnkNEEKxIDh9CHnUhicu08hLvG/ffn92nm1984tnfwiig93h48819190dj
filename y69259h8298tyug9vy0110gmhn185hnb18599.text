@@ -2671,7 +2671,7 @@ local function noClipFunction(deltaTime)
             end
 
             rootPart.Velocity = Vector3.zero
-            rootPart.CFrame = base * CFrame.new(0, NoClipConfig.TargetOffset, 0) * CFrame.Angles(0, 0, math.rad(180))
+            rootPart.CFrame = base * CFrame.new(0, NoClipConfig.TargetOffset, 0)
 
             humanoid.PlatformStand = false
         end
