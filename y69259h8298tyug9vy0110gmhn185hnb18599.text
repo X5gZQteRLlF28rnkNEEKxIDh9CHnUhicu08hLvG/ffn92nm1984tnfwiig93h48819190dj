@@ -2893,61 +2893,26 @@ end
 local function getAccurateModelBounds(model)
     local rootPart = getModelRootPart(model)
     if not rootPart then return nil, nil, nil, nil end
-    
-    local humanoid = model:FindFirstChild("Humanoid")
-    local head = model:FindFirstChild("Head")
-    
+
+    local cf, size = model:GetBoundingBox()
+    local half = size / 2
     local corners = {}
-    
-    if humanoid then
-        local rootPos = rootPart.Position
-        local hipHeight = humanoid.HipHeight or 0
-        
-        local modelHeight = 5.5
-        local modelWidth = 2
-        
-        if head then
-            modelHeight = (head.Position.Y - rootPos.Y) + head.Size.Y/2 + hipHeight + 1
-        end
-        
-        local cf = rootPart.CFrame
-        local right = cf.RightVector * modelWidth/2
-        local up = cf.UpVector
-        
-        local bottomY = rootPos.Y - rootPart.Size.Y/2 - hipHeight
-        local topY = rootPos.Y + modelHeight - hipHeight
-        
-        table.insert(corners, Vector3.new(rootPos.X - modelWidth/2, bottomY, rootPos.Z - modelWidth/2))
-        table.insert(corners, Vector3.new(rootPos.X + modelWidth/2, bottomY, rootPos.Z - modelWidth/2))
-        table.insert(corners, Vector3.new(rootPos.X - modelWidth/2, bottomY, rootPos.Z + modelWidth/2))
-        table.insert(corners, Vector3.new(rootPos.X + modelWidth/2, bottomY, rootPos.Z + modelWidth/2))
-        
-        table.insert(corners, Vector3.new(rootPos.X - modelWidth/2, topY, rootPos.Z - modelWidth/2))
-        table.insert(corners, Vector3.new(rootPos.X + modelWidth/2, topY, rootPos.Z - modelWidth/2))
-        table.insert(corners, Vector3.new(rootPos.X - modelWidth/2, topY, rootPos.Z + modelWidth/2))
-        table.insert(corners, Vector3.new(rootPos.X + modelWidth/2, topY, rootPos.Z + modelWidth/2))
-    else
-        local size = rootPart.Size
-        local cf = rootPart.CFrame
-        
-        for x = -1, 1, 2 do
-            for y = -1, 1, 2 do
-                for z = -1, 1, 2 do
-                    local corner = cf * CFrame.new(size.X/2 * x, size.Y/2 * y, size.Z/2 * z)
-                    table.insert(corners, corner.Position)
-                end
+
+    for x = -1, 1, 2 do
+        for y = -1, 1, 2 do
+            for z = -1, 1, 2 do
+                local corner = cf * CFrame.new(half.X * x, half.Y * y, half.Z * z)
+                table.insert(corners, corner.Position)
             end
         end
     end
-    
+
     local minX, minY = math.huge, math.huge
     local maxX, maxY = -math.huge, -math.huge
-    local allBehind = true
     local anyVisible = false
-    
+
     for _, corner in ipairs(corners) do
         local screenPos, onScreen = Camera:WorldToViewportPoint(corner)
-        
         if onScreen and screenPos.Z > 0 then
             anyVisible = true
             minX = math.min(minX, screenPos.X)
@@ -2956,11 +2921,11 @@ local function getAccurateModelBounds(model)
             maxY = math.max(maxY, screenPos.Y)
         end
     end
-    
+
     if not anyVisible then
         return nil, nil, nil, nil
     end
-    
+
     return minX, minY, maxX, maxY
 end
 
@@ -3661,13 +3626,6 @@ function updateBox(esp, minX, minY, maxX, maxY, distance)
     local boxWidth = maxX - minX
     local boxHeight = maxY - minY
 
-    if boxWidth < 8 then
-        boxWidth = math.max(12, 80 / math.max(distance / 20, 1))
-    end
-    if boxHeight < 10 then
-        boxHeight = math.max(16, 100 / math.max(distance / 20, 1))
-    end
-
     local centerX = (minX + maxX) / 2
     local centerY = (minY + maxY) / 2
 
@@ -3747,10 +3705,10 @@ function updateHP(esp, humanoid, minX, minY, maxX, maxY)
     if ESP.HPBar and esp.HPBar and esp.HPBarBack then
         local boxWidth = maxX - minX
         local boxHeight = maxY - minY
-        local barHeight = math.max(boxHeight, 20)
+        local barHeight = boxHeight
         local gap = math.clamp(boxWidth * 0.05, 2, 8)
         local barX = minX - 2 - gap
-        local barY = minY + (boxHeight - barHeight) / 2
+        local barY = minY
         local innerHeight = barHeight * hpRatio
         if hpRatio > 0 and innerHeight < 1 then
             innerHeight = 1
