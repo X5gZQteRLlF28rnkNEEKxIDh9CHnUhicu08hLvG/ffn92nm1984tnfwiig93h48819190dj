@@ -3952,12 +3952,25 @@ function updateESP()
 end
 
 function autoRefresh()
+    local pf = workspace:FindFirstChild("Players")
+    if pf ~= PlayersFolder then
+        PlayersFolder = pf
+        if PlayersFolder then
+            refreshModels()
+        else
+            cleanupAllESP()
+            return
+        end
+    end
+
+    if not PlayersFolder then return end
+
     for _, child in pairs(PlayersFolder:GetChildren()) do
         if isValidModel(child) and not ESPObjects[child] then
             createESP(child)
         end
     end
-    
+
     for model, esp in pairs(ESPObjects) do
         if not model.Parent or not PlayersFolder:FindFirstChild(model.Name) then
             removeESP(model)
