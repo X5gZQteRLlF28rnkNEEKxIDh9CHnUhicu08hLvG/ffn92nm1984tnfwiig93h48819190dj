@@ -3705,10 +3705,10 @@ function updateHP(esp, humanoid, minX, minY, maxX, maxY)
     if ESP.HPBar and esp.HPBar and esp.HPBarBack then
         local boxWidth = maxX - minX
         local boxHeight = maxY - minY
-        local barHeight = math.max(boxHeight, 20)
+        local barHeight = boxHeight
         local gap = math.clamp(boxWidth * 0.05, 2, 8)
         local barX = minX - 2 - gap
-        local barY = minY + (boxHeight - barHeight) / 2
+        local barY = minY
         local innerHeight = barHeight * hpRatio
         if hpRatio > 0 and innerHeight < 1 then
             innerHeight = 1
