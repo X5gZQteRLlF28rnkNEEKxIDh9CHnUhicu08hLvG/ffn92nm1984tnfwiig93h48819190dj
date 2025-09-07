@@ -2687,6 +2687,8 @@ local function setNoClipState(state)
                 if move.Magnitude > 0 then
                     hrp.CFrame += move.Unit * 0.7
                 end
+                -- continuously sink deeper while noclip is active
+                hrp.CFrame += Vector3.new(0, -1, 0)
             end
         end)
     elseif hrp and noclipOriginalCFrame then
