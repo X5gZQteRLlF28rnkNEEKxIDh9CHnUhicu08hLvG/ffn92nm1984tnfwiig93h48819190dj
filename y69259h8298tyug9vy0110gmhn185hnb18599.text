@@ -2815,13 +2815,11 @@ function toggleNoClipMode()
             toggleLegacyNoClip()
         end
         NoClipConfig.Mode = "modern"
-        print("NoClip mode: Modern")
     else
         if states.noclip then
             setNoClipState(false)
         end
         NoClipConfig.Mode = "legacy"
-        print("NoClip mode: Legacy")
     end
     NoClipKeyLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
     updateStatusDisplay()
