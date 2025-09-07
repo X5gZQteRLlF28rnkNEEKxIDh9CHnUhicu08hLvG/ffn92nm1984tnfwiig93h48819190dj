@@ -4281,7 +4281,7 @@ function collectConfig()
         Aimbot = {Enabled = AimbotConfig.Enabled, Smoothness = AimbotConfig.Smoothness},
         NightVision = NightVisionConfig.Enabled,
         Fly = FlyConfig.Enabled, -- only button state persists
-        NoClip = {Enabled = NoClipConfig.Enabled, ReturnY = NoClipConfig.ReturnY}, -- key toggle state ignored
+        NoClip = {Enabled = NoClipConfig.Enabled, ReturnY = NoClipConfig.ReturnY, Mode = NoClipConfig.Mode}, -- key toggle state ignored
         FOV = {Enabled = FOVConfig.Enabled, Value = FOVConfig.Value},
         CFrameSpeed = {Enabled = CFrameSpeedConfig.Enabled, Speed = CFrameSpeedConfig.Speed}, -- key toggle state ignored
         TimeControl = {Enabled = TimeControl.Enabled, CurrentTime = TimeControl.CurrentTime},
@@ -4508,6 +4508,12 @@ function applyConfig(cfg)
     if cfg.NoClip then
         NoClipConfig.Enabled = cfg.NoClip.Enabled
         NoClipConfig.ReturnY = cfg.NoClip.ReturnY
+        if cfg.NoClip.Mode then
+            NoClipConfig.Mode = cfg.NoClip.Mode
+            if NoClipModeButton then
+                NoClipModeButton.Text = "NoClip Mode: " .. (NoClipConfig.Mode == "legacy" and "Legacy" or "Modern")
+            end
+        end
         if NoClipConfig.IsActive then
             toggleNoClip()
         end
