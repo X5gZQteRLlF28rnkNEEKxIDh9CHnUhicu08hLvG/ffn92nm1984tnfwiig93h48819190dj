@@ -2690,7 +2690,11 @@ local function setNoClipState(state)
             end
         end)
     elseif hrp and noclipOriginalCFrame then
-        hrp.CFrame = noclipOriginalCFrame + Vector3.new(0, -2, 0)
+        if NoClipConfig.ReturnY then
+            hrp.CFrame = noclipOriginalCFrame
+        else
+            hrp.CFrame = CFrame.new(hrp.Position) * noclipOriginalCFrame.Rotation
+        end
         noclipOriginalCFrame = nil
     end
 end
