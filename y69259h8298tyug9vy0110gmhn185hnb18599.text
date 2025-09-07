@@ -272,11 +272,11 @@ BackpackESPObjects = {}
 lastBackpackRefresh = 0
 playerTracker = {}
 
-local states = {noclip = false}
-local originalWalkSpeed, originalJumpPower
-local noclipVelocityConn, noclipMoveConn
-local noclipOriginalCFrame
-local LegacyNoClipConfig = {
+states = {noclip = false}
+originalWalkSpeed, originalJumpPower = nil, nil
+noclipVelocityConn, noclipMoveConn = nil, nil
+noclipOriginalCFrame = nil
+LegacyNoClipConfig = {
     IsActive = false,
     Connection = nil,
     BaseCFrame = nil,
@@ -287,7 +287,7 @@ local LegacyNoClipConfig = {
     StoredY = nil,
     OriginalY = nil,
 }
-local allConns = {}
+allConns = {}
 
 local Assets = ReplicatedStorage:WaitForChild("Assets")
 local ShivPrefabMain = Assets:WaitForChild("Prefabs"):WaitForChild("Tools"):WaitForChild("Shiv").Viewmodel.Rock.main
@@ -2646,7 +2646,7 @@ UserInputService.InputChanged:Connect(function(input)
     end
 end)
 
-local function getMoveVector()
+function getMoveVector()
     local move = Vector3.zero
     if UserInputService:IsKeyDown(Enum.KeyCode.W) then
         move += Camera.CFrame.LookVector
@@ -2663,7 +2663,7 @@ local function getMoveVector()
     return move
 end
 
-local function legacyNoClipFunction(deltaTime)
+function legacyNoClipFunction(deltaTime)
     if LegacyNoClipConfig.IsActive and LocalPlayer.Character then
         local character = LocalPlayer.Character
         local rootPart = character:FindFirstChild("HumanoidRootPart")
@@ -2704,7 +2704,7 @@ local function legacyNoClipFunction(deltaTime)
     end
 end
 
-local function toggleLegacyNoClip()
+function toggleLegacyNoClip()
     LegacyNoClipConfig.IsActive = not LegacyNoClipConfig.IsActive
     if LegacyNoClipConfig.IsActive then
         local root = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
@@ -2739,7 +2739,7 @@ local function toggleLegacyNoClip()
     NoClipConfig.IsActive = LegacyNoClipConfig.IsActive
 end
 
-local function setNoClipState(state)
+function setNoClipState(state)
     if states.noclip == state then return end
     states.noclip = state
     NoClipConfig.IsActive = state
@@ -2784,7 +2784,7 @@ local function setNoClipState(state)
     end
 end
 
-local function toggleNoClip()
+function toggleNoClip()
     if NoClipConfig.Mode == "legacy" then
         toggleLegacyNoClip()
         NoClipKeyLabel.TextColor3 = LegacyNoClipConfig.IsActive and Color3.fromRGB(150, 100, 255) or Color3.fromRGB(200, 200, 200)
@@ -2795,7 +2795,7 @@ local function toggleNoClip()
     updateStatusDisplay()
 end
 
-local function toggleNoClipMode()
+function toggleNoClipMode()
     if NoClipConfig.Mode == "legacy" then
         if LegacyNoClipConfig.IsActive then
             toggleLegacyNoClip()
