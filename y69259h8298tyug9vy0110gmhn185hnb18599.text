@@ -522,7 +522,7 @@ CFrameSpeedKeyLabel.Position = UDim2.new(0, 8, 0, 70)
 CFrameSpeedKeyLabel.Size = UDim2.new(1, -16, 0, 18)
 CFrameSpeedKeyLabel.FontFace = customFont
 CFrameSpeedKeyLabel.Text = "[V] CFrameSpeed"
-CFrameSpeedKeyLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+CFrameSpeedKeyLabel.TextColor3 = Color3.fromRGB(255, 0, 0)
 CFrameSpeedKeyLabel.TextSize = 12
 CFrameSpeedKeyLabel.TextXAlignment = Enum.TextXAlignment.Left
 CFrameSpeedKeyLabel.TextStrokeTransparency = 0.5
@@ -1168,6 +1168,8 @@ AimFovColorButton = createColorButton(AimFovToggle.Holder, "AimFovColorButton", 
 AimbotToggle = createToggle(MiscTab, "AimbotToggle", "Aimbot", 100)
 NightVisionToggle = createToggle(MiscTab, "NightVisionToggle", "Night Vision", 130)
 CFrameSpeedToggle = createToggle(MiscTab, "CFrameSpeedToggle", "CFrameSpeed", 160)
+-- Make the CFrameSpeed toggle label red
+CFrameSpeedToggle.Holder:FindFirstChildWhichIsA("TextLabel").TextColor3 = Color3.fromRGB(255, 0, 0)
 TimeToggle = createToggle(MiscTab, "TimeToggle", "Time Control", 190)
 CrosshairToggle = createToggle(MiscTab, "CrosshairToggle", "Crosshair", 220)
 CrosshairToggle.Holder.Size = UDim2.new(0.9, 0, 0, 20)
@@ -2099,14 +2101,14 @@ local function toggleCFrameSpeed()
     CFrameSpeedConfig.IsActive = not CFrameSpeedConfig.IsActive
 
     if CFrameSpeedConfig.IsActive then
-        CFrameSpeedKeyLabel.TextColor3 = Color3.fromRGB(150, 100, 255)
+        CFrameSpeedKeyLabel.TextColor3 = Color3.fromRGB(255, 0, 0)
         if CFrameSpeedConfig.Connection then
             CFrameSpeedConfig.Connection:Disconnect()
         end
 
         CFrameSpeedConfig.Connection = RunService.Heartbeat:Connect(cframeSpeedHeartbeat)
     else
-        CFrameSpeedKeyLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+        CFrameSpeedKeyLabel.TextColor3 = Color3.fromRGB(255, 0, 0)
         if CFrameSpeedConfig.Connection then
             CFrameSpeedConfig.Connection:Disconnect()
             CFrameSpeedConfig.Connection = nil
@@ -5220,7 +5222,7 @@ LocalPlayer.CharacterAdded:Connect(function()
         CFrameSpeedConfig.Connection = nil
     end
     CFrameSpeedConfig.IsActive = false
-    CFrameSpeedKeyLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+    CFrameSpeedKeyLabel.TextColor3 = Color3.fromRGB(255, 0, 0)
     
     updateStatusDisplay()
     
