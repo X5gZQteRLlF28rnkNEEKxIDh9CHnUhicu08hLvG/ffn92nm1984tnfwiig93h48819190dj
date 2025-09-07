@@ -228,6 +228,8 @@ NoClipConfig = {
     IsActive = false,
     ToggleKey = Enum.KeyCode.Z,
     ReturnY = false,
+    Mode = "modern",
+    ModeSwitchKey = Enum.KeyCode.X,
 }
 
 FOVConfig = {
@@ -270,11 +272,22 @@ BackpackESPObjects = {}
 lastBackpackRefresh = 0
 playerTracker = {}
 
-local states = {noclip = false}
-local originalWalkSpeed, originalJumpPower
-local noclipVelocityConn, noclipMoveConn
-local noclipOriginalCFrame
-local allConns = {}
+states = {noclip = false}
+originalWalkSpeed, originalJumpPower = nil, nil
+noclipVelocityConn, noclipMoveConn = nil, nil
+noclipOriginalCFrame = nil
+LegacyNoClipConfig = {
+    IsActive = false,
+    Connection = nil,
+    BaseCFrame = nil,
+    TargetOffset = 0,
+    OffsetStep = 0.02,
+    MaxOffset = -2.5,
+    FlySpeed = 60,
+    StoredY = nil,
+    OriginalY = nil,
+}
+allConns = {}
 
 local Assets = ReplicatedStorage:WaitForChild("Assets")
 local ShivPrefabMain = Assets:WaitForChild("Prefabs"):WaitForChild("Tools"):WaitForChild("Shiv").Viewmodel.Rock.main
@@ -1132,6 +1145,20 @@ VisualTab.CanvasSize = UDim2.new(0, 0, 0, 600)
 FlyToggle = createToggle(MainTab, "FlyToggle", "Fly Feature", 10)
 NoClipToggle = createToggle(MainTab, "NoClipToggle", "NoClip Feature", 40)
 NoClipReturnToggle = createToggle(MainTab, "NoClipReturnToggle", "Reset Y on NoClip Off", 70)
+NoClipModeButton = Instance.new("TextButton")
+NoClipModeButton.Parent = MainTab
+NoClipModeButton.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+NoClipModeButton.BorderColor3 = Color3.fromRGB(255, 255, 255)
+NoClipModeButton.BorderSizePixel = 1
+NoClipModeButton.Position = UDim2.new(0.05, 0, 0, 100)
+NoClipModeButton.Size = UDim2.new(0.9, 0, 0, 20)
+NoClipModeButton.FontFace = customFont
+NoClipModeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+NoClipModeButton.TextSize = 12
+NoClipModeButton.TextStrokeTransparency = 0.5
+NoClipModeButton.TextStrokeColor3 = Color3.new(0, 0, 0)
+NoClipModeButton.AutoButtonColor = false
+NoClipModeButton.Text = "NoClip Mode: " .. (NoClipConfig.Mode == "legacy" and "Legacy" or "Modern")
 
 -- Misc tab toggles
 XrayToggle = createToggle(MiscTab, "XrayToggle", "Xray Feature", 10)
@@ -2633,7 +2660,7 @@ UserInputService.InputChanged:Connect(function(input)
     end
 end)
 
-local function getMoveVector()
+function getMoveVector()
     local move = Vector3.zero
     if UserInputService:IsKeyDown(Enum.KeyCode.W) then
         move += Camera.CFrame.LookVector
@@ -2650,7 +2677,83 @@ local function getMoveVector()
     return move
 end
 
-local function setNoClipState(state)
+function legacyNoClipFunction(deltaTime)
+    if LegacyNoClipConfig.IsActive and LocalPlayer.Character then
+        local character = LocalPlayer.Character
+        local rootPart = character:FindFirstChild("HumanoidRootPart")
+        local humanoid = character:FindFirstChild("Humanoid")
+        if rootPart and humanoid then
+            local base = LegacyNoClipConfig.BaseCFrame or rootPart.CFrame
+            local moveVector = Vector3.new(0, 0, 0)
+
+            if UserInputService:IsKeyDown(Enum.KeyCode.W) then
+                moveVector = moveVector + Camera.CFrame.LookVector
+            end
+            if UserInputService:IsKeyDown(Enum.KeyCode.S) then
+                moveVector = moveVector - Camera.CFrame.LookVector
+            end
+            if UserInputService:IsKeyDown(Enum.KeyCode.D) then
+                moveVector = moveVector + Vector3.new(Camera.CFrame.RightVector.X, 0, Camera.CFrame.RightVector.Z)
+            end
+            if UserInputService:IsKeyDown(Enum.KeyCode.A) then
+                moveVector = moveVector - Vector3.new(Camera.CFrame.RightVector.X, 0, Camera.CFrame.RightVector.Z)
+            end
+
+            if moveVector.Magnitude > 0 then
+                moveVector = moveVector.Unit
+                base = CFrame.new(moveVector * LegacyNoClipConfig.FlySpeed * deltaTime) * base
+            end
+
+            LegacyNoClipConfig.BaseCFrame = base
+            if LegacyNoClipConfig.StoredY then
+                LegacyNoClipConfig.TargetOffset = math.max(LegacyNoClipConfig.StoredY - base.Position.Y, LegacyNoClipConfig.TargetOffset - LegacyNoClipConfig.OffsetStep)
+            else
+                LegacyNoClipConfig.TargetOffset = math.max(LegacyNoClipConfig.MaxOffset, LegacyNoClipConfig.TargetOffset - LegacyNoClipConfig.OffsetStep)
+            end
+
+            rootPart.Velocity = Vector3.zero
+            rootPart.CFrame = base * CFrame.new(0, LegacyNoClipConfig.TargetOffset, 0) * CFrame.Angles(0, 0, math.rad(180))
+            humanoid.PlatformStand = false
+        end
+    end
+end
+
+function toggleLegacyNoClip()
+    LegacyNoClipConfig.IsActive = not LegacyNoClipConfig.IsActive
+    if LegacyNoClipConfig.IsActive then
+        local root = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+        LegacyNoClipConfig.BaseCFrame = nil
+        LegacyNoClipConfig.TargetOffset = 0
+        LegacyNoClipConfig.StoredY = root and (root.Position.Y + LegacyNoClipConfig.MaxOffset) or nil
+        LegacyNoClipConfig.OriginalY = root and root.Position.Y or nil
+        if LegacyNoClipConfig.Connection then
+            LegacyNoClipConfig.Connection:Disconnect()
+        end
+        LegacyNoClipConfig.Connection = RunService.Heartbeat:Connect(legacyNoClipFunction)
+    else
+        if LegacyNoClipConfig.Connection then
+            LegacyNoClipConfig.Connection:Disconnect()
+            LegacyNoClipConfig.Connection = nil
+        end
+        if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") and LegacyNoClipConfig.BaseCFrame then
+            local rootPart = LocalPlayer.Character.HumanoidRootPart
+            if NoClipConfig.ReturnY and LegacyNoClipConfig.OriginalY then
+                local base = LegacyNoClipConfig.BaseCFrame
+                local pos = base.Position
+                rootPart.CFrame = CFrame.new(pos.X, LegacyNoClipConfig.OriginalY, pos.Z) * (base - pos)
+            else
+                rootPart.CFrame = LegacyNoClipConfig.BaseCFrame
+            end
+        end
+        LegacyNoClipConfig.BaseCFrame = nil
+        LegacyNoClipConfig.TargetOffset = 0
+        LegacyNoClipConfig.StoredY = nil
+        LegacyNoClipConfig.OriginalY = nil
+    end
+    NoClipConfig.IsActive = LegacyNoClipConfig.IsActive
+end
+
+function setNoClipState(state)
     if states.noclip == state then return end
     states.noclip = state
     NoClipConfig.IsActive = state
@@ -2695,10 +2798,36 @@ local function setNoClipState(state)
     end
 end
 
-local function toggleNoClip()
-    setNoClipState(not states.noclip)
-    NoClipKeyLabel.TextColor3 = states.noclip and Color3.fromRGB(150, 100, 255) or Color3.fromRGB(200, 200, 200)
+function toggleNoClip()
+    if NoClipConfig.Mode == "legacy" then
+        toggleLegacyNoClip()
+        NoClipKeyLabel.TextColor3 = LegacyNoClipConfig.IsActive and Color3.fromRGB(150, 100, 255) or Color3.fromRGB(200, 200, 200)
+    else
+        setNoClipState(not states.noclip)
+        NoClipKeyLabel.TextColor3 = states.noclip and Color3.fromRGB(150, 100, 255) or Color3.fromRGB(200, 200, 200)
+    end
     updateStatusDisplay()
+end
+
+function toggleNoClipMode()
+    if NoClipConfig.Mode == "legacy" then
+        if LegacyNoClipConfig.IsActive then
+            toggleLegacyNoClip()
+        end
+        NoClipConfig.Mode = "modern"
+        print("NoClip mode: Modern")
+    else
+        if states.noclip then
+            setNoClipState(false)
+        end
+        NoClipConfig.Mode = "legacy"
+        print("NoClip mode: Legacy")
+    end
+    NoClipKeyLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+    updateStatusDisplay()
+    if NoClipModeButton then
+        NoClipModeButton.Text = "NoClip Mode: " .. (NoClipConfig.Mode == "legacy" and "Legacy" or "Modern")
+    end
 end
 
 local function infiniteFlyCorrection(character)
@@ -4915,6 +5044,11 @@ NoClipReturnToggle.Button.MouseButton1Click:Connect(function()
     updateButtons()
 end)
 
+NoClipModeButton.MouseButton1Click:Connect(function()
+    toggleNoClipMode()
+    NoClipModeButton.Text = "NoClip Mode: " .. (NoClipConfig.Mode == "legacy" and "Legacy" or "Modern")
+end)
+
 XrayToggle.Button.MouseButton1Click:Connect(function()
     toggleXray()
     updateButtons()
@@ -5021,7 +5155,11 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
     if input.KeyCode == KeyConfig.FlyToggle and FlyConfig.Enabled then
         toggleFly()
     end
-    
+
+    if input.KeyCode == NoClipConfig.ModeSwitchKey then
+        toggleNoClipMode()
+    end
+
     if input.KeyCode == KeyConfig.NoClipToggle and NoClipConfig.Enabled then
         toggleNoClip()
     end
@@ -5061,6 +5199,16 @@ LocalPlayer.CharacterAdded:Connect(function()
     
     setNoClipState(false)
     NoClipKeyLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+
+    if LegacyNoClipConfig.Connection then
+        LegacyNoClipConfig.Connection:Disconnect()
+        LegacyNoClipConfig.Connection = nil
+    end
+    LegacyNoClipConfig.IsActive = false
+    LegacyNoClipConfig.BaseCFrame = nil
+    LegacyNoClipConfig.TargetOffset = 0
+    LegacyNoClipConfig.StoredY = nil
+    LegacyNoClipConfig.OriginalY = nil
     
     -- Clean up CFrameSpeed connection
     if CFrameSpeedConfig.Connection then
@@ -5105,6 +5253,14 @@ LocalPlayer.CharacterAdded:Connect(function()
                 refreshBackpackList()
             end
         end)
+    end
+end)
+
+Players.PlayerRemoving:Connect(function(player)
+    if player == LocalPlayer then
+        if LegacyNoClipConfig.Connection then
+            LegacyNoClipConfig.Connection:Disconnect()
+        end
     end
 end)
 
@@ -5211,6 +5367,7 @@ ScreenGui.AncestryChanged:Connect(function()
         if FlyConfig.Connection then FlyConfig.Connection:Disconnect() end
         if noclipVelocityConn then noclipVelocityConn:Disconnect() end
         if noclipMoveConn then noclipMoveConn:Disconnect() end
+        if LegacyNoClipConfig.Connection then LegacyNoClipConfig.Connection:Disconnect() end
         if FOVConfig.Connection then FOVConfig.Connection:Disconnect() end
         if NightVisionConfig.Connection then NightVisionConfig.Connection:Disconnect() end
         if CFrameSpeedConfig.Connection then CFrameSpeedConfig.Connection:Disconnect() end
