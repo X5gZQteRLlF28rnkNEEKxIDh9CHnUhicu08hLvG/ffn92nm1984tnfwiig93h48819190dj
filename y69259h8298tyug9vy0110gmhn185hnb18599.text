@@ -1145,6 +1145,20 @@ VisualTab.CanvasSize = UDim2.new(0, 0, 0, 600)
 FlyToggle = createToggle(MainTab, "FlyToggle", "Fly Feature", 10)
 NoClipToggle = createToggle(MainTab, "NoClipToggle", "NoClip Feature", 40)
 NoClipReturnToggle = createToggle(MainTab, "NoClipReturnToggle", "Reset Y on NoClip Off", 70)
+NoClipModeButton = Instance.new("TextButton")
+NoClipModeButton.Parent = MainTab
+NoClipModeButton.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+NoClipModeButton.BorderColor3 = Color3.fromRGB(255, 255, 255)
+NoClipModeButton.BorderSizePixel = 1
+NoClipModeButton.Position = UDim2.new(0.05, 0, 0, 100)
+NoClipModeButton.Size = UDim2.new(0.9, 0, 0, 20)
+NoClipModeButton.FontFace = customFont
+NoClipModeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+NoClipModeButton.TextSize = 12
+NoClipModeButton.TextStrokeTransparency = 0.5
+NoClipModeButton.TextStrokeColor3 = Color3.new(0, 0, 0)
+NoClipModeButton.AutoButtonColor = false
+NoClipModeButton.Text = "NoClip Mode: " .. (NoClipConfig.Mode == "legacy" and "Legacy" or "Modern")
 
 -- Misc tab toggles
 XrayToggle = createToggle(MiscTab, "XrayToggle", "Xray Feature", 10)
@@ -2811,6 +2825,9 @@ function toggleNoClipMode()
     end
     NoClipKeyLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
     updateStatusDisplay()
+    if NoClipModeButton then
+        NoClipModeButton.Text = "NoClip Mode: " .. (NoClipConfig.Mode == "legacy" and "Legacy" or "Modern")
+    end
 end
 
 local function infiniteFlyCorrection(character)
@@ -5025,6 +5042,11 @@ end)
 NoClipReturnToggle.Button.MouseButton1Click:Connect(function()
     NoClipConfig.ReturnY = not NoClipConfig.ReturnY
     updateButtons()
+end)
+
+NoClipModeButton.MouseButton1Click:Connect(function()
+    toggleNoClipMode()
+    NoClipModeButton.Text = "NoClip Mode: " .. (NoClipConfig.Mode == "legacy" and "Legacy" or "Modern")
 end)
 
 XrayToggle.Button.MouseButton1Click:Connect(function()
