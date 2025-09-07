@@ -3367,8 +3367,8 @@ end
 connectDroppedEvents()
 refreshDroppedList()
 
-local BackpackFolder
-local BackpackAddedConn, BackpackRemovedConn
+BackpackFolder = nil
+BackpackAddedConn, BackpackRemovedConn = nil, nil
 
 function removeBackpackESP(obj)
     local esp = BackpackESPObjects[obj]
