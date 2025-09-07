@@ -2681,19 +2681,22 @@ local function setNoClipStateNew(state)
     end
     if noclipVelocityConn then noclipVelocityConn:Disconnect() end
     if noclipMoveConn then noclipMoveConn:Disconnect() end
-    if state and hrp then
-        hrp.CFrame = hrp.CFrame * CFrame.Angles(0, 0, math.rad(180))
+    if state then
         noclipVelocityConn = RunService.Heartbeat:Connect(function()
-            if hrp then
-                hrp.Velocity = Vector3.zero
-                hrp.RotationalVelocity = Vector3.zero
+            local character = LocalPlayer.Character
+            local root = character and character:FindFirstChild("HumanoidRootPart")
+            if root then
+                root.Velocity = Vector3.zero
+                root.RotationalVelocity = Vector3.zero
             end
         end)
         noclipMoveConn = RunService.RenderStepped:Connect(function()
-            if hrp then
+            local character = LocalPlayer.Character
+            local root = character and character:FindFirstChild("HumanoidRootPart")
+            if root then
                 local move = getMoveVector()
                 if move.Magnitude > 0 then
-                    hrp.CFrame += move.Unit * 0.7
+                    root.CFrame = root.CFrame + move.Unit * 0.7
                 end
             end
         end)
