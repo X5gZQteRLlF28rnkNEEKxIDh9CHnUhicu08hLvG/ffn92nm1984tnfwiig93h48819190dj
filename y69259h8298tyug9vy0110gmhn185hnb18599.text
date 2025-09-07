@@ -227,7 +227,16 @@ NoClipConfig = {
     Enabled = false,
     IsActive = false,
     ToggleKey = Enum.KeyCode.Z,
+    Connection = nil,
+    BaseCFrame = nil,
+    TargetOffset = 0,
+    OffsetStep = 0.02,
+    MaxOffset = -2.5,
+    FlySpeed = 60,
+    StoredY = nil,
+    OriginalY = nil,
     ReturnY = false,
+    Mode = "New",
 }
 
 FOVConfig = {
@@ -273,7 +282,6 @@ playerTracker = {}
 local states = {noclip = false}
 local originalWalkSpeed, originalJumpPower
 local noclipVelocityConn, noclipMoveConn
-local noclipOriginalCFrame
 local allConns = {}
 
 local Assets = ReplicatedStorage:WaitForChild("Assets")
@@ -1132,6 +1140,7 @@ VisualTab.CanvasSize = UDim2.new(0, 0, 0, 600)
 FlyToggle = createToggle(MainTab, "FlyToggle", "Fly Feature", 10)
 NoClipToggle = createToggle(MainTab, "NoClipToggle", "NoClip Feature", 40)
 NoClipReturnToggle = createToggle(MainTab, "NoClipReturnToggle", "Reset Y on NoClip Off", 70)
+NoClipModeToggle = createToggle(MainTab, "NoClipModeToggle", "Use New NoClip", 100)
 
 -- Misc tab toggles
 XrayToggle = createToggle(MiscTab, "XrayToggle", "Xray Feature", 10)
@@ -2650,7 +2659,7 @@ local function getMoveVector()
     return move
 end
 
-local function setNoClipState(state)
+local function setNoClipStateNew(state)
     if states.noclip == state then return end
     states.noclip = state
     NoClipConfig.IsActive = state
@@ -2673,7 +2682,6 @@ local function setNoClipState(state)
     if noclipVelocityConn then noclipVelocityConn:Disconnect() end
     if noclipMoveConn then noclipMoveConn:Disconnect() end
     if state and hrp then
-        noclipOriginalCFrame = hrp.CFrame
         hrp.CFrame = hrp.CFrame * CFrame.Angles(0, 0, math.rad(180))
         noclipVelocityConn = RunService.Heartbeat:Connect(function()
             if hrp then
@@ -2687,25 +2695,102 @@ local function setNoClipState(state)
                 if move.Magnitude > 0 then
                     hrp.CFrame += move.Unit * 0.7
                 end
-                -- continuously sink deeper while noclip is active
-                hrp.CFrame += Vector3.new(0, -1, 0)
             end
         end)
-    elseif hrp and noclipOriginalCFrame then
-        if NoClipConfig.ReturnY then
-            hrp.CFrame = noclipOriginalCFrame
-        else
-            -- Sink the character further below the surface when noclip ends without Y reset
-            hrp.CFrame = CFrame.new(hrp.Position - Vector3.new(0, 8, 0)) * noclipOriginalCFrame.Rotation
-        end
-        noclipOriginalCFrame = nil
+        table.insert(allConns, noclipVelocityConn)
+        table.insert(allConns, noclipMoveConn)
     end
 end
 
-local function toggleNoClip()
-    setNoClipState(not states.noclip)
-    NoClipKeyLabel.TextColor3 = states.noclip and Color3.fromRGB(150, 100, 255) or Color3.fromRGB(200, 200, 200)
+-- Legacy noclip implementation
+local function noClipFunction(deltaTime)
+    if NoClipConfig.IsActive and LocalPlayer.Character then
+        local character = LocalPlayer.Character
+        local rootPart = character:FindFirstChild("HumanoidRootPart")
+        local humanoid = character:FindFirstChild("Humanoid")
+        if rootPart and humanoid then
+            local base = NoClipConfig.BaseCFrame or rootPart.CFrame
+            local moveVector = Vector3.new(0, 0, 0)
+            if UserInputService:IsKeyDown(Enum.KeyCode.W) then
+                moveVector = moveVector + Camera.CFrame.LookVector
+            end
+            if UserInputService:IsKeyDown(Enum.KeyCode.S) then
+                moveVector = moveVector - Camera.CFrame.LookVector
+            end
+            if UserInputService:IsKeyDown(Enum.KeyCode.D) then
+                moveVector = moveVector + Vector3.new(Camera.CFrame.RightVector.X, 0, Camera.CFrame.RightVector.Z)
+            end
+            if UserInputService:IsKeyDown(Enum.KeyCode.A) then
+                moveVector = moveVector - Vector3.new(Camera.CFrame.RightVector.X, 0, Camera.CFrame.RightVector.Z)
+            end
+            if moveVector.Magnitude > 0 then
+                moveVector = moveVector.Unit
+                base = CFrame.new(moveVector * NoClipConfig.FlySpeed * deltaTime) * base
+            end
+            NoClipConfig.BaseCFrame = base
+            if NoClipConfig.StoredY then
+                NoClipConfig.TargetOffset = math.max(NoClipConfig.StoredY - base.Position.Y, NoClipConfig.TargetOffset - NoClipConfig.OffsetStep)
+            else
+                NoClipConfig.TargetOffset = math.max(NoClipConfig.MaxOffset, NoClipConfig.TargetOffset - NoClipConfig.OffsetStep)
+            end
+            rootPart.Velocity = Vector3.zero
+            rootPart.CFrame = base * CFrame.new(0, NoClipConfig.TargetOffset, 0) * CFrame.Angles(0, 0, math.rad(180))
+            humanoid.PlatformStand = false
+        end
+    end
+end
+
+local function toggleLegacyNoClip()
+    NoClipConfig.IsActive = not NoClipConfig.IsActive
+    if NoClipConfig.IsActive then
+        local root = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+        NoClipConfig.BaseCFrame = nil
+        NoClipConfig.TargetOffset = 0
+        NoClipConfig.StoredY = root and (root.Position.Y + NoClipConfig.MaxOffset) or nil
+        NoClipConfig.OriginalY = root and root.Position.Y or nil
+        NoClipKeyLabel.TextColor3 = Color3.fromRGB(150, 100, 255)
+        if FlyConfig.IsFlying and FlyConfig.Connection then
+            FlyConfig.Connection:Disconnect()
+            FlyConfig.Connection = nil
+        end
+        FlyConfig.IsFlying = false
+        FlyKeyLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+        if NoClipConfig.Connection then
+            NoClipConfig.Connection:Disconnect()
+        end
+        NoClipConfig.Connection = RunService.Heartbeat:Connect(noClipFunction)
+    else
+        NoClipKeyLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+        if NoClipConfig.Connection then
+            NoClipConfig.Connection:Disconnect()
+            NoClipConfig.Connection = nil
+        end
+        if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") and NoClipConfig.BaseCFrame then
+            local rootPart = LocalPlayer.Character.HumanoidRootPart
+            if NoClipConfig.ReturnY and NoClipConfig.OriginalY then
+                local base = NoClipConfig.BaseCFrame
+                local pos = base.Position
+                rootPart.CFrame = CFrame.new(pos.X, NoClipConfig.OriginalY, pos.Z) * (base - pos)
+            else
+                rootPart.CFrame = NoClipConfig.BaseCFrame
+            end
+        end
+        NoClipConfig.BaseCFrame = nil
+        NoClipConfig.TargetOffset = 0
+        NoClipConfig.StoredY = nil
+        NoClipConfig.OriginalY = nil
+    end
     updateStatusDisplay()
+end
+
+local function toggleNoClip()
+    if NoClipConfig.Mode == "New" then
+        setNoClipStateNew(not states.noclip)
+        NoClipKeyLabel.TextColor3 = NoClipConfig.IsActive and Color3.fromRGB(150, 100, 255) or Color3.fromRGB(200, 200, 200)
+        updateStatusDisplay()
+    else
+        toggleLegacyNoClip()
+    end
 end
 
 local function infiniteFlyCorrection(character)
@@ -3978,6 +4063,7 @@ ToggleBindings = {
     {button = FlyToggle,        state = function() return FlyConfig.Enabled end},
     {button = NoClipToggle,     state = function() return NoClipConfig.Enabled end},
     {button = NoClipReturnToggle, state = function() return NoClipConfig.ReturnY end},
+    {button = NoClipModeToggle, state = function() return NoClipConfig.Mode == "New" end},
     {button = XrayToggle,       state = function() return XrayConfig.Enabled end},
     {button = FOVToggle,        state = function() return FOVConfig.Enabled end},
     {button = AimFovToggle,     state = function() return AimFovConfig.Enabled end},
@@ -4159,7 +4245,7 @@ function collectConfig()
         Aimbot = {Enabled = AimbotConfig.Enabled, Smoothness = AimbotConfig.Smoothness},
         NightVision = NightVisionConfig.Enabled,
         Fly = FlyConfig.Enabled, -- only button state persists
-        NoClip = {Enabled = NoClipConfig.Enabled, ReturnY = NoClipConfig.ReturnY}, -- key toggle state ignored
+        NoClip = {Enabled = NoClipConfig.Enabled, ReturnY = NoClipConfig.ReturnY, Mode = NoClipConfig.Mode}, -- key toggle state ignored
         FOV = {Enabled = FOVConfig.Enabled, Value = FOVConfig.Value},
         CFrameSpeed = {Enabled = CFrameSpeedConfig.Enabled, Speed = CFrameSpeedConfig.Speed}, -- key toggle state ignored
         TimeControl = {Enabled = TimeControl.Enabled, CurrentTime = TimeControl.CurrentTime},
@@ -4386,6 +4472,7 @@ function applyConfig(cfg)
     if cfg.NoClip then
         NoClipConfig.Enabled = cfg.NoClip.Enabled
         NoClipConfig.ReturnY = cfg.NoClip.ReturnY
+        NoClipConfig.Mode = cfg.NoClip.Mode or NoClipConfig.Mode
         if NoClipConfig.IsActive then
             toggleNoClip()
         end
@@ -4911,14 +4998,22 @@ NoClipToggle.Button.MouseButton1Click:Connect(function()
     NoClipConfig.Enabled = not NoClipConfig.Enabled
     updateButtons()
     if not NoClipConfig.Enabled and NoClipConfig.IsActive then
-        setNoClipState(false)
-        NoClipKeyLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+        toggleNoClip()
     end
     updateStatusDisplay()
 end)
 
 NoClipReturnToggle.Button.MouseButton1Click:Connect(function()
     NoClipConfig.ReturnY = not NoClipConfig.ReturnY
+    updateButtons()
+end)
+
+NoClipModeToggle.Button.MouseButton1Click:Connect(function()
+    if NoClipConfig.IsActive then
+        notify("Disable NoClip before switching mode")
+        return
+    end
+    NoClipConfig.Mode = (NoClipConfig.Mode == "New") and "Old" or "New"
     updateButtons()
 end)
 
@@ -5066,7 +5161,9 @@ LocalPlayer.CharacterAdded:Connect(function()
         FlyConfig.Connection = nil
     end
     
-    setNoClipState(false)
+    if NoClipConfig.IsActive then
+        toggleNoClip()
+    end
     NoClipKeyLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
     
     -- Clean up CFrameSpeed connection
