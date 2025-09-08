@@ -46,12 +46,8 @@ local function showUnsupported(message)
     warningGui:Destroy()
 end
 
-local supportedGameId = 13559584718
-if game.PlaceId ~= supportedGameId then
-    showUnsupported("This game is not supported")
-    return
-end
-
+local targetGameId = 13559584718
+local currentGameId = game.PlaceId
 local supportedExecutor = "Xeno"
 local executorName = "Unknown"
 if getexecutorname then
@@ -67,8 +63,15 @@ elseif identifyexecutor then
     end
 end
 
+local unsupportedReasons = {}
+if currentGameId ~= targetGameId then
+    table.insert(unsupportedReasons, "This game is not supported")
+end
 if executorName ~= supportedExecutor then
-    showUnsupported("This executor is not supported")
+    table.insert(unsupportedReasons, "This executor is not supported")
+end
+if #unsupportedReasons > 0 then
+    showUnsupported(table.concat(unsupportedReasons, " & "))
     return
 end
 
