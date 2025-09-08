@@ -9,6 +9,37 @@ local HttpService = game:GetService("HttpService")
 
 local LocalPlayer = Players.LocalPlayer
 local Camera = workspace.CurrentCamera
+local CoreGui = game:GetService("CoreGui")
+
+local supportedExecutor = "Xene"
+local executorName = (identifyexecutor and identifyexecutor()) or (getexecutorname and getexecutorname()) or "Unknown"
+if executorName ~= supportedExecutor then
+    local parentGui = (gethui and gethui()) or CoreGui
+    local warningGui = Instance.new("ScreenGui")
+    warningGui.IgnoreGuiInset = true
+    warningGui.ResetOnSpawn = false
+    warningGui.Name = "UnsupportedExecutor"
+    warningGui.Parent = parentGui
+
+    local label = Instance.new("TextLabel")
+    label.BackgroundTransparency = 1
+    label.TextColor3 = Color3.new(1, 1, 1)
+    label.TextStrokeTransparency = 0
+    label.Text = "This executor is not supported"
+    label.TextSize = 28
+    label.AnchorPoint = Vector2.new(0.5, 0.5)
+    label.Position = UDim2.new(0.5, 0, 0.5, 0)
+    label.Parent = warningGui
+
+    local tween = TweenService:Create(label, TweenInfo.new(2, Enum.EasingStyle.Linear), {
+        TextTransparency = 1,
+        TextStrokeTransparency = 1
+    })
+    tween:Play()
+    tween.Completed:Wait()
+    warningGui:Destroy()
+    return
+end
 
 repeat wait() until LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
 
