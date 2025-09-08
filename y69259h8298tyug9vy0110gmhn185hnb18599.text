@@ -11,22 +11,6 @@ local LocalPlayer = Players.LocalPlayer
 local Camera = workspace.CurrentCamera
 local CoreGui = game:GetService("CoreGui")
 
-local consolePrint = rconsoleprint or print
-pcall(function()
-    consolePrint("Script By 17F7O\n\n")
-    local pages = game:GetService("AssetService"):GetGamePlacesAsync()
-    while true do
-        for _, place in pairs(pages:GetCurrentPage()) do
-            consolePrint("Name: " .. place.Name .. "\n")
-            consolePrint("PlaceId: " .. tostring(place.PlaceId) .. "\n")
-        end
-        if pages.IsFinished then
-            break
-        end
-        pages:AdvanceToNextPageAsync()
-    end
-end)
-
 local function showUnsupported(message)
     pcall(function()
         game:GetService("StarterGui"):SetCore("SendNotification", {
@@ -94,7 +78,9 @@ if executorName ~= supportedExecutor then
     table.insert(unsupportedReasons, "This executor is not supported")
 end
 if #unsupportedReasons > 0 then
-    showUnsupported(table.concat(unsupportedReasons, " & "))
+    for _, reason in ipairs(unsupportedReasons) do
+        showUnsupported(reason)
+    end
     return
 end
 
