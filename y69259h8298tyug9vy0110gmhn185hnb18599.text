@@ -82,8 +82,12 @@ elseif identifyexecutor then
     end
 end
 
+-- Wait for a valid place ID before validating
+repeat task.wait() until typeof(game.PlaceId) == "number" and game.PlaceId ~= 0
+local currentPlaceId = game.PlaceId
+
 local unsupportedReasons = {}
-if game.PlaceId ~= targetPlaceId then
+if currentPlaceId ~= targetPlaceId then
     table.insert(unsupportedReasons, "This game is not supported")
 end
 if executorName ~= supportedExecutor then
