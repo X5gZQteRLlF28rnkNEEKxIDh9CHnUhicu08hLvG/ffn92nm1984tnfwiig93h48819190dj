@@ -11,8 +11,21 @@ local LocalPlayer = Players.LocalPlayer
 local Camera = workspace.CurrentCamera
 local CoreGui = game:GetService("CoreGui")
 
-local supportedExecutor = "Xene"
-local executorName = (identifyexecutor and identifyexecutor()) or (getexecutorname and getexecutorname()) or "Unknown"
+local supportedExecutor = "Xeno"
+local executorName = "Unknown"
+if getexecutorname then
+    executorName = getexecutorname()
+elseif identifyexecutor then
+    local ok, name = pcall(identifyexecutor)
+    if ok then
+        if type(name) == "string" then
+            executorName = name
+        elseif type(name) == "table" then
+            executorName = name[1] or name.name or executorName
+        end
+    end
+end
+
 if executorName ~= supportedExecutor then
     local parentGui = (gethui and gethui()) or CoreGui
     local warningGui = Instance.new("ScreenGui")
