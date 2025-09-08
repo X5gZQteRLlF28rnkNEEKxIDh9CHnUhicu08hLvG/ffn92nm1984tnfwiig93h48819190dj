@@ -9,7 +9,6 @@ local HttpService = game:GetService("HttpService")
 
 local LocalPlayer = Players.LocalPlayer
 local Camera = workspace.CurrentCamera
-local CoreGui = game:GetService("CoreGui")
 
 local function showUnsupported(message)
     pcall(function()
@@ -19,31 +18,6 @@ local function showUnsupported(message)
             Duration = 5
         })
     end)
-
-    local parentGui = (gethui and gethui()) or CoreGui
-    local warningGui = Instance.new("ScreenGui")
-    warningGui.IgnoreGuiInset = true
-    warningGui.ResetOnSpawn = false
-    warningGui.Name = "UnsupportedMessage"
-    warningGui.Parent = parentGui
-
-    local label = Instance.new("TextLabel")
-    label.BackgroundTransparency = 1
-    label.TextColor3 = Color3.new(1, 1, 1)
-    label.TextStrokeTransparency = 0
-    label.Text = message
-    label.TextSize = 28
-    label.AnchorPoint = Vector2.new(0.5, 0.5)
-    label.Position = UDim2.new(0.5, 0, 0.5, 0)
-    label.Parent = warningGui
-
-    local tween = TweenService:Create(label, TweenInfo.new(2, Enum.EasingStyle.Linear), {
-        TextTransparency = 1,
-        TextStrokeTransparency = 1
-    })
-    tween:Play()
-    tween.Completed:Wait()
-    warningGui:Destroy()
 end
 
 if not game:IsLoaded() then
@@ -79,7 +53,7 @@ if executorName ~= supportedExecutor then
 end
 if #unsupportedReasons > 0 then
     for _, reason in ipairs(unsupportedReasons) do
-        showUnsupported(reason)
+        task.spawn(showUnsupported, reason)
     end
     return
 end
