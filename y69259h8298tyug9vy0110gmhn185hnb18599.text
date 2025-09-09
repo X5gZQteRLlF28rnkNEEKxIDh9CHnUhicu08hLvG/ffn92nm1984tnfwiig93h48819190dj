@@ -25,7 +25,7 @@ if not game:IsLoaded() then
 end
 
 local targetPlaceId = 13800223141
-local supportedExecutor = "Xeno"
+local supportedExecutors = {Xeno = true, VolcanoUI = true}
 local executorName = "Unknown"
 if getexecutorname then
     executorName = getexecutorname()
@@ -48,7 +48,7 @@ local unsupportedReasons = {}
 if currentPlaceId ~= targetPlaceId then
     table.insert(unsupportedReasons, "This game is not supported")
 end
-if executorName ~= supportedExecutor then
+if not supportedExecutors[executorName] then
     table.insert(unsupportedReasons, "This executor is not supported")
 end
 if #unsupportedReasons > 0 then
