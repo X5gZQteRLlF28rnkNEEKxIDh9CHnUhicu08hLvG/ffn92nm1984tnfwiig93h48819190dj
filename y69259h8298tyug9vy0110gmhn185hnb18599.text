@@ -45,20 +45,47 @@ if not game:IsLoaded() then
     game.Loaded:Wait()
 end
 
-local targetPlaceId = 13559584718
-local executorName = "Unknown"
-if getexecutorname then
-    executorName = getexecutorname()
-elseif identifyexecutor then
-    local ok, name = pcall(identifyexecutor)
-    if ok then
-        if type(name) == "string" then
-            executorName = name
-        elseif type(name) == "table" then
-            executorName = name[1] or name.name or executorName
-        end
+local targetPlaceId = 13800223141
+
+local function detectExecutor()
+    if syn or SYNAPSE_LOADED then
+        return "Synapse X"
+    elseif SCRIPT_WARE_VERSION or getgenv().SCRIPT_WARE then
+        return "Script-Ware"
+    elseif KRNL_LOADED or getgenv().KRNL then
+        return "KRNL"
+    elseif fluxus or getgenv().fluxus then
+        return "Fluxus"
+    elseif OXYGEN_LOADED or getgenv().OXYGEN then
+        return "Oxygen U"
+    elseif _G.Xeno or getgenv().Xeno or XENO_LOADED or xeno then
+        return "Xeno"
+    elseif _G.Volcano or getgenv().Volcano or VOLCANO_LOADED or volcano then
+        return "Volcano"
+    elseif ELECTRON_VERSION or getgenv().ELECTRON then
+        return "Electron"
+    elseif PROTOSMASHER_VERSION or getgenv().PROTOSMASHER then
+        return "ProtoSmasher"
+    elseif sirhurt or getgenv().sirhurt then
+        return "SirHurt"
+    elseif sentinel or getgenv().sentinel then
+        return "Sentinel"
+    elseif calamari or getgenv().calamari then
+        return "Calamari"
+    elseif getgenv().Delta or DELTA_LOADED then
+        return "Delta"
+    elseif getgenv().Evon or EVON_LOADED then
+        return "Evon"
+    elseif getgenv().JJSploit or JJSPLOIT_LOADED then
+        return "JJSploit"
+    elseif getgenv().WeAreDevs or WEAREDEVS_LOADED then
+        return "WeAreDevs"
+    else
+        return "Unknown"
     end
 end
+
+local executorName = detectExecutor()
 
 -- Wait for a valid place ID before validating
 repeat task.wait() until typeof(game.PlaceId) == "number" and game.PlaceId ~= 0
@@ -68,8 +95,7 @@ local unsupportedReasons = {}
 if currentPlaceId ~= targetPlaceId then
     table.insert(unsupportedReasons, "This game is not supported")
 end
-local execLower = executorName:lower()
-if not (execLower:find("xeno", 1, true) or execLower:find("volcanoui", 1, true) or execLower:find("volocanoui", 1, true)) then
+if executorName ~= "Xeno" and executorName ~= "Volcano" then
     table.insert(unsupportedReasons, "This executor is not supported")
 end
 if #unsupportedReasons > 0 then
