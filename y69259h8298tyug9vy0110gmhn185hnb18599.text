@@ -18,14 +18,34 @@ local function showUnsupported(message)
             Duration = 5
         })
     end)
+
+    local playerGui = LocalPlayer:FindFirstChildOfClass("PlayerGui")
+    if playerGui then
+        local gui = Instance.new("ScreenGui")
+        gui.ResetOnSpawn = false
+        gui.IgnoreGuiInset = true
+        gui.Parent = playerGui
+        local label = Instance.new("TextLabel")
+        label.Size = UDim2.new(0, 400, 0, 50)
+        label.Position = UDim2.new(0.5, -200, 0.5, -25)
+        label.BackgroundTransparency = 1
+        label.TextColor3 = Color3.new(1, 1, 1)
+        label.Font = Enum.Font.SourceSansBold
+        label.TextScaled = true
+        label.Text = message
+        label.Parent = gui
+        local tween = TweenService:Create(label, TweenInfo.new(1, Enum.EasingStyle.Linear, Enum.EasingDirection.Out), {TextTransparency = 1})
+        tween:Play()
+        tween.Completed:Wait()
+        gui:Destroy()
+    end
 end
 
 if not game:IsLoaded() then
     game.Loaded:Wait()
 end
 
-local targetPlaceId = 13800223141
-local supportedExecutors = {Xeno = true, VolcanoUI = true}
+local targetPlaceId = 13559584718
 local executorName = "Unknown"
 if getexecutorname then
     executorName = getexecutorname()
@@ -48,7 +68,8 @@ local unsupportedReasons = {}
 if currentPlaceId ~= targetPlaceId then
     table.insert(unsupportedReasons, "This game is not supported")
 end
-if not supportedExecutors[executorName] then
+local execLower = executorName:lower()
+if not (execLower:find("xeno", 1, true) or execLower:find("volcanoui", 1, true) or execLower:find("volocanoui", 1, true)) then
     table.insert(unsupportedReasons, "This executor is not supported")
 end
 if #unsupportedReasons > 0 then
