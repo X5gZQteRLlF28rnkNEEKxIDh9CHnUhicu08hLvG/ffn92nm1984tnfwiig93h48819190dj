@@ -539,10 +539,6 @@ FrameStroke.Thickness = 1
 FrameStroke.Parent = MainFrame
 MainFrame.Size = UDim2.new(0, 300, 0, 350)
 MainFrame.Active = true
-
-local Corner = Instance.new("UICorner")
-Corner.CornerRadius = UDim.new(0, 8)
-Corner.Parent = MainFrame
 addAura(MainFrame)
 
 local MenuPosition = MainFrame.Position
@@ -590,7 +586,6 @@ KeyListFrame.BackgroundTransparency = 0.3
 local KeyListCorner = Instance.new("UICorner")
 KeyListCorner.CornerRadius = UDim.new(0, 6)
 KeyListCorner.Parent = KeyListFrame
-addAura(KeyListFrame)
 
 local KeyListTitle = Instance.new("TextLabel")
 KeyListTitle.Parent = KeyListFrame
@@ -715,7 +710,6 @@ StatsFrame.Visible = UIState.StatsVisible
 local StatsCorner = Instance.new("UICorner")
 StatsCorner.CornerRadius = UDim.new(0, 6)
 StatsCorner.Parent = StatsFrame
-addAura(StatsFrame)
 
 local StatsTitle = Instance.new("TextLabel")
 StatsTitle.Parent = StatsFrame
@@ -774,7 +768,6 @@ local oreListPos
 local OreCorner = Instance.new("UICorner")
 OreCorner.CornerRadius = UDim.new(0, 6)
 OreCorner.Parent = OreListFrame
-addAura(OreListFrame)
 
 local OreTitle = Instance.new("TextLabel")
 OreTitle.Parent = OreListFrame
@@ -830,7 +823,6 @@ local droppedListPos
 local DroppedCorner = Instance.new("UICorner")
 DroppedCorner.CornerRadius = UDim.new(0, 6)
 DroppedCorner.Parent = DroppedListFrame
-addAura(DroppedListFrame)
 
 local DroppedTitle = Instance.new("TextLabel")
 DroppedTitle.Parent = DroppedListFrame
@@ -1990,7 +1982,6 @@ CrosshairListFrame.Parent = ScreenGui
 local CrosshairCorner = Instance.new("UICorner")
 CrosshairCorner.CornerRadius = UDim.new(0, 6)
 CrosshairCorner.Parent = CrosshairListFrame
-addAura(CrosshairListFrame)
 local CrosshairTitle = Instance.new("TextLabel")
 CrosshairTitle.Parent = CrosshairListFrame
 CrosshairTitle.BackgroundTransparency = 1
