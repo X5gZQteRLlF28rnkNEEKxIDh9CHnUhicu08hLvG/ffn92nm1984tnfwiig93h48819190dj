@@ -509,7 +509,7 @@ local function addAura(guiObject)
     aura.Color = Color3.fromRGB(128, 0, 255)
     aura.Thickness = 6
     aura.Transparency = 0.5
-    aura.ApplyStrokeMode = Enum.ApplyStrokeMode.Outside
+    aura.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
     aura.Parent = guiObject
     task.spawn(function()
         while aura.Parent do
