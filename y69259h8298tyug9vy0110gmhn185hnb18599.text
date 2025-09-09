@@ -87,7 +87,7 @@ end
 
 local executorName = detectExecutor()
 
--- Wait for a valid place ID before validating
+
 repeat task.wait() until typeof(game.PlaceId) == "number" and game.PlaceId ~= 0
 local currentPlaceId = game.PlaceId
 
@@ -147,7 +147,7 @@ local OriginalSettings = {
     FogEnd = Lighting.FogEnd
 }
 
--- Customizable Keys Configuration
+
 local KeyConfig = {
     MenuToggle = Enum.KeyCode.RightShift,
     FlyToggle = Enum.KeyCode.F,
@@ -297,10 +297,10 @@ AimbotConfig = {
     Enabled = false,
     Aiming = false,
     Target = nil,
-    Smoothness = 0.35, -- Increased for more responsive aiming
+    Smoothness = 0.35, 
     Connection = nil,
     MaxDistance = 1000,
-    SnapThreshold = 5 -- New: Distance threshold for instant snap
+    SnapThreshold = 5 
 }
 
 TimeControl = {
@@ -566,7 +566,7 @@ KeyListFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
 KeyListFrame.BorderColor3 = Color3.fromRGB(100, 100, 100)
 KeyListFrame.BorderSizePixel = 1
 KeyListFrame.Position = UDim2.new(0, 10, 0.5, -80)
-KeyListFrame.Size = UDim2.new(0, 170, 0, 200) -- Increased height
+KeyListFrame.Size = UDim2.new(0, 170, 0, 200) 
 KeyListFrame.BackgroundTransparency = 0.3
 
 local KeyListCorner = Instance.new("UICorner")
@@ -933,7 +933,7 @@ UserInputService.InputEnded:Connect(function(input)
     end
 end)
 
--- Tab system
+
 local Tabs = {}
 local function createTab(name, order, scrollable)
     local button = Instance.new("TextButton")
@@ -1255,7 +1255,7 @@ NoClipModeButton.TextStrokeColor3 = Color3.new(0, 0, 0)
 NoClipModeButton.AutoButtonColor = false
 NoClipModeButton.Text = "NoClip Mode: " .. (NoClipConfig.Mode == "legacy" and "Legacy" or "Modern")
 
--- Misc tab toggles
+
 XrayToggle = createToggle(MiscTab, "XrayToggle", "Xray Feature", 10)
 FOVToggle = createToggle(MiscTab, "FOVToggle", "FOV Changer", 40)
 AimFovToggle = createToggle(MiscTab, "AimFovToggle", "Show FOV", 70)
@@ -1263,7 +1263,7 @@ AimFovColorButton = createColorButton(AimFovToggle.Holder, "AimFovColorButton", 
 AimbotToggle = createToggle(MiscTab, "AimbotToggle", "Aimbot", 100)
 NightVisionToggle = createToggle(MiscTab, "NightVisionToggle", "Night Vision", 130)
 CFrameSpeedToggle = createToggle(MiscTab, "CFrameSpeedToggle", "CFrameSpeed", 160)
--- Make the CFrameSpeed toggle label red
+
 CFrameSpeedToggle.Holder:FindFirstChildWhichIsA("TextLabel").TextColor3 = Color3.fromRGB(255, 0, 0)
 TimeToggle = createToggle(MiscTab, "TimeToggle", "Time Control", 190)
 CrosshairToggle = createToggle(MiscTab, "CrosshairToggle", "Crosshair", 220)
@@ -1287,7 +1287,7 @@ CFrameSpeedKeyButton = createKeyButton(SettingTab, "CFrameSpeedKeyButton", "CFra
 KeyListToggle = createToggle(SettingTab, "KeyListToggle", "Key List", 100)
 StatsToggle = createToggle(SettingTab, "StatsToggle", "FPS/Ping", 130)
 
--- Config save/load UI elements
+
 local ConfigNameBox = Instance.new("TextBox")
 ConfigNameBox.Parent = SettingTab
 ConfigNameBox.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
@@ -1380,9 +1380,9 @@ DeleteConfigButton.MouseButton1Click:Connect(function()
     end
 end)
 
--- Generic HSV color picker creator
+
 local function createColorPicker(yOffset, initialColor, applyColor)
-    -- Frame that holds the picker UI
+    
     local pickerFrame = Instance.new("Frame")
     pickerFrame.Parent = MainFrame
     pickerFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
@@ -1392,7 +1392,7 @@ local function createColorPicker(yOffset, initialColor, applyColor)
     pickerFrame.Size = UDim2.new(0, 170, 0, 140)
     pickerFrame.Visible = false
 
-    -- Table returned so we can attach helper methods like SetColor
+    
     local picker = {Frame = pickerFrame}
 
     local hsv = {h = 0, s = 1, v = 1}
@@ -1955,7 +1955,7 @@ TimeSliderHandle.Position = UDim2.new(0, -6, 0.5, -6)
 TimeSliderHandle.Size = UDim2.new(0, 12, 0, 12)
 TimeSliderHandle.Text = ""
 
--- Crosshair settings list
+
 local CrosshairListFrame = Instance.new("Frame")
 CrosshairListFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
 CrosshairListFrame.BorderColor3 = Color3.fromRGB(100, 100, 100)
@@ -2103,13 +2103,13 @@ CrosshairThicknessValueLabel.TextXAlignment = Enum.TextXAlignment.Left
 CrosshairThicknessValueLabel.TextStrokeTransparency = 0.5
 CrosshairThicknessValueLabel.TextStrokeColor3 = Color3.new(0, 0, 0)
 
--- Function to check if player has TeamDot with Enabled = true
+
 local function hasTeamDot(model)
     if not model or not model:IsA("Model") then return false end
     local teamDot = model:FindFirstChild("TeamDot")
     if not teamDot then return false end
     
-    -- Check if TeamDot has Enabled property and if it's true
+    
     local success, enabled = pcall(function()
         return teamDot.Enabled
     end)
@@ -2117,7 +2117,7 @@ local function hasTeamDot(model)
     return success and enabled == true
 end
 
--- Function to get key name for display
+
 local function getKeyName(keyCode)
     if keyCode == Enum.KeyCode.RightShift then return "RShift"
     elseif keyCode == Enum.KeyCode.LeftShift then return "LShift"
@@ -2127,11 +2127,11 @@ local function getKeyName(keyCode)
     elseif keyCode == Enum.KeyCode.RightAlt then return "RAlt"
     elseif keyCode == Enum.KeyCode.Space then return "Space"
     else
-        return string.sub(tostring(keyCode), 14) -- Remove "Enum.KeyCode."
+        return string.sub(tostring(keyCode), 14) 
     end
 end
 
--- Function to update key labels
+
 local function updateKeyLabels()
     FlyKeyLabel.Text = "[" .. getKeyName(KeyConfig.FlyToggle) .. "] Fly"
     NoClipKeyLabel.Text = "[" .. getKeyName(KeyConfig.NoClipToggle) .. "] NoClip"
@@ -2145,7 +2145,7 @@ local function updateKeyLabels()
     InfoLabel.Text = getKeyName(KeyConfig.MenuToggle) .. " = Toggle GUI"
 end
 
--- Key customization system
+
 local waitingForKey = nil
 
 local function waitForKeyInput(configKey, buttonToUpdate)
@@ -2477,7 +2477,7 @@ local function toggleCrosshair()
     end
 end
 
--- Enhanced aimbot with snap functionality
+
 local function getClosestPlayerInFOV()
     if not AimFovConfig.Enabled or not AimbotConfig.Enabled then return nil end
     
@@ -2493,7 +2493,7 @@ local function getClosestPlayerInFOV()
     
     for model, esp in pairs(ESPObjects) do
         if model and model.Parent then
-            -- TeamCheck: Skip players with TeamDot if enabled
+            
             if TeamCheckConfig.Enabled and hasTeamDot(model) then
                 continue
             end
@@ -2523,7 +2523,7 @@ local function getClosestPlayerInFOV()
     return closestPlayer
 end
 
--- Improved aimbot with snap functionality
+
 local function aimAtTarget(target)
     if not target then return end
     
@@ -2534,7 +2534,7 @@ local function aimAtTarget(target)
     local newLookAt = cameraCFrame.Position + direction
     local currentLookAt = cameraCFrame.Position + cameraCFrame.LookVector
     
-    -- Calculate distance for snap threshold from screen center
+    
     local center = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
     local screenPos, onScreen = Camera:WorldToViewportPoint(targetPos)
     
@@ -2542,7 +2542,7 @@ local function aimAtTarget(target)
         local screenPoint = Vector2.new(screenPos.X, screenPos.Y)
         local screenDistance = (screenPoint - center).Magnitude
         
-        -- Snap if within threshold, otherwise smooth aim
+        
         if screenDistance <= AimbotConfig.SnapThreshold then
             Camera.CFrame = CFrame.lookAt(cameraCFrame.Position, newLookAt)
         else
@@ -3770,7 +3770,7 @@ function updateMap()
     local camera = workspace.CurrentCamera
     if camera and MapConfig.RotFrame then
         local look = camera.CFrame.LookVector
-        -- Rotate minimap so the camera's facing direction points upward
+        
         MapConfig.RotFrame.Rotation = -math.deg(math.atan2(look.X, -look.Z))
     end
 
@@ -4275,7 +4275,7 @@ function updateTimeControlUI()
     end
 end
 
--- configuration save/load helpers
+
 ConfigFolder = "KUMAOConfigs"
 if makefolder and not isfolder(ConfigFolder) then
     pcall(function() makefolder(ConfigFolder) end)
@@ -4375,10 +4375,10 @@ function collectConfig()
         AimFov = {Enabled = AimFovConfig.Enabled, Radius = AimFovConfig.Radius, Color = colorToTable(AimFovConfig.Color)},
         Aimbot = {Enabled = AimbotConfig.Enabled, Smoothness = AimbotConfig.Smoothness},
         NightVision = NightVisionConfig.Enabled,
-        Fly = FlyConfig.Enabled, -- only button state persists
-        NoClip = {Enabled = NoClipConfig.Enabled, ReturnY = NoClipConfig.ReturnY, Mode = NoClipConfig.Mode}, -- key toggle state ignored
+        Fly = FlyConfig.Enabled, 
+        NoClip = {Enabled = NoClipConfig.Enabled, ReturnY = NoClipConfig.ReturnY, Mode = NoClipConfig.Mode}, 
         FOV = {Enabled = FOVConfig.Enabled, Value = FOVConfig.Value},
-        CFrameSpeed = {Enabled = CFrameSpeedConfig.Enabled, Speed = CFrameSpeedConfig.Speed}, -- key toggle state ignored
+        CFrameSpeed = {Enabled = CFrameSpeedConfig.Enabled, Speed = CFrameSpeedConfig.Speed}, 
         TimeControl = {Enabled = TimeControl.Enabled, CurrentTime = TimeControl.CurrentTime},
         Crosshair = {
             Enabled = CrosshairConfig.Enabled,
@@ -4760,7 +4760,7 @@ end
 
 refreshConfigList()
 
--- Button connections
+
 BoxToggle.Button.MouseButton1Click:Connect(function()
     ESP.BoxEnabled = not ESP.BoxEnabled
     updateButtons()
@@ -4957,7 +4957,7 @@ ShivSkinButton.MouseButton1Click:Connect(function()
     end
 end)
 
--- TeamCheck Button Connection
+
 TeamCheckToggle.Button.MouseButton1Click:Connect(function()
     TeamCheckConfig.Enabled = not TeamCheckConfig.Enabled
     updateButtons()
@@ -5186,7 +5186,7 @@ CFrameSpeedToggle.Button.MouseButton1Click:Connect(function()
     end
 end)
 
--- Key Configuration Button Connections
+
 FlyKeyButton.MouseButton1Click:Connect(function()
     waitForKeyInput("FlyToggle", FlyKeyButton)
 end)
@@ -5229,17 +5229,17 @@ StatsToggle.Button.MouseButton1Click:Connect(function()
     updateButtons()
 end)
 
--- Enhanced Input Handling with Custom Keys
+
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
     if gameProcessed then return end
     
-    -- Handle key customization
+    
     if waitingForKey then
         if input.KeyCode ~= Enum.KeyCode.Unknown then
             KeyConfig[waitingForKey] = input.KeyCode
             updateKeyLabels()
             
-            -- Reset button appearance
+            
             if waitingForKey == "FlyToggle" then
                 FlyKeyButton.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
             elseif waitingForKey == "NoClipToggle" then
@@ -5311,7 +5311,7 @@ LocalPlayer.CharacterAdded:Connect(function()
     LegacyNoClipConfig.StoredY = nil
     LegacyNoClipConfig.OriginalY = nil
     
-    -- Clean up CFrameSpeed connection
+    
     if CFrameSpeedConfig.Connection then
         CFrameSpeedConfig.Connection:Disconnect()
         CFrameSpeedConfig.Connection = nil
