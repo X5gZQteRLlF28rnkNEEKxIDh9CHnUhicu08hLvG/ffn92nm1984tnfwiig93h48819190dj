@@ -523,15 +523,15 @@ local FrameStroke = Instance.new("UIStroke")
 FrameStroke.Color = Color3.fromRGB(128, 0, 255)
 FrameStroke.Thickness = 1
 FrameStroke.Parent = MainFrame
-MainFrame.Size = UDim2.new(0, 460, 0, 360)
+MainFrame.Size = UDim2.new(0, 530, 0, 360)
 MainFrame.Active = true
 
 local TitleBar = Instance.new("TextLabel")
 TitleBar.Parent = MainFrame
 TitleBar.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-TitleBar.Size = UDim2.new(1, 0, 0, 35)
+TitleBar.Size = UDim2.new(1, 0, 0, 25)
 TitleBar.FontFace = customFont
-TitleBar.Text = "notorious | discord.gg/U4nacgaM49"
+TitleBar.Text = "kumao || lone_survival"
 TitleBar.TextColor3 = Color3.fromRGB(255, 255, 255)
 TitleBar.TextSize = 14
 TitleBar.TextStrokeTransparency = 0.5
@@ -541,8 +541,8 @@ local SideBar = Instance.new("Frame")
 SideBar.Parent = MainFrame
 SideBar.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
 SideBar.BorderSizePixel = 0
-SideBar.Position = UDim2.new(0, 0, 0, 35)
-SideBar.Size = UDim2.new(0, 50, 1, -35)
+SideBar.Position = UDim2.new(0, 0, 0, 25)
+SideBar.Size = UDim2.new(0, 120, 1, -25)
 
 local sideLayout = Instance.new("UIListLayout")
 sideLayout.Parent = SideBar
@@ -937,11 +937,16 @@ local function createTab(name, order, scrollable, icon)
     button.LayoutOrder = order
     button.Size = UDim2.new(1, 0, 0, 50)
     button.FontFace = customFont
-    button.Text = icon or name
+    button.Text = icon and (icon .. " " .. name) or name
     button.TextColor3 = Color3.fromRGB(255, 255, 255)
     button.TextSize = 20
     button.TextStrokeTransparency = 0.5
     button.TextStrokeColor3 = Color3.new(0, 0, 0)
+    button.TextXAlignment = Enum.TextXAlignment.Left
+
+    local pad = Instance.new("UIPadding")
+    pad.Parent = button
+    pad.PaddingLeft = UDim.new(0, 10)
 
     local frame
     if scrollable then
@@ -956,8 +961,8 @@ local function createTab(name, order, scrollable, icon)
     end
     frame.Parent = MainFrame
     frame.BackgroundTransparency = 1
-    frame.Position = UDim2.new(0, 50, 0, 35)
-    frame.Size = UDim2.new(1, -50, 1, -35)
+    frame.Position = UDim2.new(0, 120, 0, 25)
+    frame.Size = UDim2.new(1, -120, 1, -25)
     frame.Visible = order == 1
 
     Tabs[name] = {Button = button, Frame = frame}
