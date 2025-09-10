@@ -299,10 +299,10 @@ AimbotConfig = {
     Enabled = false,
     Aiming = false,
     Target = nil,
-    Smoothness = 0.35, 
+    Smoothness = 0.15,
     Connection = nil,
     MaxDistance = 1000,
-    SnapThreshold = 5 
+    SnapThreshold = 15
 }
 
 TimeControl = {
@@ -4439,7 +4439,7 @@ function collectConfig()
             DistanceColor = colorToTable(ESP.DistanceColor),
             NameColor = colorToTable(ESP.NameColor),
             WeaponColor = colorToTable(ESP.WeaponColor),
-            BoneColor = colorToTable(ESP.BoneColor)
+            BoneColor = colorToTable(ESP.BoneColor),
         },
         TeamCheck = TeamCheckConfig.Enabled,
         Highlight = {Enabled = HighlightConfig.Enabled, Color = colorToTable(HighlightConfig.Color)},
@@ -4463,7 +4463,7 @@ function collectConfig()
         SkyColor = {Enabled = SkyColorConfig.Enabled, Ambient = colorToTable(SkyColorConfig.Ambient), Top = colorToTable(SkyColorConfig.Top)},
         Xray = {Enabled = XrayConfig.Enabled, Transparency = XrayConfig.Transparency},
         AimFov = {Enabled = AimFovConfig.Enabled, Radius = AimFovConfig.Radius, Color = colorToTable(AimFovConfig.Color)},
-        Aimbot = {Enabled = AimbotConfig.Enabled, Smoothness = AimbotConfig.Smoothness},
+        Aimbot = {Enabled = AimbotConfig.Enabled, Smoothness = AimbotConfig.Smoothness, SnapThreshold = AimbotConfig.SnapThreshold},
         NightVision = NightVisionConfig.Enabled,
         Fly = FlyConfig.Enabled, 
         NoClip = {Enabled = NoClipConfig.Enabled, ReturnY = NoClipConfig.ReturnY, Mode = NoClipConfig.Mode}, 
@@ -4670,8 +4670,13 @@ function applyConfig(cfg)
     if cfg.Aimbot and cfg.Aimbot.Enabled ~= AimbotConfig.Enabled then
         toggleAimbot()
     end
-    if cfg.Aimbot and cfg.Aimbot.Smoothness then
-        AimbotConfig.Smoothness = cfg.Aimbot.Smoothness
+    if cfg.Aimbot then
+        if cfg.Aimbot.Smoothness then
+            AimbotConfig.Smoothness = cfg.Aimbot.Smoothness
+        end
+        if cfg.Aimbot.SnapThreshold then
+            AimbotConfig.SnapThreshold = cfg.Aimbot.SnapThreshold
+        end
     end
     if cfg.NightVision ~= nil and cfg.NightVision ~= NightVisionConfig.Enabled then
         toggleNightVision()
