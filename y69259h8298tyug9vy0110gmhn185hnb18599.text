@@ -501,8 +501,8 @@ RaycastParams.FilterType = Enum.RaycastFilterType.Blacklist
 RaycastParams.FilterDescendantsInstances = {Camera}
 
 local customFont = Font.new("rbxasset://fonts/families/Sarpanch.json")
-local tabSelectedColor = Color3.fromRGB(80, 0, 160)
-local tabDefaultColor = Color3.fromRGB(40, 40, 40)
+local tabSelectedColor = Color3.fromRGB(50, 50, 50)
+local tabDefaultColor = Color3.fromRGB(30, 30, 30)
 
 local function addAura(guiObject)
     local aura = Instance.new("UIStroke")
@@ -528,18 +528,56 @@ ScreenGui.ResetOnSpawn = false
 
 local MainFrame = Instance.new("Frame")
 MainFrame.Parent = ScreenGui
-MainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-MainFrame.BorderColor3 = Color3.fromRGB(255, 255, 255)
-MainFrame.BorderSizePixel = 2
-MainFrame.Position = UDim2.new(0.3, 0, 0.3, 0)
-
-local FrameStroke = Instance.new("UIStroke")
-FrameStroke.Color = Color3.fromRGB(128, 0, 255)
-FrameStroke.Thickness = 1
-FrameStroke.Parent = MainFrame
-MainFrame.Size = UDim2.new(0, 300, 0, 350)
+MainFrame.BackgroundColor3 = Color3.fromRGB(24, 24, 24)
+MainFrame.BorderSizePixel = 0
+MainFrame.Position = UDim2.new(0.5, -300, 0.5, -200)
+MainFrame.Size = UDim2.new(0, 600, 0, 400)
 MainFrame.Active = true
 addAura(MainFrame)
+
+local topBarHeight = 30
+local sideBarWidth = 60
+
+local TopBar = Instance.new("Frame")
+TopBar.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+TopBar.BorderSizePixel = 0
+TopBar.Size = UDim2.new(1, 0, 0, topBarHeight)
+TopBar.Parent = MainFrame
+
+local Title = Instance.new("TextLabel")
+Title.Parent = TopBar
+Title.BackgroundTransparency = 1
+Title.Position = UDim2.new(0, 10, 0, 0)
+Title.Size = UDim2.new(1, -20, 1, 0)
+Title.FontFace = customFont
+Title.Text = "notorious | discord.gg/U4nacgM49"
+Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+Title.TextSize = 14
+Title.TextXAlignment = Enum.TextXAlignment.Left
+
+local SideBar = Instance.new("Frame")
+SideBar.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+SideBar.BorderSizePixel = 0
+SideBar.Position = UDim2.new(0, 0, 0, topBarHeight)
+SideBar.Size = UDim2.new(0, sideBarWidth, 1, -topBarHeight - 20)
+SideBar.Parent = MainFrame
+
+local sideLayout = Instance.new("UIListLayout")
+sideLayout.SortOrder = Enum.SortOrder.LayoutOrder
+sideLayout.Parent = SideBar
+
+local InfoLabel = Instance.new("TextLabel")
+InfoLabel.Parent = MainFrame
+InfoLabel.BackgroundTransparency = 1
+InfoLabel.Position = UDim2.new(0, sideBarWidth + 5, 1, -20)
+InfoLabel.Size = UDim2.new(1, -sideBarWidth - 10, 0, 15)
+InfoLabel.FontFace = customFont
+InfoLabel.Text = "Right Shift = Toggle GUI"
+InfoLabel.TextColor3 = Color3.fromRGB(0, 255, 0)
+InfoLabel.TextSize = 10
+InfoLabel.TextXAlignment = Enum.TextXAlignment.Left
+InfoLabel.TextStrokeTransparency = 0.5
+InfoLabel.TextStrokeColor3 = Color3.new(0, 0, 0)
 
 local MenuPosition = MainFrame.Position
 
@@ -860,34 +898,7 @@ UserInputService.InputEnded:Connect(function(input)
     end
 end)
 
-local Title = Instance.new("TextLabel")
-Title.Parent = MainFrame
-Title.BackgroundTransparency = 1
-Title.Size = UDim2.new(1, 0, 0, 25)
-Title.FontFace = customFont
-Title.Text = "Lone_Kumao"
-Title.TextColor3 = Color3.fromRGB(255, 255, 255)
-Title.TextStrokeTransparency = 0.5
-Title.TextStrokeColor3 = Color3.new(0, 0, 0)
-Title.TextSize = 14
-
-local InfoLabel = Instance.new("TextLabel")
-InfoLabel.Parent = MainFrame
-InfoLabel.BackgroundTransparency = 1
-InfoLabel.Position = UDim2.new(0, 5, 0, 25)
-InfoLabel.Size = UDim2.new(1, -10, 0, 15)
-InfoLabel.FontFace = customFont
-InfoLabel.Text = "Right Shift = Toggle GUI"
-InfoLabel.TextColor3 = Color3.fromRGB(0, 255, 0)
-InfoLabel.TextSize = 10
-InfoLabel.TextXAlignment = Enum.TextXAlignment.Left
-InfoLabel.TextStrokeTransparency = 0.5
-InfoLabel.TextStrokeColor3 = Color3.new(0, 0, 0)
-
-local titleHue = 0
 RunService.RenderStepped:Connect(function()
-    titleHue = (titleHue + 0.01) % 1
-    Title.TextColor3 = Color3.fromHSV(titleHue, 1, 1)
 
     if GodSkinChanger.Enabled then
         GodSkinChanger.Hue = (GodSkinChanger.Hue + 0.01) % 1
@@ -949,19 +960,18 @@ end)
 
 
 local Tabs = {}
-local function createTab(name, order, scrollable)
+local function createTab(name, order, icon, scrollable)
     local button = Instance.new("TextButton")
-    button.Parent = MainFrame
+    button.Parent = SideBar
     button.BackgroundColor3 = order == 1 and tabSelectedColor or tabDefaultColor
     button.BorderSizePixel = 0
-    button.Position = UDim2.new((order - 1) * 0.25, 0, 0, 40)
-    button.Size = UDim2.new(0.25, 0, 0, 25)
+    button.Size = UDim2.new(1, 0, 0, 50)
     button.FontFace = customFont
-    button.Text = name
+    button.Text = icon or string.sub(name, 1, 1)
     button.TextColor3 = Color3.fromRGB(255, 255, 255)
-    button.TextSize = 12
-    button.TextStrokeTransparency = 0.5
-    button.TextStrokeColor3 = Color3.new(0, 0, 0)
+    button.TextSize = 20
+    button.LayoutOrder = order
+    button.AutoButtonColor = false
 
     local frame
     if scrollable then
@@ -976,8 +986,8 @@ local function createTab(name, order, scrollable)
     end
     frame.Parent = MainFrame
     frame.BackgroundTransparency = 1
-    frame.Position = UDim2.new(0, 0, 0, 70)
-    frame.Size = UDim2.new(1, 0, 1, -70)
+    frame.Position = UDim2.new(0, sideBarWidth, 0, topBarHeight)
+    frame.Size = UDim2.new(1, -sideBarWidth, 1, -topBarHeight - 20)
     frame.Visible = order == 1
 
     Tabs[name] = {Button = button, Frame = frame}
@@ -994,10 +1004,10 @@ local function createTab(name, order, scrollable)
     return frame
 end
 
-local MainTab = createTab("Main", 1)
-local VisualTab = createTab("Visual", 2, true)
-local MiscTab = createTab("Misc", 3)
-local SettingTab = createTab("Setting", 4, true)
+local MainTab = createTab("Combat", 1, "C")
+local VisualTab = createTab("Visuals", 2, "V", true)
+local MiscTab = createTab("Misc", 3, "M")
+local SettingTab = createTab("Settings", 4, "S", true)
 
 local function createToggle(parent, name, text, yPos)
     local holder = Instance.new("Frame")
