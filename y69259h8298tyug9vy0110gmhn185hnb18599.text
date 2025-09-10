@@ -1016,23 +1016,19 @@ local function createTab(name, order, iconInfo, scrollable)
         end
     end
 
-    local nameText = Drawing.new("Text")
-    nameText.Text = name
-    nameText.Size = 14
-    nameText.Color = Color3.new(1, 1, 1)
-    nameText.Outline = true
-    nameText.Center = true
-    local function updateName()
-        local pos = button.AbsolutePosition
-        local size = button.AbsoluteSize
-        nameText.Position = Vector2.new(pos.X + size.X/2, pos.Y + size.Y - 8)
-        nameText.Visible = MainFrame.Visible
-    end
-    updateName()
-    button:GetPropertyChangedSignal("AbsolutePosition"):Connect(updateName)
-    button:GetPropertyChangedSignal("AbsoluteSize"):Connect(updateName)
-    MainFrame:GetPropertyChangedSignal("Visible"):Connect(updateName)
-    MainFrame:GetPropertyChangedSignal("Position"):Connect(updateName)
+    local nameLabel = Instance.new("TextLabel")
+    nameLabel.Parent = button
+    nameLabel.BackgroundTransparency = 1
+    nameLabel.AnchorPoint = Vector2.new(0.5, 1)
+    nameLabel.Position = UDim2.new(0.5, 0, 1, -4)
+    nameLabel.Size = UDim2.new(1, 0, 0, 14)
+    nameLabel.FontFace = customFont
+    nameLabel.Text = name
+    nameLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    nameLabel.TextSize = 12
+    nameLabel.TextStrokeTransparency = 0.5
+    nameLabel.TextStrokeColor3 = Color3.new(0, 0, 0)
+    nameLabel.TextXAlignment = Enum.TextXAlignment.Center
 
     local frame
     if scrollable then
@@ -1051,7 +1047,7 @@ local function createTab(name, order, iconInfo, scrollable)
     frame.Size = UDim2.new(1, -sideBarWidth, 1, -topBarHeight - 20)
     frame.Visible = order == 1
 
-    Tabs[name] = {Button = button, Frame = frame, Label = nameText}
+    Tabs[name] = {Button = button, Frame = frame, Label = nameLabel}
 
     button.MouseButton1Click:Connect(function()
         for _, tab in pairs(Tabs) do
