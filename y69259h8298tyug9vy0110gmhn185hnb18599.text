@@ -514,7 +514,7 @@ ScreenGui.ResetOnSpawn = false
 
 local MainFrame = Instance.new("Frame")
 MainFrame.Parent = ScreenGui
-MainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+MainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
 MainFrame.BorderColor3 = Color3.fromRGB(255, 255, 255)
 MainFrame.BorderSizePixel = 2
 MainFrame.Position = UDim2.new(0.3, 0, 0.3, 0)
@@ -523,8 +523,30 @@ local FrameStroke = Instance.new("UIStroke")
 FrameStroke.Color = Color3.fromRGB(128, 0, 255)
 FrameStroke.Thickness = 1
 FrameStroke.Parent = MainFrame
-MainFrame.Size = UDim2.new(0, 300, 0, 350)
+MainFrame.Size = UDim2.new(0, 460, 0, 360)
 MainFrame.Active = true
+
+local TitleBar = Instance.new("TextLabel")
+TitleBar.Parent = MainFrame
+TitleBar.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+TitleBar.Size = UDim2.new(1, 0, 0, 35)
+TitleBar.FontFace = customFont
+TitleBar.Text = "notorious | discord.gg/U4nacgaM49"
+TitleBar.TextColor3 = Color3.fromRGB(255, 255, 255)
+TitleBar.TextSize = 14
+TitleBar.TextStrokeTransparency = 0.5
+TitleBar.TextStrokeColor3 = Color3.new(0, 0, 0)
+
+local SideBar = Instance.new("Frame")
+SideBar.Parent = MainFrame
+SideBar.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+SideBar.BorderSizePixel = 0
+SideBar.Position = UDim2.new(0, 0, 0, 35)
+SideBar.Size = UDim2.new(0, 50, 1, -35)
+
+local sideLayout = Instance.new("UIListLayout")
+sideLayout.Parent = SideBar
+sideLayout.SortOrder = Enum.SortOrder.LayoutOrder
 
 local MenuPosition = MainFrame.Position
 
@@ -845,35 +867,9 @@ UserInputService.InputEnded:Connect(function(input)
     end
 end)
 
-local Title = Instance.new("TextLabel")
-Title.Parent = MainFrame
-Title.BackgroundTransparency = 1
-Title.Size = UDim2.new(1, 0, 0, 25)
-Title.FontFace = customFont
-Title.Text = "Lone_Kumao"
-Title.TextColor3 = Color3.fromRGB(255, 255, 255)
-Title.TextStrokeTransparency = 0.5
-Title.TextStrokeColor3 = Color3.new(0, 0, 0)
-Title.TextSize = 14
+-- Title label and info text replaced by TitleBar at initialization
 
-local InfoLabel = Instance.new("TextLabel")
-InfoLabel.Parent = MainFrame
-InfoLabel.BackgroundTransparency = 1
-InfoLabel.Position = UDim2.new(0, 5, 0, 25)
-InfoLabel.Size = UDim2.new(1, -10, 0, 15)
-InfoLabel.FontFace = customFont
-InfoLabel.Text = "Right Shift = Toggle GUI"
-InfoLabel.TextColor3 = Color3.fromRGB(0, 255, 0)
-InfoLabel.TextSize = 10
-InfoLabel.TextXAlignment = Enum.TextXAlignment.Left
-InfoLabel.TextStrokeTransparency = 0.5
-InfoLabel.TextStrokeColor3 = Color3.new(0, 0, 0)
-
-local titleHue = 0
 RunService.RenderStepped:Connect(function()
-    titleHue = (titleHue + 0.01) % 1
-    Title.TextColor3 = Color3.fromHSV(titleHue, 1, 1)
-
     if GodSkinChanger.Enabled then
         GodSkinChanger.Hue = (GodSkinChanger.Hue + 0.01) % 1
         for _, name in ipairs({"Viewmodel", "Model"}) do
@@ -910,7 +906,7 @@ end)
 local dragging = false
 local dragStart, startPos
 
-Title.InputBegan:Connect(function(input)
+TitleBar.InputBegan:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseButton1 then
         dragging = true
         dragStart = input.Position
@@ -932,19 +928,18 @@ UserInputService.InputEnded:Connect(function(input)
     end
 end)
 
-
 local Tabs = {}
-local function createTab(name, order, scrollable)
+local function createTab(name, order, scrollable, icon)
     local button = Instance.new("TextButton")
-    button.Parent = MainFrame
+    button.Parent = SideBar
     button.BackgroundColor3 = order == 1 and tabSelectedColor or tabDefaultColor
     button.BorderSizePixel = 0
-    button.Position = UDim2.new((order - 1) * 0.25, 0, 0, 40)
-    button.Size = UDim2.new(0.25, 0, 0, 25)
+    button.LayoutOrder = order
+    button.Size = UDim2.new(1, 0, 0, 50)
     button.FontFace = customFont
-    button.Text = name
+    button.Text = icon or name
     button.TextColor3 = Color3.fromRGB(255, 255, 255)
-    button.TextSize = 12
+    button.TextSize = 20
     button.TextStrokeTransparency = 0.5
     button.TextStrokeColor3 = Color3.new(0, 0, 0)
 
@@ -961,8 +956,8 @@ local function createTab(name, order, scrollable)
     end
     frame.Parent = MainFrame
     frame.BackgroundTransparency = 1
-    frame.Position = UDim2.new(0, 0, 0, 70)
-    frame.Size = UDim2.new(1, 0, 1, -70)
+    frame.Position = UDim2.new(0, 50, 0, 35)
+    frame.Size = UDim2.new(1, -50, 1, -35)
     frame.Visible = order == 1
 
     Tabs[name] = {Button = button, Frame = frame}
@@ -979,10 +974,10 @@ local function createTab(name, order, scrollable)
     return frame
 end
 
-local MainTab = createTab("Main", 1)
-local VisualTab = createTab("Visual", 2, true)
-local MiscTab = createTab("Misc", 3)
-local SettingTab = createTab("Setting", 4, true)
+local MainTab = createTab("Combat", 1, false, "⚔")
+local VisualTab = createTab("Visuals", 2, true, "👁")
+local MiscTab = createTab("Misc", 3, false, "🔧")
+local SettingTab = createTab("Settings", 4, true, "⚙")
 
 local function createToggle(parent, name, text, yPos)
     local holder = Instance.new("Frame")
@@ -2156,7 +2151,7 @@ local function updateKeyLabels()
     NoClipKeyButton.Text = "[" .. getKeyName(KeyConfig.NoClipToggle) .. "]"
     CFrameSpeedKeyButton.Text = "[" .. getKeyName(KeyConfig.CFrameSpeedToggle) .. "]"
 
-    InfoLabel.Text = getKeyName(KeyConfig.MenuToggle) .. " = Toggle GUI"
+    -- InfoLabel removed in redesigned GUI
 end
 
 
