@@ -973,8 +973,8 @@ local function createTab(name, order, iconInfo, scrollable)
     if iconInfo then
         local img = Instance.new("ImageLabel")
         img.Parent = button
-        img.AnchorPoint = Vector2.new(0.5, 0.5)
-        img.Position = UDim2.new(0.5, 0, 0.5, 0)
+        img.AnchorPoint = Vector2.new(0.5, 0)
+        img.Position = UDim2.new(0.5, 0, 0, 6)
         img.Size = UDim2.new(0, 24, 0, 24)
         img.BackgroundTransparency = 1
         img.Image = iconInfo.Image or iconInfo
@@ -983,6 +983,17 @@ local function createTab(name, order, iconInfo, scrollable)
             img.ImageRectSize = iconInfo.ImageRectSize or Vector2.new(36, 36)
         end
     end
+
+    local nameLabel = Instance.new("TextLabel")
+    nameLabel.Parent = button
+    nameLabel.AnchorPoint = Vector2.new(0.5, 1)
+    nameLabel.Position = UDim2.new(0.5, 0, 1, -2)
+    nameLabel.Size = UDim2.new(1, 0, 0, 14)
+    nameLabel.BackgroundTransparency = 1
+    nameLabel.Text = name
+    nameLabel.TextColor3 = Color3.new(1, 1, 1)
+    nameLabel.Font = Enum.Font.SourceSansBold
+    nameLabel.TextSize = 14
 
     local frame
     if scrollable then
