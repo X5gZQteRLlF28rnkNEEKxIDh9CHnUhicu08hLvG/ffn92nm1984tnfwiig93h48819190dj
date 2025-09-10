@@ -936,18 +936,16 @@ local function createTab(name, order, scrollable, icon)
     button.BackgroundColor3 = order == 1 and tabSelectedColor or tabDefaultColor
     button.BorderSizePixel = 0
     button.LayoutOrder = order
-    button.Size = UDim2.new(1, 0, 0, 50)
+    button.Size = UDim2.new(1, 0, 0, 60)
     button.FontFace = customFont
-    button.Text = icon and (icon .. " " .. name) or name
+    button.Text = icon and (icon .. "\n" .. name) or name
     button.TextColor3 = Color3.fromRGB(255, 255, 255)
     button.TextSize = 20
     button.TextStrokeTransparency = 0.5
     button.TextStrokeColor3 = Color3.new(0, 0, 0)
-    button.TextXAlignment = Enum.TextXAlignment.Left
-
-    local pad = Instance.new("UIPadding")
-    pad.Parent = button
-    pad.PaddingLeft = UDim.new(0, 10)
+    button.TextXAlignment = Enum.TextXAlignment.Center
+    button.TextYAlignment = Enum.TextYAlignment.Center
+    button.TextWrapped = true
 
     local frame
     if scrollable then
