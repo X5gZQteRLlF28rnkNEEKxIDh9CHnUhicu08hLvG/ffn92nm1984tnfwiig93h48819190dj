@@ -550,7 +550,7 @@ Title.BackgroundTransparency = 1
 Title.Position = UDim2.new(0, 10, 0, 0)
 Title.Size = UDim2.new(1, -20, 1, 0)
 Title.FontFace = customFont
-Title.Text = "notorious | discord.gg/U4nacgM49"
+Title.Text = "kumao | lone_survival"
 Title.TextColor3 = Color3.fromRGB(255, 255, 255)
 Title.TextSize = 14
 Title.TextXAlignment = Enum.TextXAlignment.Left
@@ -960,18 +960,29 @@ end)
 
 
 local Tabs = {}
-local function createTab(name, order, icon, scrollable)
+local function createTab(name, order, iconInfo, scrollable)
     local button = Instance.new("TextButton")
     button.Parent = SideBar
     button.BackgroundColor3 = order == 1 and tabSelectedColor or tabDefaultColor
     button.BorderSizePixel = 0
     button.Size = UDim2.new(1, 0, 0, 50)
-    button.FontFace = customFont
-    button.Text = icon or string.sub(name, 1, 1)
-    button.TextColor3 = Color3.fromRGB(255, 255, 255)
-    button.TextSize = 20
+    button.Text = ""
     button.LayoutOrder = order
     button.AutoButtonColor = false
+
+    if iconInfo then
+        local img = Instance.new("ImageLabel")
+        img.Parent = button
+        img.AnchorPoint = Vector2.new(0.5, 0.5)
+        img.Position = UDim2.new(0.5, 0, 0.5, 0)
+        img.Size = UDim2.new(0, 24, 0, 24)
+        img.BackgroundTransparency = 1
+        img.Image = iconInfo.Image or iconInfo
+        if iconInfo.ImageRectOffset then
+            img.ImageRectOffset = iconInfo.ImageRectOffset
+            img.ImageRectSize = iconInfo.ImageRectSize or Vector2.new(36, 36)
+        end
+    end
 
     local frame
     if scrollable then
@@ -1004,10 +1015,17 @@ local function createTab(name, order, icon, scrollable)
     return frame
 end
 
-local MainTab = createTab("Combat", 1, "C")
-local VisualTab = createTab("Visuals", 2, "V", true)
-local MiscTab = createTab("Misc", 3, "M")
-local SettingTab = createTab("Settings", 4, "S", true)
+local tabIcons = {
+    Combat = {Image = "rbxassetid://3926305904", ImageRectOffset = Vector2.new(964, 324)},
+    Visuals = {Image = "rbxassetid://3926305904", ImageRectOffset = Vector2.new(0, 324)},
+    Misc = {Image = "rbxassetid://3926305904", ImageRectOffset = Vector2.new(928, 4)},
+    Settings = {Image = "rbxassetid://3926305904", ImageRectOffset = Vector2.new(4, 4)}
+}
+
+local MainTab = createTab("Combat", 1, tabIcons.Combat)
+local VisualTab = createTab("Visuals", 2, tabIcons.Visuals, true)
+local MiscTab = createTab("Misc", 3, tabIcons.Misc)
+local SettingTab = createTab("Settings", 4, tabIcons.Settings, true)
 
 local function createToggle(parent, name, text, yPos)
     local holder = Instance.new("Frame")
