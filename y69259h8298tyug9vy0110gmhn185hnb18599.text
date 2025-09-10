@@ -504,23 +504,6 @@ local customFont = Font.new("rbxasset://fonts/families/Sarpanch.json")
 local tabSelectedColor = Color3.fromRGB(50, 50, 50)
 local tabDefaultColor = Color3.fromRGB(30, 30, 30)
 
-local function addAura(guiObject)
-    local aura = Instance.new("UIStroke")
-    aura.Color = Color3.fromRGB(128, 0, 255)
-    aura.Thickness = 6
-    aura.Transparency = 0.5
-    aura.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-    aura.Parent = guiObject
-    task.spawn(function()
-        while aura.Parent do
-            local tween = TweenService:Create(aura, TweenInfo.new(1, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Transparency = 1})
-            tween:Play()
-            tween.Completed:Wait()
-            aura.Transparency = 0.5
-        end
-    end)
-end
-
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "ESPGui"
 ScreenGui.Parent = game.CoreGui
@@ -533,7 +516,6 @@ MainFrame.BorderSizePixel = 0
 MainFrame.Position = UDim2.new(0.5, -300, 0.5, -200)
 MainFrame.Size = UDim2.new(0, 600, 0, 400)
 MainFrame.Active = true
-addAura(MainFrame)
 
 local topBarHeight = 30
 local sideBarWidth = 60
