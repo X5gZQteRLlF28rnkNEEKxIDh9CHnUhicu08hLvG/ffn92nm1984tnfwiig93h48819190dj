@@ -1272,63 +1272,6 @@ SkyAmbientButton.Position = UDim2.new(1, -40, 0, 2)
 
 SkyTopButton.Position = UDim2.new(1, -20, 0, 2)
 
-ESPDistanceLabel = Instance.new("TextLabel")
-ESPDistanceLabel.Parent = VisualTab
-ESPDistanceLabel.BackgroundTransparency = 1
-ESPDistanceLabel.Position = UDim2.new(0.05, 0, 0, 310)
-ESPDistanceLabel.Size = UDim2.new(0.35, 0, 0, 16)
-ESPDistanceLabel.FontFace = customFont
-ESPDistanceLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-ESPDistanceLabel.TextSize = 12
-ESPDistanceLabel.TextStrokeTransparency = 0.5
-ESPDistanceLabel.TextStrokeColor3 = Color3.new(0, 0, 0)
-ESPDistanceLabel.TextXAlignment = Enum.TextXAlignment.Left
-
-ESPDistanceSliderFrame = Instance.new("Frame")
-ESPDistanceSliderFrame.Parent = VisualTab
-ESPDistanceSliderFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-ESPDistanceSliderFrame.BorderSizePixel = 0
-ESPDistanceSliderFrame.Position = UDim2.new(0.4, 0, 0, 310)
-ESPDistanceSliderFrame.Size = UDim2.new(0.55, 0, 0, 16)
-
-ESPDistanceSliderBar = Instance.new("Frame")
-ESPDistanceSliderBar.Parent = ESPDistanceSliderFrame
-ESPDistanceSliderBar.BackgroundColor3 = Color3.fromRGB(0, 150, 255)
-ESPDistanceSliderBar.BorderSizePixel = 0
-
-ESPDistanceSliderHandle = Instance.new("TextButton")
-ESPDistanceSliderHandle.Parent = ESPDistanceSliderFrame
-ESPDistanceSliderHandle.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-ESPDistanceSliderHandle.BorderSizePixel = 0
-ESPDistanceSliderHandle.Size = UDim2.new(0, 12, 0, 12)
-ESPDistanceSliderHandle.Text = ""
-
-do
-    local rel = math.clamp((ESP.MaxDistance - 100) / 2900, 0, 1)
-    ESPDistanceSliderBar.Size = UDim2.new(rel, 0, 1, 0)
-    ESPDistanceSliderHandle.Position = UDim2.new(rel, -6, 0.5, -6)
-    ESPDistanceLabel.Text = "ESP Distance: " .. ESP.MaxDistance
-end
-
-ESPDistanceSliderHandle.MouseButton1Down:Connect(function()
-    local moveConn, releaseConn
-    moveConn = UserInputService.InputChanged:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseMovement then
-            local rel = math.clamp((input.Position.X - ESPDistanceSliderFrame.AbsolutePosition.X) / ESPDistanceSliderFrame.AbsoluteSize.X, 0, 1)
-            ESP.MaxDistance = math.floor(100 + rel * 2900)
-            ESPDistanceSliderBar.Size = UDim2.new(rel, 0, 1, 0)
-            ESPDistanceSliderHandle.Position = UDim2.new(rel, -6, 0.5, -6)
-            ESPDistanceLabel.Text = "ESP Distance: " .. ESP.MaxDistance
-        end
-    end)
-    releaseConn = UserInputService.InputEnded:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 then
-            moveConn:Disconnect()
-            releaseConn:Disconnect()
-        end
-    end)
-end)
-
 local RefreshESPButton = Instance.new("TextButton")
 RefreshESPButton.Parent = VisualTab
 RefreshESPButton.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
@@ -4418,14 +4361,6 @@ function updateButtons()
             XrayLabel.Text = string.format("Alpha: %.2f", XrayConfig.Transparency)
         end
     end
-    if ESPDistanceSliderFrame then
-        local rel = math.clamp((ESP.MaxDistance - 100) / 2900, 0, 1)
-        ESPDistanceSliderBar.Size = UDim2.new(rel, 0, 1, 0)
-        ESPDistanceSliderHandle.Position = UDim2.new(rel, -6, 0.5, -6)
-        if ESPDistanceLabel then
-            ESPDistanceLabel.Text = "ESP Distance: " .. ESP.MaxDistance
-        end
-    end
     if UIState.crosshairListExpanded then
         local relative = math.clamp(CrosshairConfig.Speed / 10, 0, 1)
         CrosshairSliderBar.Size = UDim2.new(relative, 0, 1, 0)
@@ -4529,7 +4464,6 @@ function collectConfig()
             TracerEnabled = ESP.TracerEnabled,
             HeadLineEnabled = ESP.HeadLineEnabled,
             BoneEnabled = ESP.BoneEnabled,
-            MaxDistance = ESP.MaxDistance,
             BoxColor = colorToTable(ESP.BoxColor),
             TracerColor = colorToTable(ESP.TracerColor),
             DistanceColor = colorToTable(ESP.DistanceColor),
@@ -4606,7 +4540,6 @@ function applyConfig(cfg)
         ESP.TracerEnabled = cfg.ESP.TracerEnabled or false
         ESP.HeadLineEnabled = cfg.ESP.HeadLineEnabled or false
         ESP.BoneEnabled = cfg.ESP.BoneEnabled or false
-        ESP.MaxDistance = cfg.ESP.MaxDistance or ESP.MaxDistance
         if cfg.ESP.BoxColor then
             local c = tableToColor(cfg.ESP.BoxColor)
             ESP.BoxColor = c
