@@ -91,11 +91,13 @@ local executorName = detectExecutor()
 repeat task.wait() until typeof(game.PlaceId) == "number" and game.PlaceId ~= 0
 local currentPlaceId = game.PlaceId
 
+local AllowedExecutors = {"Xeno", "Volcano"}
+
 local unsupportedReasons = {}
 if currentPlaceId ~= targetPlaceId then
     table.insert(unsupportedReasons, "This game is not supported")
 end
-if executorName ~= "Xeno" and executorName ~= "Volcano" then
+if not table.find(AllowedExecutors, executorName) then
     table.insert(unsupportedReasons, "This executor is not supported")
 end
 if #unsupportedReasons > 0 then
