@@ -48,44 +48,45 @@ end
 local targetPlaceId = 13800223141
 
 local function detectExecutor()
-    if syn or SYNAPSE_LOADED then
-        return "Synapse X"
-    elseif SCRIPT_WARE_VERSION or getgenv().SCRIPT_WARE then
-        return "Script-Ware"
-    elseif KRNL_LOADED or getgenv().KRNL then
-        return "KRNL"
-    elseif fluxus or getgenv().fluxus then
-        return "Fluxus"
-    elseif OXYGEN_LOADED or getgenv().OXYGEN then
-        return "Oxygen U"
-    elseif _G.Xeno or getgenv().Xeno or XENO_LOADED or xeno then
-        return "Xeno"
-    elseif _G.Volcano or getgenv().Volcano or VOLCANO_LOADED or volcano then
-        return "Volcano"
-    elseif ELECTRON_VERSION or getgenv().ELECTRON then
-        return "Electron"
-    elseif PROTOSMASHER_VERSION or getgenv().PROTOSMASHER then
-        return "ProtoSmasher"
-    elseif sirhurt or getgenv().sirhurt then
-        return "SirHurt"
-    elseif sentinel or getgenv().sentinel then
-        return "Sentinel"
-    elseif calamari or getgenv().calamari then
-        return "Calamari"
-    elseif getgenv().Delta or DELTA_LOADED then
-        return "Delta"
-    elseif getgenv().Evon or EVON_LOADED then
-        return "Evon"
-    elseif getgenv().JJSploit or JJSPLOIT_LOADED then
-        return "JJSploit"
-    elseif getgenv().WeAreDevs or WEAREDEVS_LOADED then
-        return "WeAreDevs"
-    else
-        return "Unknown"
+    if syn and syn.request then return "Synapse X" end
+    if krnl and krnl.request then return "Krnl" end
+    if SCRIPTWARE_VERSION or sw then return "Script-Ware" end
+    if fluxus then return "Fluxus" end
+    if OXYGEN_LOADED then return "Oxygen U" end
+    if SENTINEL_LOADED or sentinel then return "Sentinel" end
+    if jjsploit then return "JJSploit" end
+    if calamari then return "Calamari" end
+    if electron then return "Electron" end
+    if proxo then return "Proxo" end
+    if sirhurt_loaded then return "Sirhurt" end
+    if PROTOSMASHER_LOADED then return "Protosmasher" end
+    if arceus then return "Arceus X" end
+    if Delta then return "Delta" end
+    if vegax then return "Vega X" end
+    if getgenv then
+        if identifyexecutor then
+            local success, result = pcall(identifyexecutor)
+            if success and result then return result end
+        end
+        return "Unknown Executor (getgenv detected)"
     end
+    return "Standard Roblox (No Executor)"
 end
 
-local executorName = detectExecutor()
+local function getExecutorInfo()
+    local executor = detectExecutor()
+    local info = {executor = executor, timestamp = os.date("%Y-%m-%d %H:%M:%S"), features = {}}
+    if getgenv then table.insert(info.features, "getgenv") end
+    if identifyexecutor then table.insert(info.features, "identifyexecutor") end
+    if request or http_request or syn and syn.request then table.insert(info.features, "HTTP requests") end
+    if readfile then table.insert(info.features, "File system") end
+    if hookfunction then table.insert(info.features, "Function hooking") end
+    if getrawmetatable then table.insert(info.features, "Metatable access") end
+    return info
+end
+
+local executorInfo = getExecutorInfo()
+local executorName = executorInfo.executor
 
 
 repeat task.wait() until typeof(game.PlaceId) == "number" and game.PlaceId ~= 0
@@ -118,7 +119,6 @@ local function testDrawingAPI()
     end)
     
     if not success then
-        warn("Drawing API not available!")
         return false
     end
     return true
@@ -130,7 +130,6 @@ end
 
 local PlayersFolder = workspace:FindFirstChild("Players")
 if not PlayersFolder then
-    warn("workspace.Players folder not found!")
     return
 end
 
@@ -2381,7 +2380,6 @@ local function toggleXray()
     if XrayConfig.Enabled then
         local builtObjects = workspace:FindFirstChild("BuiltObjects")
         if not builtObjects then
-            warn("workspace.BuiltObjects folder not found!")
             XrayConfig.Enabled = false
             return
         end
