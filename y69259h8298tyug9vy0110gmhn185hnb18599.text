@@ -173,6 +173,7 @@ local ESP = {
     DistanceColor = Color3.new(1, 1, 1),
     NameColor = Color3.new(1, 1, 1),
     WeaponColor = Color3.new(1, 1, 1),
+    BoneColor = Color3.new(1, 1, 1),
     TopOrder = {},
     BottomOrder = {}
 }
@@ -389,8 +390,8 @@ local function createBones(model)
     local bones = {}
     for _, pair in ipairs(BonePairs) do
         local line = Drawing.new("Line")
-        line.Color = Color3.new(1, 1, 1)
-        line.Thickness = 1
+        line.Color = ESP.BoneColor
+        line.Thickness = 1.5
         line.Visible = false
         table.insert(bones, {Line = line, A = pair[1], B = pair[2]})
     end
@@ -1206,6 +1207,7 @@ HeadLineToggle = createToggle(VisualTab, "HeadLineToggle", "Head Line", 190)
 WeaponToggle = createToggle(VisualTab, "WeaponToggle", "Weapon ESP", 220)
 WeaponColorButton = createColorButton(WeaponToggle.Holder, "WeaponColorButton", ESP.WeaponColor)
 BoneToggle = createToggle(VisualTab, "BoneToggle", "Bone ESP", 250)
+BoneColorButton = createColorButton(BoneToggle.Holder, "BoneColorButton", ESP.BoneColor)
 TeamCheckToggle = createToggle(VisualTab, "TeamCheckToggle", "Team Check", 280)
 OreToggle = createToggle(VisualTab, "OreToggle", "Ore ESP Enabled", 310)
 
@@ -1276,12 +1278,69 @@ SkyAmbientButton.Position = UDim2.new(1, -40, 0, 2)
 
 SkyTopButton.Position = UDim2.new(1, -20, 0, 2)
 
+ESPDistanceLabel = Instance.new("TextLabel")
+ESPDistanceLabel.Parent = VisualTab
+ESPDistanceLabel.BackgroundTransparency = 1
+ESPDistanceLabel.Position = UDim2.new(0.05, 0, 0, 510)
+ESPDistanceLabel.Size = UDim2.new(0.35, 0, 0, 16)
+ESPDistanceLabel.FontFace = customFont
+ESPDistanceLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+ESPDistanceLabel.TextSize = 12
+ESPDistanceLabel.TextStrokeTransparency = 0.5
+ESPDistanceLabel.TextStrokeColor3 = Color3.new(0, 0, 0)
+ESPDistanceLabel.TextXAlignment = Enum.TextXAlignment.Left
+
+ESPDistanceSliderFrame = Instance.new("Frame")
+ESPDistanceSliderFrame.Parent = VisualTab
+ESPDistanceSliderFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+ESPDistanceSliderFrame.BorderSizePixel = 0
+ESPDistanceSliderFrame.Position = UDim2.new(0.4, 0, 0, 510)
+ESPDistanceSliderFrame.Size = UDim2.new(0.55, 0, 0, 16)
+
+ESPDistanceSliderBar = Instance.new("Frame")
+ESPDistanceSliderBar.Parent = ESPDistanceSliderFrame
+ESPDistanceSliderBar.BackgroundColor3 = Color3.fromRGB(0, 150, 255)
+ESPDistanceSliderBar.BorderSizePixel = 0
+
+ESPDistanceSliderHandle = Instance.new("TextButton")
+ESPDistanceSliderHandle.Parent = ESPDistanceSliderFrame
+ESPDistanceSliderHandle.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+ESPDistanceSliderHandle.BorderSizePixel = 0
+ESPDistanceSliderHandle.Size = UDim2.new(0, 12, 0, 12)
+ESPDistanceSliderHandle.Text = ""
+
+do
+    local rel = math.clamp((ESP.MaxDistance - 100) / 2900, 0, 1)
+    ESPDistanceSliderBar.Size = UDim2.new(rel, 0, 1, 0)
+    ESPDistanceSliderHandle.Position = UDim2.new(rel, -6, 0.5, -6)
+    ESPDistanceLabel.Text = "ESP Distance: " .. ESP.MaxDistance
+end
+
+ESPDistanceSliderHandle.MouseButton1Down:Connect(function()
+    local moveConn, releaseConn
+    moveConn = UserInputService.InputChanged:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseMovement then
+            local rel = math.clamp((input.Position.X - ESPDistanceSliderFrame.AbsolutePosition.X) / ESPDistanceSliderFrame.AbsoluteSize.X, 0, 1)
+            ESP.MaxDistance = math.floor(100 + rel * 2900)
+            ESPDistanceSliderBar.Size = UDim2.new(rel, 0, 1, 0)
+            ESPDistanceSliderHandle.Position = UDim2.new(rel, -6, 0.5, -6)
+            ESPDistanceLabel.Text = "ESP Distance: " .. ESP.MaxDistance
+        end
+    end)
+    releaseConn = UserInputService.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            moveConn:Disconnect()
+            releaseConn:Disconnect()
+        end
+    end)
+end)
+
 local RefreshESPButton = Instance.new("TextButton")
 RefreshESPButton.Parent = VisualTab
 RefreshESPButton.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
 RefreshESPButton.BorderColor3 = Color3.fromRGB(255, 255, 255)
 RefreshESPButton.BorderSizePixel = 1
-RefreshESPButton.Position = UDim2.new(0.05, 0, 0, 520)
+RefreshESPButton.Position = UDim2.new(0.05, 0, 0, 540)
 RefreshESPButton.Size = UDim2.new(0.9, 0, 0, 20)
 RefreshESPButton.FontFace = customFont
 RefreshESPButton.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -1301,7 +1360,7 @@ end)
 local ShivLabel = Instance.new("TextLabel")
 ShivLabel.Parent = VisualTab
 ShivLabel.BackgroundTransparency = 1
-ShivLabel.Position = UDim2.new(0.05, 0, 0, 550)
+ShivLabel.Position = UDim2.new(0.05, 0, 0, 570)
 ShivLabel.Size = UDim2.new(0.9, 0, 0, 20)
 ShivLabel.FontFace = customFont
 ShivLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -1315,7 +1374,7 @@ ShivSkinButton.Parent = VisualTab
 ShivSkinButton.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
 ShivSkinButton.BorderColor3 = Color3.fromRGB(255, 255, 255)
 ShivSkinButton.BorderSizePixel = 1
-ShivSkinButton.Position = UDim2.new(0.05, 0, 0, 570)
+ShivSkinButton.Position = UDim2.new(0.05, 0, 0, 590)
 ShivSkinButton.Size = UDim2.new(0.9, 0, 0, 20)
 ShivSkinButton.FontFace = customFont
 ShivSkinButton.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -1324,7 +1383,7 @@ ShivSkinButton.TextStrokeTransparency = 0.5
 ShivSkinButton.TextStrokeColor3 = Color3.new(0, 0, 0)
 ShivSkinButton.Text = "Skin: Default"
 
-VisualTab.CanvasSize = UDim2.new(0, 0, 0, 600)
+VisualTab.CanvasSize = UDim2.new(0, 0, 0, 620)
 
 FlyToggle = createToggle(MainTab, "FlyToggle", "Fly Feature", 10)
 NoClipToggle = createToggle(MainTab, "NoClipToggle", "NoClip Feature", 40)
@@ -1677,6 +1736,18 @@ TracerColorPicker = createColorPicker(170, ESP.TracerColor, function(color)
     end
 end)
 
+BoneColorPicker = createColorPicker(200, ESP.BoneColor, function(color)
+    ESP.BoneColor = color
+    BoneColorButton.BackgroundColor3 = color
+    for _, esp in pairs(ESPObjects) do
+        if esp.Bones then
+            for _, bone in ipairs(esp.Bones) do
+                bone.Line.Color = color
+            end
+        end
+    end
+end)
+
 HighlightColorPicker = createColorPicker(190, HighlightConfig.Color, function(color)
     HighlightConfig.Color = color
     HighlightColorButton.BackgroundColor3 = color
@@ -1720,6 +1791,7 @@ end)
 local function hideAllPickers()
     TracerColorPicker.Frame.Visible = false
     HighlightColorPicker.Frame.Visible = false
+    BoneColorPicker.Frame.Visible = false
     BoxColorPicker.Frame.Visible = false
     DistanceColorPicker.Frame.Visible = false
     NameColorPicker.Frame.Visible = false
@@ -4361,6 +4433,14 @@ function updateButtons()
             XrayLabel.Text = string.format("Alpha: %.2f", XrayConfig.Transparency)
         end
     end
+    if ESPDistanceSliderFrame then
+        local rel = math.clamp((ESP.MaxDistance - 100) / 2900, 0, 1)
+        ESPDistanceSliderBar.Size = UDim2.new(rel, 0, 1, 0)
+        ESPDistanceSliderHandle.Position = UDim2.new(rel, -6, 0.5, -6)
+        if ESPDistanceLabel then
+            ESPDistanceLabel.Text = "ESP Distance: " .. ESP.MaxDistance
+        end
+    end
     if UIState.crosshairListExpanded then
         local relative = math.clamp(CrosshairConfig.Speed / 10, 0, 1)
         CrosshairSliderBar.Size = UDim2.new(relative, 0, 1, 0)
@@ -4464,11 +4544,13 @@ function collectConfig()
             TracerEnabled = ESP.TracerEnabled,
             HeadLineEnabled = ESP.HeadLineEnabled,
             BoneEnabled = ESP.BoneEnabled,
+            MaxDistance = ESP.MaxDistance,
             BoxColor = colorToTable(ESP.BoxColor),
             TracerColor = colorToTable(ESP.TracerColor),
             DistanceColor = colorToTable(ESP.DistanceColor),
             NameColor = colorToTable(ESP.NameColor),
-            WeaponColor = colorToTable(ESP.WeaponColor)
+            WeaponColor = colorToTable(ESP.WeaponColor),
+            BoneColor = colorToTable(ESP.BoneColor)
         },
         TeamCheck = TeamCheckConfig.Enabled,
         Highlight = {Enabled = HighlightConfig.Enabled, Color = colorToTable(HighlightConfig.Color)},
@@ -4539,6 +4621,7 @@ function applyConfig(cfg)
         ESP.TracerEnabled = cfg.ESP.TracerEnabled or false
         ESP.HeadLineEnabled = cfg.ESP.HeadLineEnabled or false
         ESP.BoneEnabled = cfg.ESP.BoneEnabled or false
+        ESP.MaxDistance = cfg.ESP.MaxDistance or ESP.MaxDistance
         if cfg.ESP.BoxColor then
             local c = tableToColor(cfg.ESP.BoxColor)
             ESP.BoxColor = c
@@ -4568,6 +4651,19 @@ function applyConfig(cfg)
             ESP.WeaponColor = c
             WeaponColorButton.BackgroundColor3 = c
             if WeaponColorPicker then WeaponColorPicker.SetColor(c) end
+        end
+        if cfg.ESP.BoneColor then
+            local c = tableToColor(cfg.ESP.BoneColor)
+            ESP.BoneColor = c
+            BoneColorButton.BackgroundColor3 = c
+            if BoneColorPicker then BoneColorPicker.SetColor(c) end
+            for _, esp in pairs(ESPObjects) do
+                if esp.Bones then
+                    for _, bone in ipairs(esp.Bones) do
+                        bone.Line.Color = c
+                    end
+                end
+            end
         end
         for _, esp in pairs(ESPObjects) do
             if esp.DistanceText then esp.DistanceText.Color = ESP.DistanceColor end
@@ -5031,6 +5127,16 @@ WeaponColorButton.MouseButton1Click:Connect(function()
         hideAllPickers()
         WeaponColorPicker.SetColor(ESP.WeaponColor)
         WeaponColorPicker.Frame.Visible = true
+    end
+end)
+
+BoneColorButton.MouseButton1Click:Connect(function()
+    if BoneColorPicker.Frame.Visible then
+        BoneColorPicker.Frame.Visible = false
+    else
+        hideAllPickers()
+        BoneColorPicker.SetColor(ESP.BoneColor)
+        BoneColorPicker.Frame.Visible = true
     end
 end)
 
