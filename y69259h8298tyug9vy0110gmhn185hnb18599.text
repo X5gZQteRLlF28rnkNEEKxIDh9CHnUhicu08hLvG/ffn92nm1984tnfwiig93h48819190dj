@@ -126,12 +126,6 @@ if not testDrawingAPI() then
     return
 end
 
-local PlayersFolder = workspace:FindFirstChild("Players")
-if not PlayersFolder then
-    warn("workspace.Players folder not found!")
-    return
-end
-
 local ResourcesFolder = workspace:FindFirstChild("Resources")
 local ResourcesConnections = {Added = nil, Removed = nil}
 
@@ -1209,7 +1203,7 @@ WeaponColorButton = createColorButton(WeaponToggle.Holder, "WeaponColorButton", 
 BoneToggle = createToggle(VisualTab, "BoneToggle", "Bone ESP", 250)
 BoneColorButton = createColorButton(BoneToggle.Holder, "BoneColorButton", ESP.BoneColor)
 TeamCheckToggle = createToggle(VisualTab, "TeamCheckToggle", "Team Check", 280)
-OreToggle = createToggle(VisualTab, "OreToggle", "Ore ESP Enabled", 310)
+OreToggle = createToggle(VisualTab, "OreToggle", "Ore ESP Enabled", 340)
 
 UIState.OreArrow = Instance.new("TextButton")
 UIState.OreArrow.Parent = OreToggle.Holder
@@ -1231,7 +1225,7 @@ IronToggle = createToggle(OreListFrame, "IronToggle", "Iron Ore", 30)
 BrimstoneToggle = createToggle(OreListFrame, "BrimstoneToggle", "Brimstone Ore", 50)
 StoneToggle = createToggle(OreListFrame, "StoneToggle", "Stone Ore", 70)
 
-DroppedToggle = createToggle(VisualTab, "DroppedToggle", "Dropped ESP Enabled", 340)
+DroppedToggle = createToggle(VisualTab, "DroppedToggle", "Dropped ESP Enabled", 370)
 
 UIState.DroppedArrow = Instance.new("TextButton")
 UIState.DroppedArrow.Parent = DroppedToggle.Holder
@@ -1263,15 +1257,15 @@ for _, name in ipairs(DroppedNames) do
     dropY = dropY + 20
 end
 
-BackpackToggle = createToggle(VisualTab, "BackpackToggle", "Backpack ESP", 370)
+BackpackToggle = createToggle(VisualTab, "BackpackToggle", "Backpack ESP", 400)
 
-GodSkinChangerToggle = createToggle(VisualTab, "GodSkinChangerToggle", "God SkinChanger", 400)
+GodSkinChangerToggle = createToggle(VisualTab, "GodSkinChangerToggle", "God SkinChanger", 430)
 
-MapToggle = createToggle(VisualTab, "MapToggle", "Map", 430)
+MapToggle = createToggle(VisualTab, "MapToggle", "Map", 460)
 
-NewsToggle = createToggle(VisualTab, "NewsToggle", "News", 460)
+NewsToggle = createToggle(VisualTab, "NewsToggle", "News", 490)
 
-SkyColorToggle = createToggle(VisualTab, "SkyColorToggle", "SkyColor", 490)
+SkyColorToggle = createToggle(VisualTab, "SkyColorToggle", "SkyColor", 520)
 SkyAmbientButton = createColorButton(SkyColorToggle.Holder, "SkyAmbientButton", SkyColorConfig.Ambient)
 SkyTopButton = createColorButton(SkyColorToggle.Holder, "SkyTopButton", SkyColorConfig.Top)
 SkyAmbientButton.Position = UDim2.new(1, -40, 0, 2)
@@ -1281,7 +1275,7 @@ SkyTopButton.Position = UDim2.new(1, -20, 0, 2)
 ESPDistanceLabel = Instance.new("TextLabel")
 ESPDistanceLabel.Parent = VisualTab
 ESPDistanceLabel.BackgroundTransparency = 1
-ESPDistanceLabel.Position = UDim2.new(0.05, 0, 0, 510)
+ESPDistanceLabel.Position = UDim2.new(0.05, 0, 0, 310)
 ESPDistanceLabel.Size = UDim2.new(0.35, 0, 0, 16)
 ESPDistanceLabel.FontFace = customFont
 ESPDistanceLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -1294,7 +1288,7 @@ ESPDistanceSliderFrame = Instance.new("Frame")
 ESPDistanceSliderFrame.Parent = VisualTab
 ESPDistanceSliderFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
 ESPDistanceSliderFrame.BorderSizePixel = 0
-ESPDistanceSliderFrame.Position = UDim2.new(0.4, 0, 0, 510)
+ESPDistanceSliderFrame.Position = UDim2.new(0.4, 0, 0, 310)
 ESPDistanceSliderFrame.Size = UDim2.new(0.55, 0, 0, 16)
 
 ESPDistanceSliderBar = Instance.new("Frame")
@@ -1340,7 +1334,7 @@ RefreshESPButton.Parent = VisualTab
 RefreshESPButton.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
 RefreshESPButton.BorderColor3 = Color3.fromRGB(255, 255, 255)
 RefreshESPButton.BorderSizePixel = 1
-RefreshESPButton.Position = UDim2.new(0.05, 0, 0, 540)
+RefreshESPButton.Position = UDim2.new(0.05, 0, 0, 570)
 RefreshESPButton.Size = UDim2.new(0.9, 0, 0, 20)
 RefreshESPButton.FontFace = customFont
 RefreshESPButton.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -3962,8 +3956,9 @@ function updateMap()
     local radius = MapConfig.Frame.AbsoluteSize.X / 2
     local range = MapConfig.Range
 
-    for _, model in ipairs(PlayersFolder:GetChildren()) do
-        if model.Name ~= LocalPlayer.Name then
+    for _, player in ipairs(Players:GetPlayers()) do
+        local model = player.Character
+        if model and model.Name ~= LocalPlayer.Name then
             local rootPart = model:FindFirstChild("HumanoidRootPart")
             if rootPart then
                 local offset = rootPart.Position - localRoot.Position
@@ -4321,27 +4316,16 @@ function updateESP()
 end
 
 function autoRefresh()
-    local pf = workspace:FindFirstChild("Players")
-    if pf ~= PlayersFolder then
-        PlayersFolder = pf
-        if PlayersFolder then
-            refreshModels()
-        else
-            cleanupAllESP()
-            return
-        end
-    end
-
-    if not PlayersFolder then return end
-
-    for _, child in pairs(PlayersFolder:GetChildren()) do
-        if isValidModel(child) and not ESPObjects[child] then
-            createESP(child)
+    for _, player in ipairs(Players:GetPlayers()) do
+        local character = player.Character
+        if isValidModel(character) and not ESPObjects[character] then
+            createESP(character)
         end
     end
 
     for model, esp in pairs(ESPObjects) do
-        if not model.Parent or not PlayersFolder:FindFirstChild(model.Name) then
+        local player = Players:FindFirstChild(model.Name)
+        if not player or player.Character ~= model or not model.Parent then
             removeESP(model)
         end
     end
@@ -4351,12 +4335,13 @@ function refreshModels()
     for model, esp in pairs(ESPObjects) do
         removeESP(model)
     end
-    
+
     playerTracker = {}
-    
-    for _, child in pairs(PlayersFolder:GetChildren()) do
-        if isValidModel(child) then
-            createESP(child)
+
+    for _, player in ipairs(Players:GetPlayers()) do
+        local character = player.Character
+        if isValidModel(character) then
+            createESP(character)
         end
     end
 end
