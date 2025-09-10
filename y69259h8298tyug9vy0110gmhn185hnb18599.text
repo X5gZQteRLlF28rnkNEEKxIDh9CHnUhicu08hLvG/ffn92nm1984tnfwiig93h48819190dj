@@ -1032,6 +1032,7 @@ local function createTab(name, order, iconInfo, scrollable)
     button:GetPropertyChangedSignal("AbsolutePosition"):Connect(updateName)
     button:GetPropertyChangedSignal("AbsoluteSize"):Connect(updateName)
     MainFrame:GetPropertyChangedSignal("Visible"):Connect(updateName)
+    MainFrame:GetPropertyChangedSignal("Position"):Connect(updateName)
 
     local frame
     if scrollable then
