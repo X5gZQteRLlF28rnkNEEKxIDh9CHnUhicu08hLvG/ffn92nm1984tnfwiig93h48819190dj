@@ -166,12 +166,14 @@ local ESP = {
     HPBar = false,
     TracerEnabled = false,
     HeadLineEnabled = false,
+    BonesEnabled = false,
     MaxDistance = 1000,
     BoxColor = Color3.new(1, 1, 1),
     TracerColor = Color3.new(1, 1, 1),
     DistanceColor = Color3.new(1, 1, 1),
     NameColor = Color3.new(1, 1, 1),
     WeaponColor = Color3.new(1, 1, 1),
+    BoneColor = Color3.new(1, 1, 1),
     TopOrder = {},
     BottomOrder = {}
 }
@@ -1112,10 +1114,12 @@ TracerColorButton = createColorButton(TracerToggle.Holder, "TracerColorButton", 
 HighlightToggle = createToggle(VisualTab, "HighlightToggle", "Highlight ESP", 160)
 HighlightColorButton = createColorButton(HighlightToggle.Holder, "HighlightColorButton", HighlightConfig.Color)
 HeadLineToggle = createToggle(VisualTab, "HeadLineToggle", "Head Line", 190)
-WeaponToggle = createToggle(VisualTab, "WeaponToggle", "Weapon ESP", 220)
+BoneToggle = createToggle(VisualTab, "BoneToggle", "Bone ESP", 220)
+BoneColorButton = createColorButton(BoneToggle.Holder, "BoneColorButton", ESP.BoneColor)
+WeaponToggle = createToggle(VisualTab, "WeaponToggle", "Weapon ESP", 250)
 WeaponColorButton = createColorButton(WeaponToggle.Holder, "WeaponColorButton", ESP.WeaponColor)
-TeamCheckToggle = createToggle(VisualTab, "TeamCheckToggle", "Team Check", 250)
-OreToggle = createToggle(VisualTab, "OreToggle", "Ore ESP Enabled", 280)
+TeamCheckToggle = createToggle(VisualTab, "TeamCheckToggle", "Team Check", 280)
+OreToggle = createToggle(VisualTab, "OreToggle", "Ore ESP Enabled", 310)
 
 UIState.OreArrow = Instance.new("TextButton")
 UIState.OreArrow.Parent = OreToggle.Holder
@@ -1595,6 +1599,18 @@ HighlightColorPicker = createColorPicker(190, HighlightConfig.Color, function(co
     end
 end)
 
+BoneColorPicker = createColorPicker(200, ESP.BoneColor, function(color)
+    ESP.BoneColor = color
+    BoneColorButton.BackgroundColor3 = color
+    for _, esp in pairs(ESPObjects) do
+        if esp.Bones then
+            for _, b in ipairs(esp.Bones) do
+                b.line.Color = color
+            end
+        end
+    end
+end)
+
 AimFovColorPicker = createColorPicker(230, AimFovConfig.Color, function(color)
     AimFovConfig.Color = color
     AimFovColorButton.BackgroundColor3 = color
@@ -1628,6 +1644,7 @@ end)
 local function hideAllPickers()
     TracerColorPicker.Frame.Visible = false
     HighlightColorPicker.Frame.Visible = false
+    BoneColorPicker.Frame.Visible = false
     BoxColorPicker.Frame.Visible = false
     DistanceColorPicker.Frame.Visible = false
     NameColorPicker.Frame.Visible = false
@@ -3288,6 +3305,34 @@ local function createESP(model)
         esp.HeadLine = hl
     end)
 
+    pcall(function()
+        local bones = {}
+        local pairs = {
+            {"Head","UpperTorso"},
+            {"UpperTorso","LowerTorso"},
+            {"UpperTorso","LeftUpperArm"},
+            {"LeftUpperArm","LeftLowerArm"},
+            {"LeftLowerArm","LeftHand"},
+            {"UpperTorso","RightUpperArm"},
+            {"RightUpperArm","RightLowerArm"},
+            {"RightLowerArm","RightHand"},
+            {"LowerTorso","LeftUpperLeg"},
+            {"LeftUpperLeg","LeftLowerLeg"},
+            {"LeftLowerLeg","LeftFoot"},
+            {"LowerTorso","RightUpperLeg"},
+            {"RightUpperLeg","RightLowerLeg"},
+            {"RightLowerLeg","RightFoot"}
+        }
+        for _, p in ipairs(pairs) do
+            local line = Drawing.new("Line")
+            line.Color = ESP.BoneColor
+            line.Thickness = 2
+            line.Visible = false
+            table.insert(bones, {parts = p, line = line})
+        end
+        esp.Bones = bones
+    end)
+
     ESPObjects[model] = esp
 end
 
@@ -3307,6 +3352,13 @@ local function removeESP(model)
     pcall(function() if esp.Tracer then esp.Tracer:Remove() end end)
     pcall(function() if esp.TracerOutline then esp.TracerOutline:Remove() end end)
     pcall(function() if esp.HeadLine then esp.HeadLine:Remove() end end)
+    pcall(function()
+        if esp.Bones then
+            for _, b in ipairs(esp.Bones) do
+                b.line:Remove()
+            end
+        end
+    end)
     pcall(function() if esp.Highlight then esp.Highlight:Destroy() end end)
 
     ESPObjects[model] = nil
@@ -3352,6 +3404,11 @@ local function hideESP(esp)
     if esp.Tracer then esp.Tracer.Visible = false end
     if esp.TracerOutline then esp.TracerOutline.Visible = false end
     if esp.HeadLine then esp.HeadLine.Visible = false end
+    if esp.Bones then
+        for _, b in ipairs(esp.Bones) do
+            b.line.Visible = false
+        end
+    end
 end
 
 local function removeOreESP(obj)
@@ -4004,6 +4061,27 @@ function updateHeadLine(esp, headScreen, head)
     esp.HeadLine.Visible = true
 end
 
+function updateBones(esp, model)
+    for _, b in ipairs(esp.Bones) do
+        local part0 = model:FindFirstChild(b.parts[1])
+        local part1 = model:FindFirstChild(b.parts[2])
+        if part0 and part1 then
+            local p0 = Camera:WorldToViewportPoint(part0.Position)
+            local p1 = Camera:WorldToViewportPoint(part1.Position)
+            if p0.Z > 0 and p1.Z > 0 then
+                b.line.Color = ESP.BoneColor
+                b.line.From = Vector2.new(p0.X, p0.Y)
+                b.line.To = Vector2.new(p1.X, p1.Y)
+                b.line.Visible = true
+            else
+                b.line.Visible = false
+            end
+        else
+            b.line.Visible = false
+        end
+    end
+end
+
 function processESP(model, esp, localRoot)
     if not model or not model.Parent then
         removeESP(model)
@@ -4114,6 +4192,18 @@ function processESP(model, esp, localRoot)
     elseif esp.HeadLine then
         esp.HeadLine.Visible = false
     end
+
+    if ESP.BonesEnabled and esp.Bones then
+        if not pcall(updateBones, esp, model) then
+            for _, b in ipairs(esp.Bones) do
+                b.line.Visible = false
+            end
+        end
+    elseif esp.Bones then
+        for _, b in ipairs(esp.Bones) do
+            b.line.Visible = false
+        end
+    end
 end
 
 function updateESP()
@@ -4177,6 +4267,7 @@ ToggleBindings = {
     {button = TracerToggle,     state = function() return ESP.TracerEnabled end},
     {button = HighlightToggle,  state = function() return HighlightConfig.Enabled end},
     {button = HeadLineToggle,   state = function() return ESP.HeadLineEnabled end},
+    {button = BoneToggle,       state = function() return ESP.BonesEnabled end},
     {button = WeaponToggle,     state = function() return ESP.WeaponEnabled end},
     {button = TeamCheckToggle,  state = function() return TeamCheckConfig.Enabled end},
     {button = OreToggle,        state = function() return OreESP.Enabled end},
@@ -4342,11 +4433,13 @@ function collectConfig()
             HPBar = ESP.HPBar,
             TracerEnabled = ESP.TracerEnabled,
             HeadLineEnabled = ESP.HeadLineEnabled,
+            BonesEnabled = ESP.BonesEnabled,
             BoxColor = colorToTable(ESP.BoxColor),
             TracerColor = colorToTable(ESP.TracerColor),
             DistanceColor = colorToTable(ESP.DistanceColor),
             NameColor = colorToTable(ESP.NameColor),
-            WeaponColor = colorToTable(ESP.WeaponColor)
+            WeaponColor = colorToTable(ESP.WeaponColor),
+            BoneColor = colorToTable(ESP.BoneColor)
         },
         TeamCheck = TeamCheckConfig.Enabled,
         Highlight = {Enabled = HighlightConfig.Enabled, Color = colorToTable(HighlightConfig.Color)},
@@ -4416,6 +4509,7 @@ function applyConfig(cfg)
         if ESP.HPEnabled and not ESP.HPBar then addOrder(ESP.BottomOrder, "HP") end
         ESP.TracerEnabled = cfg.ESP.TracerEnabled or false
         ESP.HeadLineEnabled = cfg.ESP.HeadLineEnabled or false
+        ESP.BonesEnabled = cfg.ESP.BonesEnabled or false
         if cfg.ESP.BoxColor then
             local c = tableToColor(cfg.ESP.BoxColor)
             ESP.BoxColor = c
@@ -4446,10 +4540,21 @@ function applyConfig(cfg)
             WeaponColorButton.BackgroundColor3 = c
             if WeaponColorPicker then WeaponColorPicker.SetColor(c) end
         end
+        if cfg.ESP.BoneColor then
+            local c = tableToColor(cfg.ESP.BoneColor)
+            ESP.BoneColor = c
+            BoneColorButton.BackgroundColor3 = c
+            if BoneColorPicker then BoneColorPicker.SetColor(c) end
+        end
         for _, esp in pairs(ESPObjects) do
             if esp.DistanceText then esp.DistanceText.Color = ESP.DistanceColor end
             if esp.NameText then esp.NameText.Color = ESP.NameColor end
             if esp.WeaponText then esp.WeaponText.Color = ESP.WeaponColor end
+            if esp.Bones then
+                for _, b in ipairs(esp.Bones) do
+                    b.line.Color = ESP.BoneColor
+                end
+            end
         end
     end
     if cfg.TeamCheck ~= nil then
@@ -4906,6 +5011,16 @@ WeaponColorButton.MouseButton1Click:Connect(function()
     end
 end)
 
+BoneColorButton.MouseButton1Click:Connect(function()
+    if BoneColorPicker.Frame.Visible then
+        BoneColorPicker.Frame.Visible = false
+    else
+        hideAllPickers()
+        BoneColorPicker.SetColor(ESP.BoneColor)
+        BoneColorPicker.Frame.Visible = true
+    end
+end)
+
 SkyAmbientButton.MouseButton1Click:Connect(function()
     if SkyAmbientPicker.Frame.Visible then
         SkyAmbientPicker.Frame.Visible = false
@@ -4962,6 +5077,11 @@ end)
 
 HeadLineToggle.Button.MouseButton1Click:Connect(function()
     ESP.HeadLineEnabled = not ESP.HeadLineEnabled
+    updateButtons()
+end)
+
+BoneToggle.Button.MouseButton1Click:Connect(function()
+    ESP.BonesEnabled = not ESP.BonesEnabled
     updateButtons()
 end)
 
