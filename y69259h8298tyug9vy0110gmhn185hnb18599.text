@@ -1016,10 +1016,10 @@ local function createTab(name, order, iconInfo, scrollable)
 end
 
 local tabIcons = {
-    Combat = {Image = "rbxassetid://3926305904", ImageRectOffset = Vector2.new(964, 324)},
-    Visuals = {Image = "rbxassetid://3926305904", ImageRectOffset = Vector2.new(0, 324)},
-    Misc = {Image = "rbxassetid://3926305904", ImageRectOffset = Vector2.new(928, 4)},
-    Settings = {Image = "rbxassetid://3926305904", ImageRectOffset = Vector2.new(4, 4)}
+    Combat = "rbxassetid://6034880064",
+    Visuals = "rbxassetid://6035047409",
+    Misc = "rbxassetid://6034509993",
+    Settings = "rbxassetid://6034509990"
 }
 
 local MainTab = createTab("Combat", 1, tabIcons.Combat)
