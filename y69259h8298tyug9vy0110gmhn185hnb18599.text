@@ -356,15 +356,6 @@ ZoomConfig = {
     IsZooming = false
 }
 
-local CUSTOM_RECOIL_MULTIPLIER = 0
-local CUSTOM_X_SCALE = 0
-local CUSTOM_Y_SCALE = 0
-
-NoRecoilConfig = {
-    Enabled = false,
-    CamConn = nil
-}
-
 UIState = {
     KeyListVisible = true,
     StatsVisible = true,
@@ -1311,8 +1302,6 @@ UIState.CrosshairArrow.TextColor3 = Color3.fromRGB(255, 255, 255)
 UIState.CrosshairArrow.AutoButtonColor = false
 
 ZoomToggle = createToggle(MiscTab, "ZoomToggle", "Zoom", 250)
-
-NoRecoilToggle = createToggle(MiscTab, "NoRecoilToggle", "NoRecoil", 280)
 
 FlyKeyButton = createKeyButton(SettingTab, "FlyKeyButton", "Fly key", KeyConfig.FlyToggle, 10)
 NoClipKeyButton = createKeyButton(SettingTab, "NoClipKeyButton", "Noclip key", KeyConfig.NoClipToggle, 40)
@@ -2538,138 +2527,6 @@ local function toggleCrosshair()
             pcall(function() line:Remove() end)
             CrosshairConfig.Lines[i] = nil
         end
-end
-end
-
-
-local function noRecoil_modifyRecoilTables()
-    for _, v in pairs(getgc(true)) do
-        if typeof(v) == "table" then
-            if rawget(v, "XScale") and rawget(v, "YScale") then
-                rawset(v, "XScale", CUSTOM_X_SCALE)
-                rawset(v, "YScale", CUSTOM_Y_SCALE)
-            end
-            if rawget(v, "Data") and rawget(v, "Reset") then
-                rawset(v, "Reset", 0.1)
-                local data = rawget(v, "Data")
-                if data and type(data) == "table" then
-                    for i, recoilData in pairs(data) do
-                        if type(recoilData) == "table" and rawget(recoilData, "X") and rawget(recoilData, "Y") then
-                            rawset(recoilData, "X", rawget(recoilData, "X") * CUSTOM_RECOIL_MULTIPLIER)
-                            rawset(recoilData, "Y", rawget(recoilData, "Y") * CUSTOM_RECOIL_MULTIPLIER)
-                        end
-                    end
-                end
-            end
-            if rawget(v, "OverallMultiplier") then
-                rawset(v, "OverallMultiplier", CUSTOM_RECOIL_MULTIPLIER)
-            end
-            if rawget(v, "RecoilSpring") then
-                local spring = rawget(v, "RecoilSpring")
-                if spring and typeof(spring) == "table" then
-                    if rawget(spring, "Damping") then
-                        rawset(spring, "Damping", 50)
-                    end
-                    if rawget(spring, "Speed") then
-                        rawset(spring, "Speed", 200)
-                    end
-                end
-            end
-        end
-    end
-end
-
-local function noRecoil_modifyPlayerData()
-    if _G.PlayerData then
-        for weaponName, weaponData in pairs(_G.PlayerData) do
-            if type(weaponData) == "table" then
-                if weaponData.XScale then
-                    weaponData.XScale = CUSTOM_X_SCALE
-                end
-                if weaponData.YScale then
-                    weaponData.YScale = CUSTOM_Y_SCALE
-                end
-                if weaponData.Reset then
-                    weaponData.Reset = 0.1
-                end
-                if weaponData.Data and type(weaponData.Data) == "table" then
-                    for i, pattern in pairs(weaponData.Data) do
-                        if type(pattern) == "table" then
-                            if pattern.X then
-                                pattern.X = pattern.X * CUSTOM_RECOIL_MULTIPLIER
-                            end
-                            if pattern.Y then
-                                pattern.Y = pattern.Y * CUSTOM_RECOIL_MULTIPLIER
-                            end
-                        end
-                    end
-                end
-            end
-        end
-    end
-end
-
-local function noRecoil_hookRecoilModule()
-    local success, recoilModule = pcall(function()
-        return require(ReplicatedStorage.Modules.Client.Character.Camera.Recoil)
-    end)
-    if success and recoilModule then
-        if type(recoilModule) == "function" then
-            local originalModule = recoilModule
-            local moduleReturn = originalModule()
-            if type(moduleReturn) == "function" then
-                _G.OriginalRecoilAdd = moduleReturn
-                local function modifiedAdd(iteration, weapon, lastTime, multiplier)
-                    local customMultiplier = (multiplier or 1) * CUSTOM_RECOIL_MULTIPLIER
-                    return _G.OriginalRecoilAdd(iteration, weapon, lastTime, customMultiplier)
-                end
-                getgenv().Add = modifiedAdd
-            end
-        end
-    end
-end
-
-local function noRecoil_startMonitoring()
-    task.spawn(function()
-        while NoRecoilConfig.Enabled do
-            wait(1)
-            if _G.PlayerData then
-                noRecoil_modifyPlayerData()
-            end
-            noRecoil_modifyRecoilTables()
-        end
-    end)
-end
-
-local function noRecoil_disableCameraRecoil()
-    NoRecoilConfig.CamConn = RunService.RenderStepped:Connect(function()
-        local currentCFrame = Camera.CFrame
-    end)
-end
-
-local function enableNoRecoil()
-    task.spawn(function()
-        repeat wait(0.1) until _G.PlayerDataLoaded or _G.PlayerData
-        noRecoil_modifyPlayerData()
-    end)
-    noRecoil_hookRecoilModule()
-    noRecoil_startMonitoring()
-    noRecoil_disableCameraRecoil()
-end
-
-local function disableNoRecoil()
-    if NoRecoilConfig.CamConn then
-        NoRecoilConfig.CamConn:Disconnect()
-        NoRecoilConfig.CamConn = nil
-    end
-end
-
-local function toggleNoRecoil()
-    NoRecoilConfig.Enabled = not NoRecoilConfig.Enabled
-    if NoRecoilConfig.Enabled then
-        enableNoRecoil()
-    else
-        disableNoRecoil()
     end
 end
 
@@ -4471,7 +4328,6 @@ ToggleBindings = {
     {button = NightVisionToggle,state = function() return NightVisionConfig.Enabled end},
     {button = CFrameSpeedToggle,state = function() return CFrameSpeedConfig.Enabled end},
     {button = ZoomToggle,       state = function() return ZoomConfig.Enabled end},
-    {button = NoRecoilToggle,   state = function() return NoRecoilConfig.Enabled end},
     {button = TimeToggle,       state = function() return TimeControl.Enabled end},
     {button = CrosshairToggle,  state = function() return CrosshairConfig.Enabled end},
     {button = KeyListToggle,    state = function() return UIState.KeyListVisible end},
@@ -4653,7 +4509,6 @@ function collectConfig()
         FOV = {Enabled = FOVConfig.Enabled, Value = FOVConfig.Value},
         CFrameSpeed = {Enabled = CFrameSpeedConfig.Enabled, Speed = CFrameSpeedConfig.Speed},
         Zoom = {Enabled = ZoomConfig.Enabled, Value = ZoomConfig.Value},
-        NoRecoil = NoRecoilConfig.Enabled,
         TimeControl = {Enabled = TimeControl.Enabled, CurrentTime = TimeControl.CurrentTime},
         Crosshair = {
             Enabled = CrosshairConfig.Enabled,
@@ -4721,8 +4576,6 @@ local function resetConfig()
     CFrameSpeedConfig.Enabled = false
     if ZoomConfig.IsZooming then toggleZoom() end
     ZoomConfig.Enabled = false
-    if NoRecoilConfig.Enabled then toggleNoRecoil() end
-    NoRecoilConfig.Enabled = false
     if TimeControl.Enabled then
         Lighting.ClockTime = TimeControl.OriginalTime
         TimeControl.Enabled = false
@@ -4945,9 +4798,6 @@ function applyConfig(cfg)
         if ZoomConfig.IsZooming then
             toggleZoom()
         end
-    end
-    if cfg.NoRecoil ~= nil and cfg.NoRecoil ~= NoRecoilConfig.Enabled then
-        toggleNoRecoil()
     end
     if cfg.TimeControl then
         TimeControl.CurrentTime = cfg.TimeControl.CurrentTime or TimeControl.CurrentTime
@@ -5579,14 +5429,6 @@ ZoomToggle.Button.MouseButton1Click:Connect(function()
         toggleZoom()
     end
 end)
-
-
-NoRecoilToggle.Button.MouseButton1Click:Connect(function()
-    toggleNoRecoil()
-    updateButtons()
-end)
-
-
 FlyKeyButton.MouseButton1Click:Connect(function()
     waitForKeyInput("FlyToggle", FlyKeyButton)
 end)
