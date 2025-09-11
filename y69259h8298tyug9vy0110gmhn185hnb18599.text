@@ -44,9 +44,6 @@ end
 if not game:IsLoaded() then
     game.Loaded:Wait()
 end
-
-local targetPlaceId = 13800223141
-
 local function detectExecutor()
     if syn and syn.request then return "Synapse X" end
     if krnl and krnl.request then return "Krnl" end
@@ -87,24 +84,9 @@ end
 
 local executorInfo = getExecutorInfo()
 local executorName = executorInfo.executor
-
-
-repeat task.wait() until typeof(game.PlaceId) == "number" and game.PlaceId ~= 0
-local currentPlaceId = game.PlaceId
-
 local AllowedExecutors = {"Xeno", "Volcano"}
-
-local unsupportedReasons = {}
-if currentPlaceId ~= targetPlaceId then
-    table.insert(unsupportedReasons, "This game is not supported")
-end
 if not table.find(AllowedExecutors, executorName) then
-    table.insert(unsupportedReasons, "This executor is not supported")
-end
-if #unsupportedReasons > 0 then
-    for _, reason in ipairs(unsupportedReasons) do
-        task.spawn(showUnsupported, reason)
-    end
+    task.spawn(showUnsupported, "This executor is not supported")
     return
 end
 
