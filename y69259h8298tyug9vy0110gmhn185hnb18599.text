@@ -154,7 +154,7 @@ local KeyConfig = {
     FlyToggle = Enum.KeyCode.F,
     NoClipToggle = Enum.KeyCode.Z,
     CFrameSpeedToggle = Enum.KeyCode.V,
-    ZoomHold = Enum.KeyCode.C,
+    ZoomToggle = Enum.KeyCode.C,
     AimbotHold = Enum.UserInputType.MouseButton2,
     CustomizeMode = false
 }
@@ -351,6 +351,7 @@ CFrameSpeedConfig = {
 }
 
 ZoomConfig = {
+    Enabled = false,
     Value = 30,
     IsZooming = false
 }
@@ -645,7 +646,7 @@ CFrameSpeedKeyLabel.Position = UDim2.new(0, 8, 0, 70)
 CFrameSpeedKeyLabel.Size = UDim2.new(1, -16, 0, 18)
 CFrameSpeedKeyLabel.FontFace = customFont
 CFrameSpeedKeyLabel.Text = "[V] CFrameSpeed"
-CFrameSpeedKeyLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+CFrameSpeedKeyLabel.TextColor3 = Color3.fromRGB(255, 0, 0)
 CFrameSpeedKeyLabel.TextSize = 12
 CFrameSpeedKeyLabel.TextXAlignment = Enum.TextXAlignment.Left
 CFrameSpeedKeyLabel.TextStrokeTransparency = 0.5
@@ -1299,6 +1300,8 @@ UIState.CrosshairArrow.FontFace = customFont
 UIState.CrosshairArrow.TextSize = 16
 UIState.CrosshairArrow.TextColor3 = Color3.fromRGB(255, 255, 255)
 UIState.CrosshairArrow.AutoButtonColor = false
+
+ZoomToggle = createToggle(MiscTab, "ZoomToggle", "Zoom", 250)
 
 FlyKeyButton = createKeyButton(SettingTab, "FlyKeyButton", "Fly key", KeyConfig.FlyToggle, 10)
 NoClipKeyButton = createKeyButton(SettingTab, "NoClipKeyButton", "Noclip key", KeyConfig.NoClipToggle, 40)
@@ -2168,7 +2171,7 @@ local function updateKeyLabels()
     FlyKeyLabel.Text = "[" .. getKeyName(KeyConfig.FlyToggle) .. "] Fly"
     NoClipKeyLabel.Text = "[" .. getKeyName(KeyConfig.NoClipToggle) .. "] NoClip"
     CFrameSpeedKeyLabel.Text = "[" .. getKeyName(KeyConfig.CFrameSpeedToggle) .. "] CFrameSpeed"
-    ZoomKeyLabel.Text = "[" .. getKeyName(KeyConfig.ZoomHold) .. "] Zoom"
+    ZoomKeyLabel.Text = "[" .. getKeyName(KeyConfig.ZoomToggle) .. "] Zoom"
     ToggleKeyLabel.Text = "[" .. getKeyName(KeyConfig.MenuToggle) .. "] Menu"
 
     FlyKeyButton.Text = "[" .. getKeyName(KeyConfig.FlyToggle) .. "]"
@@ -2236,10 +2239,26 @@ local function toggleCFrameSpeed()
 
         CFrameSpeedConfig.Connection = RunService.Heartbeat:Connect(cframeSpeedHeartbeat)
     else
-        CFrameSpeedKeyLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+        CFrameSpeedKeyLabel.TextColor3 = Color3.fromRGB(255, 0, 0)
         if CFrameSpeedConfig.Connection then
             CFrameSpeedConfig.Connection:Disconnect()
             CFrameSpeedConfig.Connection = nil
+        end
+    end
+end
+
+local function toggleZoom()
+    ZoomConfig.IsZooming = not ZoomConfig.IsZooming
+
+    if ZoomConfig.IsZooming then
+        ZoomKeyLabel.TextColor3 = Color3.fromRGB(150, 100, 255)
+        Camera.FieldOfView = ZoomConfig.Value
+    else
+        ZoomKeyLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+        if FOVConfig.Enabled then
+            Camera.FieldOfView = FOVConfig.Value
+        else
+            Camera.FieldOfView = FOVConfig.DefaultFOV
         end
     end
 end
@@ -4307,6 +4326,7 @@ ToggleBindings = {
     {button = AimbotToggle,     state = function() return AimbotConfig.Enabled end},
     {button = NightVisionToggle,state = function() return NightVisionConfig.Enabled end},
     {button = CFrameSpeedToggle,state = function() return CFrameSpeedConfig.Enabled end},
+    {button = ZoomToggle,       state = function() return ZoomConfig.Enabled end},
     {button = TimeToggle,       state = function() return TimeControl.Enabled end},
     {button = CrosshairToggle,  state = function() return CrosshairConfig.Enabled end},
     {button = KeyListToggle,    state = function() return UIState.KeyListVisible end},
@@ -4486,7 +4506,8 @@ function collectConfig()
         Fly = FlyConfig.Enabled, 
         NoClip = {Enabled = NoClipConfig.Enabled, ReturnY = NoClipConfig.ReturnY, Mode = NoClipConfig.Mode}, 
         FOV = {Enabled = FOVConfig.Enabled, Value = FOVConfig.Value},
-        CFrameSpeed = {Enabled = CFrameSpeedConfig.Enabled, Speed = CFrameSpeedConfig.Speed}, 
+        CFrameSpeed = {Enabled = CFrameSpeedConfig.Enabled, Speed = CFrameSpeedConfig.Speed},
+        Zoom = {Enabled = ZoomConfig.Enabled, Value = ZoomConfig.Value},
         TimeControl = {Enabled = TimeControl.Enabled, CurrentTime = TimeControl.CurrentTime},
         Crosshair = {
             Enabled = CrosshairConfig.Enabled,
@@ -4504,7 +4525,7 @@ function collectConfig()
             FlyToggle = enumToString(KeyConfig.FlyToggle),
             NoClipToggle = enumToString(KeyConfig.NoClipToggle),
             CFrameSpeedToggle = enumToString(KeyConfig.CFrameSpeedToggle),
-            ZoomHold = enumToString(KeyConfig.ZoomHold),
+            ZoomToggle = enumToString(KeyConfig.ZoomToggle),
             AimbotHold = enumToString(KeyConfig.AimbotHold)
         },
         KeyList = UIState.KeyListVisible,
@@ -4707,6 +4728,13 @@ function applyConfig(cfg)
             toggleCFrameSpeed()
         end
     end
+    if cfg.Zoom then
+        ZoomConfig.Value = cfg.Zoom.Value or ZoomConfig.Value
+        ZoomConfig.Enabled = cfg.Zoom.Enabled
+        if ZoomConfig.IsZooming then
+            toggleZoom()
+        end
+    end
     if cfg.TimeControl then
         TimeControl.CurrentTime = cfg.TimeControl.CurrentTime or TimeControl.CurrentTime
         if cfg.TimeControl.Enabled ~= TimeControl.Enabled then
@@ -4784,8 +4812,8 @@ function applyConfig(cfg)
         if cfg.Keys.CFrameSpeedToggle then
             KeyConfig.CFrameSpeedToggle = Enum.KeyCode[cfg.Keys.CFrameSpeedToggle] or KeyConfig.CFrameSpeedToggle
         end
-        if cfg.Keys.ZoomHold then
-            KeyConfig.ZoomHold = Enum.KeyCode[cfg.Keys.ZoomHold] or KeyConfig.ZoomHold
+        if cfg.Keys.ZoomToggle then
+            KeyConfig.ZoomToggle = Enum.KeyCode[cfg.Keys.ZoomToggle] or KeyConfig.ZoomToggle
         end
         if cfg.Keys.AimbotHold then
             KeyConfig.AimbotHold = Enum.UserInputType[cfg.Keys.AimbotHold] or KeyConfig.AimbotHold
@@ -5330,6 +5358,14 @@ CFrameSpeedToggle.Button.MouseButton1Click:Connect(function()
     end
 end)
 
+ZoomToggle.Button.MouseButton1Click:Connect(function()
+    ZoomConfig.Enabled = not ZoomConfig.Enabled
+    updateButtons()
+    if not ZoomConfig.Enabled and ZoomConfig.IsZooming then
+        toggleZoom()
+    end
+end)
+
 
 FlyKeyButton.MouseButton1Click:Connect(function()
     waitForKeyInput("FlyToggle", FlyKeyButton)
@@ -5413,9 +5449,8 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
         toggleCFrameSpeed()
     end
 
-    if input.KeyCode == KeyConfig.ZoomHold then
-        ZoomConfig.IsZooming = true
-        Camera.FieldOfView = ZoomConfig.Value
+    if input.KeyCode == KeyConfig.ZoomToggle and ZoomConfig.Enabled then
+        toggleZoom()
     end
 
     if input.KeyCode == KeyConfig.MenuToggle then
@@ -5434,15 +5469,6 @@ UserInputService.InputEnded:Connect(function(input)
     if input.UserInputType == KeyConfig.AimbotHold then
         AimbotConfig.Aiming = false
         AimbotConfig.Target = nil
-    end
-
-    if input.KeyCode == KeyConfig.ZoomHold then
-        ZoomConfig.IsZooming = false
-        if FOVConfig.Enabled then
-            Camera.FieldOfView = FOVConfig.Value
-        else
-            Camera.FieldOfView = FOVConfig.DefaultFOV
-        end
     end
 end)
 
@@ -5475,7 +5501,7 @@ LocalPlayer.CharacterAdded:Connect(function()
     CFrameSpeedConfig.Connection = nil
     end
     CFrameSpeedConfig.IsActive = false
-    CFrameSpeedKeyLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+    CFrameSpeedKeyLabel.TextColor3 = Color3.fromRGB(255, 0, 0)
 
     updateStatusDisplay()
     
