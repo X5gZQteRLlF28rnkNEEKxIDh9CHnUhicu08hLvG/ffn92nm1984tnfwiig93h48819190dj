@@ -154,6 +154,7 @@ local KeyConfig = {
     FlyToggle = Enum.KeyCode.F,
     NoClipToggle = Enum.KeyCode.Z,
     CFrameSpeedToggle = Enum.KeyCode.V,
+    ZoomToggle = Enum.KeyCode.C,
     AimbotHold = Enum.UserInputType.MouseButton2,
     CustomizeMode = false
 }
@@ -347,6 +348,12 @@ CFrameSpeedConfig = {
     IsActive = false,
     Speed = 0.4,
     Connection = nil
+}
+
+ZoomConfig = {
+    Enabled = false,
+    Value = 30,
+    IsZooming = false
 }
 
 UIState = {
@@ -588,7 +595,7 @@ KeyListFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
 KeyListFrame.BorderColor3 = Color3.fromRGB(100, 100, 100)
 KeyListFrame.BorderSizePixel = 1
 KeyListFrame.Position = UDim2.new(0, 10, 0.5, -80)
-KeyListFrame.Size = UDim2.new(0, 170, 0, 200) 
+KeyListFrame.Size = UDim2.new(0, 170, 0, 220)
 KeyListFrame.BackgroundTransparency = 0.3
 
 local KeyListCorner = Instance.new("UICorner")
@@ -645,10 +652,23 @@ CFrameSpeedKeyLabel.TextXAlignment = Enum.TextXAlignment.Left
 CFrameSpeedKeyLabel.TextStrokeTransparency = 0.5
 CFrameSpeedKeyLabel.TextStrokeColor3 = Color3.new(0, 0, 0)
 
+local ZoomKeyLabel = Instance.new("TextLabel")
+ZoomKeyLabel.Parent = KeyListFrame
+ZoomKeyLabel.BackgroundTransparency = 1
+ZoomKeyLabel.Position = UDim2.new(0, 8, 0, 90)
+ZoomKeyLabel.Size = UDim2.new(1, -16, 0, 18)
+ZoomKeyLabel.FontFace = customFont
+ZoomKeyLabel.Text = "[C] Zoom"
+ZoomKeyLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+ZoomKeyLabel.TextSize = 12
+ZoomKeyLabel.TextXAlignment = Enum.TextXAlignment.Left
+ZoomKeyLabel.TextStrokeTransparency = 0.5
+ZoomKeyLabel.TextStrokeColor3 = Color3.new(0, 0, 0)
+
 local AimbotKeyLabel = Instance.new("TextLabel")
 AimbotKeyLabel.Parent = KeyListFrame
 AimbotKeyLabel.BackgroundTransparency = 1
-AimbotKeyLabel.Position = UDim2.new(0, 8, 0, 90)
+AimbotKeyLabel.Position = UDim2.new(0, 8, 0, 110)
 AimbotKeyLabel.Size = UDim2.new(1, -16, 0, 18)
 AimbotKeyLabel.FontFace = customFont
 AimbotKeyLabel.Text = "[RMB] Aimbot"
@@ -661,7 +681,7 @@ AimbotKeyLabel.TextStrokeColor3 = Color3.new(0, 0, 0)
 local ToggleKeyLabel = Instance.new("TextLabel")
 ToggleKeyLabel.Parent = KeyListFrame
 ToggleKeyLabel.BackgroundTransparency = 1
-ToggleKeyLabel.Position = UDim2.new(0, 8, 0, 110)
+ToggleKeyLabel.Position = UDim2.new(0, 8, 0, 130)
 ToggleKeyLabel.Size = UDim2.new(1, -16, 0, 18)
 ToggleKeyLabel.FontFace = customFont
 ToggleKeyLabel.Text = "[RShift] Menu"
@@ -674,7 +694,7 @@ ToggleKeyLabel.TextStrokeColor3 = Color3.new(0, 0, 0)
 local CustomizeKeysLabel = Instance.new("TextLabel")
 CustomizeKeysLabel.Parent = KeyListFrame
 CustomizeKeysLabel.BackgroundTransparency = 1
-CustomizeKeysLabel.Position = UDim2.new(0, 8, 0, 130)
+CustomizeKeysLabel.Position = UDim2.new(0, 8, 0, 150)
 CustomizeKeysLabel.Size = UDim2.new(1, -16, 0, 18)
 CustomizeKeysLabel.FontFace = customFont
 CustomizeKeysLabel.Text = "Click buttons to change keys"
@@ -688,13 +708,13 @@ local SeparatorLine = Instance.new("Frame")
 SeparatorLine.Parent = KeyListFrame
 SeparatorLine.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
 SeparatorLine.BorderSizePixel = 0
-SeparatorLine.Position = UDim2.new(0.1, 0, 0, 155)
+SeparatorLine.Position = UDim2.new(0.1, 0, 0, 175)
 SeparatorLine.Size = UDim2.new(0.8, 0, 0, 1)
 
 local StatusLabel = Instance.new("TextLabel")
 StatusLabel.Parent = KeyListFrame
 StatusLabel.BackgroundTransparency = 1
-StatusLabel.Position = UDim2.new(0, 8, 0, 160)
+StatusLabel.Position = UDim2.new(0, 8, 0, 180)
 StatusLabel.Size = UDim2.new(1, -16, 0, 30)
 StatusLabel.FontFace = customFont
 StatusLabel.Text = "Fly: OFF\nNoClip: OFF"
@@ -1281,11 +1301,14 @@ UIState.CrosshairArrow.TextSize = 16
 UIState.CrosshairArrow.TextColor3 = Color3.fromRGB(255, 255, 255)
 UIState.CrosshairArrow.AutoButtonColor = false
 
+ZoomToggle = createToggle(MiscTab, "ZoomToggle", "Zoom", 250)
+
 FlyKeyButton = createKeyButton(SettingTab, "FlyKeyButton", "Fly key", KeyConfig.FlyToggle, 10)
 NoClipKeyButton = createKeyButton(SettingTab, "NoClipKeyButton", "Noclip key", KeyConfig.NoClipToggle, 40)
 CFrameSpeedKeyButton = createKeyButton(SettingTab, "CFrameSpeedKeyButton", "CFrameSpeed key", KeyConfig.CFrameSpeedToggle, 70)
-KeyListToggle = createToggle(SettingTab, "KeyListToggle", "Key List", 100)
-StatsToggle = createToggle(SettingTab, "StatsToggle", "FPS/Ping", 130)
+ZoomKeyButton = createKeyButton(SettingTab, "ZoomKeyButton", "Zoom key", KeyConfig.ZoomToggle, 100)
+KeyListToggle = createToggle(SettingTab, "KeyListToggle", "Key List", 130)
+StatsToggle = createToggle(SettingTab, "StatsToggle", "FPS/Ping", 160)
 
 
 local ConfigNameBox = Instance.new("TextBox")
@@ -1293,7 +1316,7 @@ ConfigNameBox.Parent = SettingTab
 ConfigNameBox.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
 ConfigNameBox.BorderColor3 = Color3.fromRGB(255, 255, 255)
 ConfigNameBox.BorderSizePixel = 1
-ConfigNameBox.Position = UDim2.new(0.05, 0, 0, 160)
+ConfigNameBox.Position = UDim2.new(0.05, 0, 0, 190)
 ConfigNameBox.Size = UDim2.new(0.6, 0, 0, 20)
 ConfigNameBox.FontFace = customFont
 ConfigNameBox.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -1306,7 +1329,7 @@ SaveConfigButton.Parent = SettingTab
 SaveConfigButton.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
 SaveConfigButton.BorderColor3 = Color3.fromRGB(255, 255, 255)
 SaveConfigButton.BorderSizePixel = 1
-SaveConfigButton.Position = UDim2.new(0.7, 0, 0, 160)
+SaveConfigButton.Position = UDim2.new(0.7, 0, 0, 190)
 SaveConfigButton.Size = UDim2.new(0.25, 0, 0, 20)
 SaveConfigButton.FontFace = customFont
 SaveConfigButton.Text = "Save"
@@ -1318,7 +1341,7 @@ ConfigListFrame.Parent = SettingTab
 ConfigListFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
 ConfigListFrame.BorderColor3 = Color3.fromRGB(100, 100, 100)
 ConfigListFrame.BorderSizePixel = 1
-ConfigListFrame.Position = UDim2.new(0.05, 0, 0, 190)
+ConfigListFrame.Position = UDim2.new(0.05, 0, 0, 220)
 ConfigListFrame.Size = UDim2.new(0.9, 0, 0, 100)
 
 local ConfigListLayout = Instance.new("UIListLayout")
@@ -1330,7 +1353,7 @@ LoadConfigButton.Parent = SettingTab
 LoadConfigButton.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
 LoadConfigButton.BorderColor3 = Color3.fromRGB(255, 255, 255)
 LoadConfigButton.BorderSizePixel = 1
-LoadConfigButton.Position = UDim2.new(0.7, 0, 0, 300)
+LoadConfigButton.Position = UDim2.new(0.7, 0, 0, 330)
 LoadConfigButton.Size = UDim2.new(0.25, 0, 0, 20)
 LoadConfigButton.FontFace = customFont
 LoadConfigButton.Text = "Load"
@@ -1342,14 +1365,14 @@ DeleteConfigButton.Parent = SettingTab
 DeleteConfigButton.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
 DeleteConfigButton.BorderColor3 = Color3.fromRGB(255, 255, 255)
 DeleteConfigButton.BorderSizePixel = 1
-DeleteConfigButton.Position = UDim2.new(0.7, 0, 0, 330)
+DeleteConfigButton.Position = UDim2.new(0.7, 0, 0, 360)
 DeleteConfigButton.Size = UDim2.new(0.25, 0, 0, 20)
 DeleteConfigButton.FontFace = customFont
 DeleteConfigButton.Text = "Delete"
 DeleteConfigButton.TextColor3 = Color3.fromRGB(255, 255, 255)
 DeleteConfigButton.TextSize = 12
 
-SettingTab.CanvasSize = UDim2.new(0, 0, 0, 360)
+SettingTab.CanvasSize = UDim2.new(0, 0, 0, 390)
 
 local ConfigButtons = {}
 local SelectedConfig
@@ -2149,11 +2172,13 @@ local function updateKeyLabels()
     FlyKeyLabel.Text = "[" .. getKeyName(KeyConfig.FlyToggle) .. "] Fly"
     NoClipKeyLabel.Text = "[" .. getKeyName(KeyConfig.NoClipToggle) .. "] NoClip"
     CFrameSpeedKeyLabel.Text = "[" .. getKeyName(KeyConfig.CFrameSpeedToggle) .. "] CFrameSpeed"
+    ZoomKeyLabel.Text = "[" .. getKeyName(KeyConfig.ZoomToggle) .. "] Zoom"
     ToggleKeyLabel.Text = "[" .. getKeyName(KeyConfig.MenuToggle) .. "] Menu"
 
     FlyKeyButton.Text = "[" .. getKeyName(KeyConfig.FlyToggle) .. "]"
     NoClipKeyButton.Text = "[" .. getKeyName(KeyConfig.NoClipToggle) .. "]"
     CFrameSpeedKeyButton.Text = "[" .. getKeyName(KeyConfig.CFrameSpeedToggle) .. "]"
+    ZoomKeyButton.Text = "[" .. getKeyName(KeyConfig.ZoomToggle) .. "]"
 
     -- InfoLabel removed in redesigned GUI
 end
@@ -2209,7 +2234,7 @@ local function toggleCFrameSpeed()
     CFrameSpeedConfig.IsActive = not CFrameSpeedConfig.IsActive
 
     if CFrameSpeedConfig.IsActive then
-        CFrameSpeedKeyLabel.TextColor3 = Color3.fromRGB(255, 0, 0)
+        CFrameSpeedKeyLabel.TextColor3 = Color3.fromRGB(150, 100, 255)
         if CFrameSpeedConfig.Connection then
             CFrameSpeedConfig.Connection:Disconnect()
         end
@@ -2220,6 +2245,22 @@ local function toggleCFrameSpeed()
         if CFrameSpeedConfig.Connection then
             CFrameSpeedConfig.Connection:Disconnect()
             CFrameSpeedConfig.Connection = nil
+        end
+    end
+end
+
+local function toggleZoom()
+    ZoomConfig.IsZooming = not ZoomConfig.IsZooming
+
+    if ZoomConfig.IsZooming then
+        ZoomKeyLabel.TextColor3 = Color3.fromRGB(150, 100, 255)
+        Camera.FieldOfView = ZoomConfig.Value
+    else
+        ZoomKeyLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+        if FOVConfig.Enabled then
+            Camera.FieldOfView = FOVConfig.Value
+        else
+            Camera.FieldOfView = FOVConfig.DefaultFOV
         end
     end
 end
@@ -2621,7 +2662,7 @@ end
 
 local function updateFOV(value)
     FOVConfig.Value = value
-    if FOVConfig.Enabled then
+    if FOVConfig.Enabled and not ZoomConfig.IsZooming then
         Camera.FieldOfView = value
     end
     FOVLabel.Text = "FOV: " .. math.floor(value)
@@ -2631,7 +2672,7 @@ local function toggleFOV()
     FOVConfig.Enabled = not FOVConfig.Enabled
     
     if FOVConfig.Enabled then
-        Camera.FieldOfView = FOVConfig.Value
+        Camera.FieldOfView = ZoomConfig.IsZooming and ZoomConfig.Value or FOVConfig.Value
         
         if FOVConfig.Connection then
             FOVConfig.Connection:Disconnect()
@@ -2639,11 +2680,11 @@ local function toggleFOV()
         
         FOVConfig.Connection = Camera:GetPropertyChangedSignal("FieldOfView"):Connect(function()
             if FOVConfig.Enabled then
-                Camera.FieldOfView = FOVConfig.Value
+                Camera.FieldOfView = ZoomConfig.IsZooming and ZoomConfig.Value or FOVConfig.Value
             end
         end)
     else
-        Camera.FieldOfView = OriginalSettings.FieldOfView
+        Camera.FieldOfView = ZoomConfig.IsZooming and ZoomConfig.Value or OriginalSettings.FieldOfView
         
         if FOVConfig.Connection then
             FOVConfig.Connection:Disconnect()
@@ -4287,6 +4328,7 @@ ToggleBindings = {
     {button = AimbotToggle,     state = function() return AimbotConfig.Enabled end},
     {button = NightVisionToggle,state = function() return NightVisionConfig.Enabled end},
     {button = CFrameSpeedToggle,state = function() return CFrameSpeedConfig.Enabled end},
+    {button = ZoomToggle,       state = function() return ZoomConfig.Enabled end},
     {button = TimeToggle,       state = function() return TimeControl.Enabled end},
     {button = CrosshairToggle,  state = function() return CrosshairConfig.Enabled end},
     {button = KeyListToggle,    state = function() return UIState.KeyListVisible end},
@@ -4466,7 +4508,8 @@ function collectConfig()
         Fly = FlyConfig.Enabled, 
         NoClip = {Enabled = NoClipConfig.Enabled, ReturnY = NoClipConfig.ReturnY, Mode = NoClipConfig.Mode}, 
         FOV = {Enabled = FOVConfig.Enabled, Value = FOVConfig.Value},
-        CFrameSpeed = {Enabled = CFrameSpeedConfig.Enabled, Speed = CFrameSpeedConfig.Speed}, 
+        CFrameSpeed = {Enabled = CFrameSpeedConfig.Enabled, Speed = CFrameSpeedConfig.Speed},
+        Zoom = {Enabled = ZoomConfig.Enabled, Value = ZoomConfig.Value},
         TimeControl = {Enabled = TimeControl.Enabled, CurrentTime = TimeControl.CurrentTime},
         Crosshair = {
             Enabled = CrosshairConfig.Enabled,
@@ -4484,6 +4527,7 @@ function collectConfig()
             FlyToggle = enumToString(KeyConfig.FlyToggle),
             NoClipToggle = enumToString(KeyConfig.NoClipToggle),
             CFrameSpeedToggle = enumToString(KeyConfig.CFrameSpeedToggle),
+            ZoomToggle = enumToString(KeyConfig.ZoomToggle),
             AimbotHold = enumToString(KeyConfig.AimbotHold)
         },
         KeyList = UIState.KeyListVisible,
@@ -4491,7 +4535,70 @@ function collectConfig()
     }
 end
 
+local function resetConfig()
+    ESP.TopOrder = {}
+    ESP.BottomOrder = {}
+    ESP.BoxEnabled = false
+    ESP.DistanceEnabled = false
+    ESP.NameEnabled = false
+    ESP.WeaponEnabled = false
+    ESP.HPEnabled = false
+    ESP.HPBar = false
+    ESP.TracerEnabled = false
+    ESP.HeadLineEnabled = false
+    ESP.BonesEnabled = false
+
+    TeamCheckConfig.Enabled = false
+    HighlightConfig.Enabled = false
+    GodSkinChanger.Enabled = false
+    OreESP.Enabled = false
+    OreESP.IronEnabled = false
+    OreESP.BrimstoneEnabled = false
+    OreESP.StoneEnabled = false
+    DroppedESP.Enabled = false
+    BackpackESP.Enabled = false
+
+    destroyMapFrame()
+    MapConfig.Enabled = false
+    destroyNewsFrame()
+    NewsConfig.Enabled = false
+
+    if SkyColorConfig.Enabled then
+        Lighting.Ambient = OriginalSettings.Ambient
+        Lighting.ColorShift_Top = OriginalSettings.ColorShiftTop
+    end
+    SkyColorConfig.Enabled = false
+
+    if XrayConfig.Enabled then toggleXray() end
+    if AimFovConfig.Enabled then toggleAimFov() end
+    if AimbotConfig.Enabled then toggleAimbot() end
+    if NightVisionConfig.Enabled then toggleNightVision() end
+    if CFrameSpeedConfig.IsActive then toggleCFrameSpeed() end
+    CFrameSpeedConfig.Enabled = false
+    if ZoomConfig.IsZooming then toggleZoom() end
+    ZoomConfig.Enabled = false
+    if TimeControl.Enabled then
+        Lighting.ClockTime = TimeControl.OriginalTime
+        TimeControl.Enabled = false
+        updateTimeControlUI()
+    end
+    if FlyConfig.IsFlying then toggleFly() end
+    FlyConfig.Enabled = false
+    if NoClipConfig.IsActive then toggleNoClip() end
+    NoClipConfig.Enabled = false
+    if FOVConfig.Enabled then toggleFOV() end
+    FOVConfig.Enabled = false
+    if CrosshairConfig.Enabled then toggleCrosshair() end
+    CrosshairConfig.Enabled = false
+
+    UIState.KeyListVisible = false
+    KeyListFrame.Visible = false
+    UIState.StatsVisible = false
+    StatsFrame.Visible = false
+end
+
 function applyConfig(cfg)
+    resetConfig()
     if cfg.ESP then
         ESP.TopOrder = {}
         ESP.BottomOrder = {}
@@ -4686,6 +4793,13 @@ function applyConfig(cfg)
             toggleCFrameSpeed()
         end
     end
+    if cfg.Zoom then
+        ZoomConfig.Value = cfg.Zoom.Value or ZoomConfig.Value
+        ZoomConfig.Enabled = cfg.Zoom.Enabled
+        if ZoomConfig.IsZooming then
+            toggleZoom()
+        end
+    end
     if cfg.TimeControl then
         TimeControl.CurrentTime = cfg.TimeControl.CurrentTime or TimeControl.CurrentTime
         if cfg.TimeControl.Enabled ~= TimeControl.Enabled then
@@ -4762,6 +4876,9 @@ function applyConfig(cfg)
         end
         if cfg.Keys.CFrameSpeedToggle then
             KeyConfig.CFrameSpeedToggle = Enum.KeyCode[cfg.Keys.CFrameSpeedToggle] or KeyConfig.CFrameSpeedToggle
+        end
+        if cfg.Keys.ZoomToggle then
+            KeyConfig.ZoomToggle = Enum.KeyCode[cfg.Keys.ZoomToggle] or KeyConfig.ZoomToggle
         end
         if cfg.Keys.AimbotHold then
             KeyConfig.AimbotHold = Enum.UserInputType[cfg.Keys.AimbotHold] or KeyConfig.AimbotHold
@@ -5306,6 +5423,14 @@ CFrameSpeedToggle.Button.MouseButton1Click:Connect(function()
     end
 end)
 
+ZoomToggle.Button.MouseButton1Click:Connect(function()
+    ZoomConfig.Enabled = not ZoomConfig.Enabled
+    updateButtons()
+    if not ZoomConfig.Enabled and ZoomConfig.IsZooming then
+        toggleZoom()
+    end
+end)
+
 
 FlyKeyButton.MouseButton1Click:Connect(function()
     waitForKeyInput("FlyToggle", FlyKeyButton)
@@ -5317,6 +5442,10 @@ end)
 
 CFrameSpeedKeyButton.MouseButton1Click:Connect(function()
     waitForKeyInput("CFrameSpeedToggle", CFrameSpeedKeyButton)
+end)
+
+ZoomKeyButton.MouseButton1Click:Connect(function()
+    waitForKeyInput("ZoomToggle", ZoomKeyButton)
 end)
 
 
@@ -5366,6 +5495,8 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
                 NoClipKeyButton.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
             elseif waitingForKey == "CFrameSpeedToggle" then
                 CFrameSpeedKeyButton.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+            elseif waitingForKey == "ZoomToggle" then
+                ZoomKeyButton.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
             end
             
             waitingForKey = nil
@@ -5388,7 +5519,11 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
     if input.KeyCode == KeyConfig.CFrameSpeedToggle and CFrameSpeedConfig.Enabled then
         toggleCFrameSpeed()
     end
-    
+
+    if input.KeyCode == KeyConfig.ZoomToggle and ZoomConfig.Enabled then
+        toggleZoom()
+    end
+
     if input.KeyCode == KeyConfig.MenuToggle then
         slideMenu(not MenuOpen)
     end
@@ -5434,11 +5569,11 @@ LocalPlayer.CharacterAdded:Connect(function()
     
     if CFrameSpeedConfig.Connection then
         CFrameSpeedConfig.Connection:Disconnect()
-        CFrameSpeedConfig.Connection = nil
+    CFrameSpeedConfig.Connection = nil
     end
     CFrameSpeedConfig.IsActive = false
     CFrameSpeedKeyLabel.TextColor3 = Color3.fromRGB(255, 0, 0)
-    
+
     updateStatusDisplay()
     
     local character = LocalPlayer.Character
