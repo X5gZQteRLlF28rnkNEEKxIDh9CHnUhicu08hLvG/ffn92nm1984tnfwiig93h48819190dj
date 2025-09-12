@@ -338,6 +338,18 @@ ZoomConfig = {
     IsZooming = false
 }
 
+FastFireConfig = {Enabled = false}
+NoRecoilConfig = {Enabled = false}
+local CUSTOM_RPM_OVERRIDE = 0.001
+local ORIGINAL_RPM_VALUES = {}
+local CUSTOM_RECOIL_MULTIPLIER = 0
+local CUSTOM_X_SCALE = 0
+local CUSTOM_Y_SCALE = 0
+local ORIGINAL_RECOIL_VALUES = {}
+local RECOIL_TABLES_CACHE = {}
+local LAST_GC_CHECK = 0
+local GC_CHECK_INTERVAL = 8
+
 UIState = {
     KeyListVisible = true,
     StatsVisible = true,
@@ -1284,6 +1296,9 @@ UIState.CrosshairArrow.TextColor3 = Color3.fromRGB(255, 255, 255)
 UIState.CrosshairArrow.AutoButtonColor = false
 
 ZoomToggle = createToggle(MiscTab, "ZoomToggle", "Zoom", 250)
+
+FastFireToggle = createToggle(MiscTab, "FastFireToggle", "Fast Fire", 280)
+NoRecoilToggle = createToggle(MiscTab, "NoRecoilToggle", "No Recoil", 310)
 
 FlyKeyButton = createKeyButton(SettingTab, "FlyKeyButton", "Fly key", KeyConfig.FlyToggle, 10)
 NoClipKeyButton = createKeyButton(SettingTab, "NoClipKeyButton", "Noclip key", KeyConfig.NoClipToggle, 40)
@@ -4310,6 +4325,8 @@ ToggleBindings = {
     {button = NightVisionToggle,state = function() return NightVisionConfig.Enabled end},
     {button = CFrameSpeedToggle,state = function() return CFrameSpeedConfig.Enabled end},
     {button = ZoomToggle,       state = function() return ZoomConfig.Enabled end},
+    {button = FastFireToggle,   state = function() return FastFireConfig.Enabled end},
+    {button = NoRecoilToggle,   state = function() return NoRecoilConfig.Enabled end},
     {button = TimeToggle,       state = function() return TimeControl.Enabled end},
     {button = CrosshairToggle,  state = function() return CrosshairConfig.Enabled end},
     {button = KeyListToggle,    state = function() return UIState.KeyListVisible end},
@@ -4491,6 +4508,8 @@ function collectConfig()
         FOV = {Enabled = FOVConfig.Enabled, Value = FOVConfig.Value},
         CFrameSpeed = {Enabled = CFrameSpeedConfig.Enabled, Speed = CFrameSpeedConfig.Speed},
         Zoom = {Enabled = ZoomConfig.Enabled, Value = ZoomConfig.Value},
+        FastFire = FastFireConfig.Enabled,
+        NoRecoil = NoRecoilConfig.Enabled,
         TimeControl = {Enabled = TimeControl.Enabled, CurrentTime = TimeControl.CurrentTime},
         Crosshair = {
             Enabled = CrosshairConfig.Enabled,
@@ -4558,6 +4577,10 @@ local function resetConfig()
     CFrameSpeedConfig.Enabled = false
     if ZoomConfig.IsZooming then toggleZoom() end
     ZoomConfig.Enabled = false
+    if FastFireConfig.Enabled then modifyAllWeaponsRPM(false) end
+    FastFireConfig.Enabled = false
+    if NoRecoilConfig.Enabled then applyRecoilControl(false) end
+    NoRecoilConfig.Enabled = false
     if TimeControl.Enabled then
         Lighting.ClockTime = TimeControl.OriginalTime
         TimeControl.Enabled = false
@@ -4780,6 +4803,14 @@ function applyConfig(cfg)
         if ZoomConfig.IsZooming then
             toggleZoom()
         end
+    end
+    if cfg.FastFire ~= nil then
+        FastFireConfig.Enabled = cfg.FastFire
+        modifyAllWeaponsRPM(FastFireConfig.Enabled)
+    end
+    if cfg.NoRecoil ~= nil then
+        NoRecoilConfig.Enabled = cfg.NoRecoil
+        applyRecoilControl(NoRecoilConfig.Enabled)
     end
     if cfg.TimeControl then
         TimeControl.CurrentTime = cfg.TimeControl.CurrentTime or TimeControl.CurrentTime
@@ -5411,6 +5442,16 @@ ZoomToggle.Button.MouseButton1Click:Connect(function()
         toggleZoom()
     end
 end)
+FastFireToggle.Button.MouseButton1Click:Connect(function()
+    FastFireConfig.Enabled = not FastFireConfig.Enabled
+    modifyAllWeaponsRPM(FastFireConfig.Enabled)
+    updateButtons()
+end)
+NoRecoilToggle.Button.MouseButton1Click:Connect(function()
+    NoRecoilConfig.Enabled = not NoRecoilConfig.Enabled
+    applyRecoilControl(NoRecoilConfig.Enabled)
+    updateButtons()
+end)
 FlyKeyButton.MouseButton1Click:Connect(function()
     waitForKeyInput("FlyToggle", FlyKeyButton)
 end)
@@ -5608,6 +5649,352 @@ updateButtons()
 updateTimeControlUI()
 updateStatusDisplay()
 updateKeyLabels()
+
+local player = LocalPlayer
+
+function modifyAllWeaponsRPM(enable)
+    if enable == nil then enable = FastFireConfig.Enabled end
+    for _, v in pairs(getgc(true)) do
+        if typeof(v) == "table" then
+            if rawget(v, "RPM") then
+                if enable then
+                    if not ORIGINAL_RPM_VALUES[tostring(v)] then
+                        ORIGINAL_RPM_VALUES[tostring(v)] = rawget(v, "RPM")
+                    end
+                    rawset(v, "RPM", CUSTOM_RPM_OVERRIDE)
+                elseif ORIGINAL_RPM_VALUES[tostring(v)] then
+                    rawset(v, "RPM", ORIGINAL_RPM_VALUES[tostring(v)])
+                end
+            end
+            if enable then
+                if rawget(v, "LastFireTick") then rawset(v, "LastFireTick", 0) end
+                if rawget(v, "LastFire") then rawset(v, "LastFire", 0) end
+                if rawget(v, "LastFireTime") then rawset(v, "LastFireTime", 0) end
+            end
+            if rawget(v, "Tool") and type(rawget(v, "Tool")) == "table" then
+                local tool = rawget(v, "Tool")
+                if rawget(tool, "Stats") and type(rawget(tool, "Stats")) == "table" then
+                    local stats = rawget(tool, "Stats")
+                    if rawget(stats, "RPM") then
+                        local key = "ToolStats_" .. tostring(stats)
+                        if enable then
+                            if not ORIGINAL_RPM_VALUES[key] then
+                                ORIGINAL_RPM_VALUES[key] = rawget(stats, "RPM")
+                            end
+                            rawset(stats, "RPM", 9999)
+                        elseif ORIGINAL_RPM_VALUES[key] then
+                            rawset(stats, "RPM", ORIGINAL_RPM_VALUES[key])
+                        end
+                    end
+                end
+            end
+            if rawget(v, "Viewmodel") and type(rawget(v, "Viewmodel")) == "table" then
+                local viewmodel = rawget(v, "Viewmodel")
+                if rawget(viewmodel, "Tool") and type(rawget(viewmodel, "Tool")) == "table" then
+                    local tool = rawget(viewmodel, "Tool")
+                    if rawget(tool, "Stats") and type(rawget(tool, "Stats")) == "table" then
+                        local stats = rawget(tool, "Stats")
+                        if rawget(stats, "RPM") then
+                            local key = "ViewmodelStats_" .. tostring(stats)
+                            if enable then
+                                if not ORIGINAL_RPM_VALUES[key] then
+                                    ORIGINAL_RPM_VALUES[key] = rawget(stats, "RPM")
+                                end
+                                rawset(stats, "RPM", 9999)
+                            elseif ORIGINAL_RPM_VALUES[key] then
+                                rawset(stats, "RPM", ORIGINAL_RPM_VALUES[key])
+                            end
+                        end
+                    end
+                end
+            end
+            if rawget(v, "Stats") and type(rawget(v, "Stats")) == "table" then
+                local stats = rawget(v, "Stats")
+                if rawget(stats, "RPM") then
+                    local key = "DirectStats_" .. tostring(stats)
+                    if enable then
+                        if not ORIGINAL_RPM_VALUES[key] then
+                            ORIGINAL_RPM_VALUES[key] = rawget(stats, "RPM")
+                        end
+                        rawset(stats, "RPM", 9999)
+                    elseif ORIGINAL_RPM_VALUES[key] then
+                        rawset(stats, "RPM", ORIGINAL_RPM_VALUES[key])
+                    end
+                end
+            end
+            if enable and rawget(v, "Fire") and type(rawget(v, "Fire")) == "function" then
+                if rawget(v, "LastFireTime") then rawset(v, "LastFireTime", 0) end
+                if rawget(v, "NextFireTime") then rawset(v, "NextFireTime", 0) end
+            end
+        end
+    end
+    if _G.PlayerData then
+        for weaponName, weaponData in pairs(_G.PlayerData) do
+            if type(weaponData) == "table" and rawget(weaponData, "RPM") then
+                local key = "PlayerData_" .. weaponName
+                if enable then
+                    if not ORIGINAL_RPM_VALUES[key] then
+                        ORIGINAL_RPM_VALUES[key] = rawget(weaponData, "RPM")
+                    end
+                    rawset(weaponData, "RPM", 9999)
+                elseif ORIGINAL_RPM_VALUES[key] then
+                    rawset(weaponData, "RPM", ORIGINAL_RPM_VALUES[key])
+                end
+            end
+        end
+    end
+end
+
+local function findAndCacheRecoilTables()
+    local currentTime = tick()
+    if currentTime - LAST_GC_CHECK < GC_CHECK_INTERVAL then return end
+    LAST_GC_CHECK = currentTime
+    for _, v in pairs(getgc(true)) do
+        if typeof(v) == "table" then
+            local key = tostring(v)
+            if rawget(v, "XScale") and rawget(v, "YScale") then
+                RECOIL_TABLES_CACHE[key] = {table = v, type = "scales"}
+            elseif rawget(v, "Data") and rawget(v, "Reset") then
+                RECOIL_TABLES_CACHE[key] = {table = v, type = "data"}
+            elseif rawget(v, "OverallMultiplier") then
+                RECOIL_TABLES_CACHE[key] = {table = v, type = "multiplier"}
+            elseif rawget(v, "RecoilSpring") then
+                RECOIL_TABLES_CACHE[key] = {table = v, type = "spring"}
+            end
+        end
+    end
+end
+
+local function modifyRecoilTablesOptimized(enable)
+    for key, cached in pairs(RECOIL_TABLES_CACHE) do
+        local v = cached.table
+        if typeof(v) ~= "table" then
+            RECOIL_TABLES_CACHE[key] = nil
+        else
+            if cached.type == "scales" then
+                if enable then
+                    if not ORIGINAL_RECOIL_VALUES[key .. "_XScale"] then
+                        ORIGINAL_RECOIL_VALUES[key .. "_XScale"] = rawget(v, "XScale")
+                        ORIGINAL_RECOIL_VALUES[key .. "_YScale"] = rawget(v, "YScale")
+                    end
+                    rawset(v, "XScale", CUSTOM_X_SCALE)
+                    rawset(v, "YScale", CUSTOM_Y_SCALE)
+                elseif ORIGINAL_RECOIL_VALUES[key .. "_XScale"] then
+                    rawset(v, "XScale", ORIGINAL_RECOIL_VALUES[key .. "_XScale"])
+                    rawset(v, "YScale", ORIGINAL_RECOIL_VALUES[key .. "_YScale"])
+                end
+            elseif cached.type == "data" then
+                if enable then
+                    if not ORIGINAL_RECOIL_VALUES[key .. "_Reset"] then
+                        ORIGINAL_RECOIL_VALUES[key .. "_Reset"] = rawget(v, "Reset")
+                    end
+                    rawset(v, "Reset", 0.1)
+                    local data = rawget(v, "Data")
+                    if data and type(data) == "table" then
+                        if not ORIGINAL_RECOIL_VALUES[key .. "_Data"] then
+                            ORIGINAL_RECOIL_VALUES[key .. "_Data"] = {}
+                            for i, recoilData in pairs(data) do
+                                if type(recoilData) == "table" and rawget(recoilData, "X") and rawget(recoilData, "Y") then
+                                    ORIGINAL_RECOIL_VALUES[key .. "_Data"][i] = {X = recoilData.X, Y = recoilData.Y}
+                                end
+                            end
+                        end
+                        for i, recoilData in pairs(data) do
+                            if type(recoilData) == "table" and rawget(recoilData, "X") and rawget(recoilData, "Y") then
+                                rawset(recoilData, "X", recoilData.X * CUSTOM_RECOIL_MULTIPLIER)
+                                rawset(recoilData, "Y", recoilData.Y * CUSTOM_RECOIL_MULTIPLIER)
+                            end
+                        end
+                    end
+                else
+                    if ORIGINAL_RECOIL_VALUES[key .. "_Reset"] then
+                        rawset(v, "Reset", ORIGINAL_RECOIL_VALUES[key .. "_Reset"])
+                    end
+                    if ORIGINAL_RECOIL_VALUES[key .. "_Data"] then
+                        local data = rawget(v, "Data")
+                        if data and type(data) == "table" then
+                            for i, recoilData in pairs(data) do
+                                if ORIGINAL_RECOIL_VALUES[key .. "_Data"][i] then
+                                    rawset(recoilData, "X", ORIGINAL_RECOIL_VALUES[key .. "_Data"][i].X)
+                                    rawset(recoilData, "Y", ORIGINAL_RECOIL_VALUES[key .. "_Data"][i].Y)
+                                end
+                            end
+                        end
+                    end
+                end
+            elseif cached.type == "multiplier" then
+                if enable then
+                    if not ORIGINAL_RECOIL_VALUES[key .. "_OverallMultiplier"] then
+                        ORIGINAL_RECOIL_VALUES[key .. "_OverallMultiplier"] = rawget(v, "OverallMultiplier")
+                    end
+                    rawset(v, "OverallMultiplier", CUSTOM_RECOIL_MULTIPLIER)
+                elseif ORIGINAL_RECOIL_VALUES[key .. "_OverallMultiplier"] then
+                    rawset(v, "OverallMultiplier", ORIGINAL_RECOIL_VALUES[key .. "_OverallMultiplier"])
+                end
+            elseif cached.type == "spring" then
+                local spring = rawget(v, "RecoilSpring")
+                if spring and typeof(spring) == "table" then
+                    local springKey = tostring(spring)
+                    if enable then
+                        if rawget(spring, "Damping") then
+                            if not ORIGINAL_RECOIL_VALUES[springKey .. "_Damping"] then
+                                ORIGINAL_RECOIL_VALUES[springKey .. "_Damping"] = rawget(spring, "Damping")
+                            end
+                            rawset(spring, "Damping", 50)
+                        end
+                        if rawget(spring, "Speed") then
+                            if not ORIGINAL_RECOIL_VALUES[springKey .. "_Speed"] then
+                                ORIGINAL_RECOIL_VALUES[springKey .. "_Speed"] = rawget(spring, "Speed")
+                            end
+                            rawset(spring, "Speed", 200)
+                        end
+                    else
+                        if ORIGINAL_RECOIL_VALUES[springKey .. "_Damping"] then
+                            rawset(spring, "Damping", ORIGINAL_RECOIL_VALUES[springKey .. "_Damping"])
+                        end
+                        if ORIGINAL_RECOIL_VALUES[springKey .. "_Speed"] then
+                            rawset(spring, "Speed", ORIGINAL_RECOIL_VALUES[springKey .. "_Speed"])
+                        end
+                    end
+                end
+            end
+        end
+    end
+end
+
+local function modifyPlayerDataOptimized(enable)
+    if not _G.PlayerData then return end
+    for weaponName, weaponData in pairs(_G.PlayerData) do
+        if type(weaponData) == "table" then
+            if enable then
+                if weaponData.XScale and not ORIGINAL_RECOIL_VALUES[weaponName .. "_XScale"] then
+                    ORIGINAL_RECOIL_VALUES[weaponName .. "_XScale"] = weaponData.XScale
+                    weaponData.XScale = CUSTOM_X_SCALE
+                end
+                if weaponData.YScale and not ORIGINAL_RECOIL_VALUES[weaponName .. "_YScale"] then
+                    ORIGINAL_RECOIL_VALUES[weaponName .. "_YScale"] = weaponData.YScale
+                    weaponData.YScale = CUSTOM_Y_SCALE
+                end
+                if weaponData.Reset and not ORIGINAL_RECOIL_VALUES[weaponName .. "_Reset"] then
+                    ORIGINAL_RECOIL_VALUES[weaponName .. "_Reset"] = weaponData.Reset
+                    weaponData.Reset = 0.1
+                end
+                if weaponData.Data and type(weaponData.Data) == "table" then
+                    if not ORIGINAL_RECOIL_VALUES[weaponName .. "_PatternData"] then
+                        ORIGINAL_RECOIL_VALUES[weaponName .. "_PatternData"] = {}
+                        for i, pattern in pairs(weaponData.Data) do
+                            if type(pattern) == "table" then
+                                ORIGINAL_RECOIL_VALUES[weaponName .. "_PatternData"][i] = {X = pattern.X, Y = pattern.Y}
+                            end
+                        end
+                    end
+                    for i, pattern in pairs(weaponData.Data) do
+                        if type(pattern) == "table" then
+                            if pattern.X then pattern.X = pattern.X * CUSTOM_RECOIL_MULTIPLIER end
+                            if pattern.Y then pattern.Y = pattern.Y * CUSTOM_RECOIL_MULTIPLIER end
+                        end
+                    end
+                end
+            else
+                if ORIGINAL_RECOIL_VALUES[weaponName .. "_XScale"] then
+                    weaponData.XScale = ORIGINAL_RECOIL_VALUES[weaponName .. "_XScale"]
+                end
+                if ORIGINAL_RECOIL_VALUES[weaponName .. "_YScale"] then
+                    weaponData.YScale = ORIGINAL_RECOIL_VALUES[weaponName .. "_YScale"]
+                end
+                if ORIGINAL_RECOIL_VALUES[weaponName .. "_Reset"] then
+                    weaponData.Reset = ORIGINAL_RECOIL_VALUES[weaponName .. "_Reset"]
+                end
+                if ORIGINAL_RECOIL_VALUES[weaponName .. "_PatternData"] then
+                    for i, pattern in pairs(weaponData.Data or {}) do
+                        if ORIGINAL_RECOIL_VALUES[weaponName .. "_PatternData"][i] then
+                            pattern.X = ORIGINAL_RECOIL_VALUES[weaponName .. "_PatternData"][i].X
+                            pattern.Y = ORIGINAL_RECOIL_VALUES[weaponName .. "_PatternData"][i].Y
+                        end
+                    end
+                end
+            end
+        end
+    end
+end
+
+local function setupLightweightRecoilControl(enable)
+    if enable and not _G.LightweightRecoilControl then
+        _G.LightweightRecoilControl = true
+        spawn(function()
+            while _G.LightweightRecoilControl and NoRecoilConfig.Enabled do
+                wait(0.1)
+                for key, cached in pairs(RECOIL_TABLES_CACHE) do
+                    if cached.type == "spring" then
+                        local v = cached.table
+                        if typeof(v) == "table" then
+                            local spring = rawget(v, "RecoilSpring")
+                            if spring and typeof(spring) == "table" then
+                                if rawget(spring, "Position") then rawset(spring, "Position", Vector3.new(0,0,0)) end
+                                if rawget(spring, "Velocity") then rawset(spring, "Velocity", Vector3.new(0,0,0)) end
+                            end
+                        end
+                    end
+                end
+            end
+        end)
+    elseif not enable and _G.LightweightRecoilControl then
+        _G.LightweightRecoilControl = false
+    end
+end
+
+function applyRecoilControl(enable)
+    if enable == nil then enable = NoRecoilConfig.Enabled end
+    if enable then findAndCacheRecoilTables() end
+    modifyRecoilTablesOptimized(enable)
+    modifyPlayerDataOptimized(enable)
+    setupLightweightRecoilControl(enable)
+end
+
+local function startOptimizedMonitoring()
+    spawn(function()
+        while true do
+            wait(4)
+            if FastFireConfig.Enabled then
+                modifyAllWeaponsRPM(true)
+            end
+            if NoRecoilConfig.Enabled then
+                if _G.PlayerData then
+                    modifyPlayerDataOptimized(true)
+                end
+                findAndCacheRecoilTables()
+            end
+        end
+    end)
+end
+
+local function monitorToolEquipping()
+    if player and player.Character then
+        player.Character.ChildAdded:Connect(function(child)
+            if child:IsA("Tool") then
+                wait(0.4)
+                if FastFireConfig.Enabled then
+                    modifyAllWeaponsRPM(true)
+                end
+                if NoRecoilConfig.Enabled then
+                    applyRecoilControl(true)
+                end
+            end
+        end)
+        player.CharacterAdded:Connect(function()
+            wait(2)
+            if NoRecoilConfig.Enabled then
+                applyRecoilControl(true)
+            end
+            if FastFireConfig.Enabled then
+                modifyAllWeaponsRPM(true)
+            end
+        end)
+    end
+end
+
+startOptimizedMonitoring()
+monitorToolEquipping()
 
 XraySliderBar.Size = UDim2.new(XrayConfig.Transparency, 0, 1, 0)
 XraySliderHandle.Position = UDim2.new(XrayConfig.Transparency, -6, 0.5, -6)
