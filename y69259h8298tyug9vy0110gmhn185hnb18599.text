@@ -365,8 +365,10 @@ ZoomConfig = {
 
 GunFiraRapidConfig = {Enabled = false}
 NoRecoilConfig = {Enabled = false}
+ToolRapidFireConfig = {Enabled = false}
 local CUSTOM_RPM_OVERRIDE = 0.001
 local ORIGINAL_RPM_VALUES = {}
+local ORIGINAL_SWINGDELAYS = {}
 local CUSTOM_RECOIL_MULTIPLIER = 0
 local CUSTOM_X_SCALE = 0
 local CUSTOM_Y_SCALE = 0
@@ -1323,7 +1325,8 @@ UIState.CrosshairArrow.AutoButtonColor = false
 ZoomToggle = createToggle(MiscTab, "ZoomToggle", "Zoom", 250)
 
 GunFiraRapidToggle = createToggle(MiscTab, "GunFiraRapidToggle", "Gun FiraRapid", 280)
-NoRecoilToggle = createToggle(MiscTab, "NoRecoilToggle", "No Recoil", 310)
+ToolRapidFireToggle = createToggle(MiscTab, "ToolRapidFireToggle", "Tool RapidFire", 310)
+NoRecoilToggle = createToggle(MiscTab, "NoRecoilToggle", "No Recoil", 340)
 
 FlyKeyButton = createKeyButton(SettingTab, "FlyKeyButton", "Fly key", KeyConfig.FlyToggle, 10)
 NoClipKeyButton = createKeyButton(SettingTab, "NoClipKeyButton", "Noclip key", KeyConfig.NoClipToggle, 40)
@@ -4351,6 +4354,7 @@ ToggleBindings = {
     {button = CFrameSpeedToggle,state = function() return CFrameSpeedConfig.Enabled end},
     {button = ZoomToggle,       state = function() return ZoomConfig.Enabled end},
     {button = GunFiraRapidToggle,   state = function() return GunFiraRapidConfig.Enabled end},
+    {button = ToolRapidFireToggle, state = function() return ToolRapidFireConfig.Enabled end},
     {button = NoRecoilToggle,   state = function() return NoRecoilConfig.Enabled end},
     {button = TimeToggle,       state = function() return TimeControl.Enabled end},
     {button = CrosshairToggle,  state = function() return CrosshairConfig.Enabled end},
@@ -4534,6 +4538,7 @@ function collectConfig()
         CFrameSpeed = {Enabled = CFrameSpeedConfig.Enabled, Speed = CFrameSpeedConfig.Speed},
         Zoom = {Enabled = ZoomConfig.Enabled, Value = ZoomConfig.Value},
         GunFiraRapid = GunFiraRapidConfig.Enabled,
+        ToolRapidFire = ToolRapidFireConfig.Enabled,
         NoRecoil = NoRecoilConfig.Enabled,
         TimeControl = {Enabled = TimeControl.Enabled, CurrentTime = TimeControl.CurrentTime},
         Crosshair = {
@@ -4604,6 +4609,8 @@ local function resetConfig()
     ZoomConfig.Enabled = false
     if GunFiraRapidConfig.Enabled then modifyAllWeaponsRPM(false) end
     GunFiraRapidConfig.Enabled = false
+    if ToolRapidFireConfig.Enabled then modifyAllToolsSwingDelay(false) end
+    ToolRapidFireConfig.Enabled = false
     if NoRecoilConfig.Enabled then applyRecoilControl(false) end
     NoRecoilConfig.Enabled = false
     if TimeControl.Enabled then
@@ -4832,6 +4839,10 @@ function applyConfig(cfg)
     if cfg.GunFiraRapid ~= nil then
         GunFiraRapidConfig.Enabled = cfg.GunFiraRapid
         modifyAllWeaponsRPM(GunFiraRapidConfig.Enabled)
+    end
+    if cfg.ToolRapidFire ~= nil then
+        ToolRapidFireConfig.Enabled = cfg.ToolRapidFire
+        modifyAllToolsSwingDelay(ToolRapidFireConfig.Enabled)
     end
     if cfg.NoRecoil ~= nil then
         NoRecoilConfig.Enabled = cfg.NoRecoil
@@ -5472,6 +5483,11 @@ GunFiraRapidToggle.Button.MouseButton1Click:Connect(function()
     modifyAllWeaponsRPM(GunFiraRapidConfig.Enabled)
     updateButtons()
 end)
+ToolRapidFireToggle.Button.MouseButton1Click:Connect(function()
+    ToolRapidFireConfig.Enabled = not ToolRapidFireConfig.Enabled
+    modifyAllToolsSwingDelay(ToolRapidFireConfig.Enabled)
+    updateButtons()
+end)
 NoRecoilToggle.Button.MouseButton1Click:Connect(function()
     NoRecoilConfig.Enabled = not NoRecoilConfig.Enabled
     applyRecoilControl(NoRecoilConfig.Enabled)
@@ -5752,6 +5768,60 @@ function modifyAllWeaponsRPM(enable)
     end
 end
 
+function modifyAllToolsSwingDelay(enable)
+    if enable == nil then enable = ToolRapidFireConfig.Enabled end
+    if enable then
+        for _, v in pairs(getgc(true)) do
+            if typeof(v) == "table" then
+                if rawget(v, "SwingDelay") then
+                    if not ORIGINAL_SWINGDELAYS[v] then
+                        ORIGINAL_SWINGDELAYS[v] = rawget(v, "SwingDelay")
+                    end
+                    rawset(v, "SwingDelay", 0)
+                end
+                if rawget(v, "Tool") and type(rawget(v, "Tool")) == "table" then
+                    local tool = rawget(v, "Tool")
+                    if rawget(tool, "Stats") and type(rawget(tool, "Stats")) == "table" then
+                        local stats = rawget(tool, "Stats")
+                        if rawget(stats, "SwingDelay") then
+                            if not ORIGINAL_SWINGDELAYS[stats] then
+                                ORIGINAL_SWINGDELAYS[stats] = rawget(stats, "SwingDelay")
+                            end
+                            rawset(stats, "SwingDelay", 0)
+                        end
+                    end
+                end
+                if rawget(v, "Stats") and type(rawget(v, "Stats")) == "table" then
+                    local stats = rawget(v, "Stats")
+                    if rawget(stats, "SwingDelay") then
+                        if not ORIGINAL_SWINGDELAYS[stats] then
+                            ORIGINAL_SWINGDELAYS[stats] = rawget(stats, "SwingDelay")
+                        end
+                        rawset(stats, "SwingDelay", 0)
+                    end
+                end
+            end
+        end
+        if _G.PlayerData then
+            for _, weaponData in pairs(_G.PlayerData) do
+                if type(weaponData) == "table" and rawget(weaponData, "SwingDelay") then
+                    if not ORIGINAL_SWINGDELAYS[weaponData] then
+                        ORIGINAL_SWINGDELAYS[weaponData] = rawget(weaponData, "SwingDelay")
+                    end
+                    rawset(weaponData, "SwingDelay", 0)
+                end
+            end
+        end
+    else
+        for tbl, val in pairs(ORIGINAL_SWINGDELAYS) do
+            if typeof(tbl) == "table" and rawget(tbl, "SwingDelay") then
+                rawset(tbl, "SwingDelay", val)
+            end
+            ORIGINAL_SWINGDELAYS[tbl] = nil
+        end
+    end
+end
+
 local function findAndCacheRecoilTables()
     local currentTime = tick()
     if currentTime - LAST_GC_CHECK < GC_CHECK_INTERVAL then return end
@@ -5965,6 +6035,9 @@ local function startOptimizedMonitoring()
             if GunFiraRapidConfig.Enabled then
                 modifyAllWeaponsRPM(true)
             end
+            if ToolRapidFireConfig.Enabled then
+                modifyAllToolsSwingDelay(true)
+            end
             if NoRecoilConfig.Enabled then
                 if _G.PlayerData then
                     modifyPlayerDataOptimized(true)
@@ -5983,6 +6056,9 @@ local function monitorToolEquipping()
                 if GunFiraRapidConfig.Enabled then
                     modifyAllWeaponsRPM(true)
                 end
+                if ToolRapidFireConfig.Enabled then
+                    modifyAllToolsSwingDelay(true)
+                end
                 if NoRecoilConfig.Enabled then
                     applyRecoilControl(true)
                 end
@@ -5995,6 +6071,9 @@ local function monitorToolEquipping()
             end
             if GunFiraRapidConfig.Enabled then
                 modifyAllWeaponsRPM(true)
+            end
+            if ToolRapidFireConfig.Enabled then
+                modifyAllToolsSwingDelay(true)
             end
         end)
     end
