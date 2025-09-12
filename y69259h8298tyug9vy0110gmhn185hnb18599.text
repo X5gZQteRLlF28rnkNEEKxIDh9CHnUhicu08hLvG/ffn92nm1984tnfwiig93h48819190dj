@@ -1,4 +1,3 @@
-pcall(function()
 if _G.__LoneSurvivalLoaded then return end
 _G.__LoneSurvivalLoaded = true
 
@@ -23,7 +22,8 @@ local function showUnsupported(message)
         })
     end)
 
-    local playerGui = LocalPlayer:FindFirstChildOfClass("PlayerGui")
+    local player = Players.LocalPlayer
+    local playerGui = player and player:FindFirstChildOfClass("PlayerGui")
     if playerGui then
         local gui = Instance.new("ScreenGui")
         gui.ResetOnSpawn = false
@@ -45,6 +45,7 @@ local function showUnsupported(message)
     end
 end
 
+local function main()
 if not game:IsLoaded() then
     game.Loaded:Wait()
 end
@@ -6132,4 +6133,10 @@ game:GetService("StarterGui"):SetCore("SendNotification", {
     Text = "TeamCheck, Custom Keys & Improved Aimbot Ready!";
     Duration = 3;
 })
-end)
+end
+
+local success, err = pcall(main)
+if not success then
+    _G.__LoneSurvivalLoaded = nil
+    showUnsupported("Script error: " .. tostring(err))
+end
