@@ -44,6 +44,26 @@ end
 if not game:IsLoaded() then
     game.Loaded:Wait()
 end
+local LoadingGui, LoadingBar = (function()
+    local gui = Instance.new("ScreenGui")
+    gui.ResetOnSpawn = false
+    gui.IgnoreGuiInset = true
+    gui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+    local holder = Instance.new("Frame")
+    holder.Size = UDim2.new(0, 300, 0, 20)
+    holder.Position = UDim2.new(0.5, -150, 0.5, -10)
+    holder.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+    holder.BorderSizePixel = 0
+    holder.Parent = gui
+    local bar = Instance.new("Frame")
+    bar.Size = UDim2.new(0, 0, 1, 0)
+    bar.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
+    bar.BorderSizePixel = 0
+    bar.Parent = holder
+    return gui, bar
+end)()
+local LoadingTween = TweenService:Create(LoadingBar, TweenInfo.new(5, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut), {Size = UDim2.new(1, 0, 1, 0)})
+LoadingTween:Play()
 local function detectExecutor()
     if syn and syn.request then return "Synapse X" end
     if krnl and krnl.request then return "Krnl" end
@@ -6100,6 +6120,9 @@ ScreenGui.AncestryChanged:Connect(function()
     end
 end)
 
+TweenService:Create(LoadingBar, TweenInfo.new(0.25, Enum.EasingStyle.Linear, Enum.EasingDirection.Out), {Size = UDim2.new(1, 0, 1, 0)}):Play()
+task.wait(0.25)
+if LoadingGui then LoadingGui:Destroy() end
 game:GetService("StarterGui"):SetCore("SendNotification", {
     Title = "Enhanced Script Loaded";
     Text = "TeamCheck, Custom Keys & Improved Aimbot Ready!";
