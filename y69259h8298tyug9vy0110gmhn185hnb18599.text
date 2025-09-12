@@ -5679,99 +5679,75 @@ local player = LocalPlayer
 
 function modifyAllWeaponsRPM(enable)
     if enable == nil then enable = GunFiraRapidConfig.Enabled end
-    for _, v in pairs(getgc(true)) do
-        if typeof(v) == "table" then
-            if rawget(v, "RPM") then
-                local key = tostring(v)
-                if enable then
-                    if not ORIGINAL_RPM_VALUES[key] then
-                        ORIGINAL_RPM_VALUES[key] = rawget(v, "RPM")
+    if enable then
+        for _, v in pairs(getgc(true)) do
+            if typeof(v) == "table" then
+                if rawget(v, "RPM") then
+                    if not ORIGINAL_RPM_VALUES[v] then
+                        ORIGINAL_RPM_VALUES[v] = rawget(v, "RPM")
                     end
                     rawset(v, "RPM", CUSTOM_RPM_OVERRIDE)
-                elseif ORIGINAL_RPM_VALUES[key] then
-                    rawset(v, "RPM", ORIGINAL_RPM_VALUES[key])
-                    ORIGINAL_RPM_VALUES[key] = nil
                 end
-            end
-            if enable then
-                if rawget(v, "LastFireTick") then rawset(v, "LastFireTick", 0) end
-                if rawget(v, "LastFire") then rawset(v, "LastFire", 0) end
-                if rawget(v, "LastFireTime") then rawset(v, "LastFireTime", 0) end
-            end
-            if rawget(v, "Tool") and type(rawget(v, "Tool")) == "table" then
-                local tool = rawget(v, "Tool")
-                if rawget(tool, "Stats") and type(rawget(tool, "Stats")) == "table" then
-                    local stats = rawget(tool, "Stats")
-                    if rawget(stats, "RPM") then
-                        local key = "ToolStats_" .. tostring(stats)
-                        if enable then
-                            if not ORIGINAL_RPM_VALUES[key] then
-                                ORIGINAL_RPM_VALUES[key] = rawget(stats, "RPM")
-                            end
-                            rawset(stats, "RPM", 9999)
-                        elseif ORIGINAL_RPM_VALUES[key] then
-                            rawset(stats, "RPM", ORIGINAL_RPM_VALUES[key])
-                            ORIGINAL_RPM_VALUES[key] = nil
-                        end
-                    end
-                end
-            end
-            if rawget(v, "Viewmodel") and type(rawget(v, "Viewmodel")) == "table" then
-                local viewmodel = rawget(v, "Viewmodel")
-                if rawget(viewmodel, "Tool") and type(rawget(viewmodel, "Tool")) == "table" then
-                    local tool = rawget(viewmodel, "Tool")
+                if rawget(v, "Tool") and type(rawget(v, "Tool")) == "table" then
+                    local tool = rawget(v, "Tool")
                     if rawget(tool, "Stats") and type(rawget(tool, "Stats")) == "table" then
                         local stats = rawget(tool, "Stats")
                         if rawget(stats, "RPM") then
-                            local key = "ViewmodelStats_" .. tostring(stats)
-                            if enable then
-                                if not ORIGINAL_RPM_VALUES[key] then
-                                    ORIGINAL_RPM_VALUES[key] = rawget(stats, "RPM")
+                            if not ORIGINAL_RPM_VALUES[stats] then
+                                ORIGINAL_RPM_VALUES[stats] = rawget(stats, "RPM")
+                            end
+                            rawset(stats, "RPM", 9999)
+                        end
+                    end
+                end
+                if rawget(v, "Viewmodel") and type(rawget(v, "Viewmodel")) == "table" then
+                    local viewmodel = rawget(v, "Viewmodel")
+                    if rawget(viewmodel, "Tool") and type(rawget(viewmodel, "Tool")) == "table" then
+                        local tool = rawget(viewmodel, "Tool")
+                        if rawget(tool, "Stats") and type(rawget(tool, "Stats")) == "table" then
+                            local stats = rawget(tool, "Stats")
+                            if rawget(stats, "RPM") then
+                                if not ORIGINAL_RPM_VALUES[stats] then
+                                    ORIGINAL_RPM_VALUES[stats] = rawget(stats, "RPM")
                                 end
                                 rawset(stats, "RPM", 9999)
-                            elseif ORIGINAL_RPM_VALUES[key] then
-                                rawset(stats, "RPM", ORIGINAL_RPM_VALUES[key])
-                                ORIGINAL_RPM_VALUES[key] = nil
                             end
                         end
                     end
                 end
-            end
-            if rawget(v, "Stats") and type(rawget(v, "Stats")) == "table" then
-                local stats = rawget(v, "Stats")
-                if rawget(stats, "RPM") then
-                    local key = "DirectStats_" .. tostring(stats)
-                    if enable then
-                        if not ORIGINAL_RPM_VALUES[key] then
-                            ORIGINAL_RPM_VALUES[key] = rawget(stats, "RPM")
+                if rawget(v, "Stats") and type(rawget(v, "Stats")) == "table" then
+                    local stats = rawget(v, "Stats")
+                    if rawget(stats, "RPM") then
+                        if not ORIGINAL_RPM_VALUES[stats] then
+                            ORIGINAL_RPM_VALUES[stats] = rawget(stats, "RPM")
                         end
                         rawset(stats, "RPM", 9999)
-                    elseif ORIGINAL_RPM_VALUES[key] then
-                        rawset(stats, "RPM", ORIGINAL_RPM_VALUES[key])
-                        ORIGINAL_RPM_VALUES[key] = nil
                     end
                 end
-            end
-            if enable and rawget(v, "Fire") and type(rawget(v, "Fire")) == "function" then
+                if rawget(v, "LastFireTick") then rawset(v, "LastFireTick", 0) end
+                if rawget(v, "LastFire") then rawset(v, "LastFire", 0) end
                 if rawget(v, "LastFireTime") then rawset(v, "LastFireTime", 0) end
-                if rawget(v, "NextFireTime") then rawset(v, "NextFireTime", 0) end
+                if rawget(v, "Fire") and type(rawget(v, "Fire")) == "function" then
+                    if rawget(v, "NextFireTime") then rawset(v, "NextFireTime", 0) end
+                end
             end
         end
-    end
-    if _G.PlayerData then
-        for weaponName, weaponData in pairs(_G.PlayerData) do
-            if type(weaponData) == "table" and rawget(weaponData, "RPM") then
-                local key = "PlayerData_" .. weaponName
-                if enable then
-                    if not ORIGINAL_RPM_VALUES[key] then
-                        ORIGINAL_RPM_VALUES[key] = rawget(weaponData, "RPM")
+        if _G.PlayerData then
+            for _, weaponData in pairs(_G.PlayerData) do
+                if type(weaponData) == "table" and rawget(weaponData, "RPM") then
+                    if not ORIGINAL_RPM_VALUES[weaponData] then
+                        ORIGINAL_RPM_VALUES[weaponData] = rawget(weaponData, "RPM")
                     end
                     rawset(weaponData, "RPM", 9999)
-                elseif ORIGINAL_RPM_VALUES[key] then
-                    rawset(weaponData, "RPM", ORIGINAL_RPM_VALUES[key])
-                    ORIGINAL_RPM_VALUES[key] = nil
                 end
             end
+        end
+    else
+        for tbl, rpm in pairs(ORIGINAL_RPM_VALUES) do
+            if typeof(tbl) == "table" and rawget(tbl, "RPM") then
+                rawset(tbl, "RPM", rpm)
+            end
+            ORIGINAL_RPM_VALUES[tbl] = nil
         end
     end
 end
