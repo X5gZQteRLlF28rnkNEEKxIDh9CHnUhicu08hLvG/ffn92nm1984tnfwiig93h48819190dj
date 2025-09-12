@@ -363,7 +363,7 @@ ZoomConfig = {
     IsZooming = false
 }
 
-FastFireConfig = {Enabled = false}
+GunFiraRapidConfig = {Enabled = false}
 NoRecoilConfig = {Enabled = false}
 local CUSTOM_RPM_OVERRIDE = 0.001
 local ORIGINAL_RPM_VALUES = {}
@@ -1322,7 +1322,7 @@ UIState.CrosshairArrow.AutoButtonColor = false
 
 ZoomToggle = createToggle(MiscTab, "ZoomToggle", "Zoom", 250)
 
-FastFireToggle = createToggle(MiscTab, "FastFireToggle", "Fast Fire", 280)
+GunFiraRapidToggle = createToggle(MiscTab, "GunFiraRapidToggle", "Gun FiraRapid", 280)
 NoRecoilToggle = createToggle(MiscTab, "NoRecoilToggle", "No Recoil", 310)
 
 FlyKeyButton = createKeyButton(SettingTab, "FlyKeyButton", "Fly key", KeyConfig.FlyToggle, 10)
@@ -4350,7 +4350,7 @@ ToggleBindings = {
     {button = NightVisionToggle,state = function() return NightVisionConfig.Enabled end},
     {button = CFrameSpeedToggle,state = function() return CFrameSpeedConfig.Enabled end},
     {button = ZoomToggle,       state = function() return ZoomConfig.Enabled end},
-    {button = FastFireToggle,   state = function() return FastFireConfig.Enabled end},
+    {button = GunFiraRapidToggle,   state = function() return GunFiraRapidConfig.Enabled end},
     {button = NoRecoilToggle,   state = function() return NoRecoilConfig.Enabled end},
     {button = TimeToggle,       state = function() return TimeControl.Enabled end},
     {button = CrosshairToggle,  state = function() return CrosshairConfig.Enabled end},
@@ -4533,7 +4533,7 @@ function collectConfig()
         FOV = {Enabled = FOVConfig.Enabled, Value = FOVConfig.Value},
         CFrameSpeed = {Enabled = CFrameSpeedConfig.Enabled, Speed = CFrameSpeedConfig.Speed},
         Zoom = {Enabled = ZoomConfig.Enabled, Value = ZoomConfig.Value},
-        FastFire = FastFireConfig.Enabled,
+        GunFiraRapid = GunFiraRapidConfig.Enabled,
         NoRecoil = NoRecoilConfig.Enabled,
         TimeControl = {Enabled = TimeControl.Enabled, CurrentTime = TimeControl.CurrentTime},
         Crosshair = {
@@ -4602,8 +4602,8 @@ local function resetConfig()
     CFrameSpeedConfig.Enabled = false
     if ZoomConfig.IsZooming then toggleZoom() end
     ZoomConfig.Enabled = false
-    if FastFireConfig.Enabled then modifyAllWeaponsRPM(false) end
-    FastFireConfig.Enabled = false
+    if GunFiraRapidConfig.Enabled then modifyAllWeaponsRPM(false) end
+    GunFiraRapidConfig.Enabled = false
     if NoRecoilConfig.Enabled then applyRecoilControl(false) end
     NoRecoilConfig.Enabled = false
     if TimeControl.Enabled then
@@ -4829,9 +4829,9 @@ function applyConfig(cfg)
             toggleZoom()
         end
     end
-    if cfg.FastFire ~= nil then
-        FastFireConfig.Enabled = cfg.FastFire
-        modifyAllWeaponsRPM(FastFireConfig.Enabled)
+    if cfg.GunFiraRapid ~= nil then
+        GunFiraRapidConfig.Enabled = cfg.GunFiraRapid
+        modifyAllWeaponsRPM(GunFiraRapidConfig.Enabled)
     end
     if cfg.NoRecoil ~= nil then
         NoRecoilConfig.Enabled = cfg.NoRecoil
@@ -5467,9 +5467,9 @@ ZoomToggle.Button.MouseButton1Click:Connect(function()
         toggleZoom()
     end
 end)
-FastFireToggle.Button.MouseButton1Click:Connect(function()
-    FastFireConfig.Enabled = not FastFireConfig.Enabled
-    modifyAllWeaponsRPM(FastFireConfig.Enabled)
+GunFiraRapidToggle.Button.MouseButton1Click:Connect(function()
+    GunFiraRapidConfig.Enabled = not GunFiraRapidConfig.Enabled
+    modifyAllWeaponsRPM(GunFiraRapidConfig.Enabled)
     updateButtons()
 end)
 NoRecoilToggle.Button.MouseButton1Click:Connect(function()
@@ -5678,17 +5678,19 @@ updateKeyLabels()
 local player = LocalPlayer
 
 function modifyAllWeaponsRPM(enable)
-    if enable == nil then enable = FastFireConfig.Enabled end
+    if enable == nil then enable = GunFiraRapidConfig.Enabled end
     for _, v in pairs(getgc(true)) do
         if typeof(v) == "table" then
             if rawget(v, "RPM") then
+                local key = tostring(v)
                 if enable then
-                    if not ORIGINAL_RPM_VALUES[tostring(v)] then
-                        ORIGINAL_RPM_VALUES[tostring(v)] = rawget(v, "RPM")
+                    if not ORIGINAL_RPM_VALUES[key] then
+                        ORIGINAL_RPM_VALUES[key] = rawget(v, "RPM")
                     end
                     rawset(v, "RPM", CUSTOM_RPM_OVERRIDE)
-                elseif ORIGINAL_RPM_VALUES[tostring(v)] then
-                    rawset(v, "RPM", ORIGINAL_RPM_VALUES[tostring(v)])
+                elseif ORIGINAL_RPM_VALUES[key] then
+                    rawset(v, "RPM", ORIGINAL_RPM_VALUES[key])
+                    ORIGINAL_RPM_VALUES[key] = nil
                 end
             end
             if enable then
@@ -5709,6 +5711,7 @@ function modifyAllWeaponsRPM(enable)
                             rawset(stats, "RPM", 9999)
                         elseif ORIGINAL_RPM_VALUES[key] then
                             rawset(stats, "RPM", ORIGINAL_RPM_VALUES[key])
+                            ORIGINAL_RPM_VALUES[key] = nil
                         end
                     end
                 end
@@ -5728,6 +5731,7 @@ function modifyAllWeaponsRPM(enable)
                                 rawset(stats, "RPM", 9999)
                             elseif ORIGINAL_RPM_VALUES[key] then
                                 rawset(stats, "RPM", ORIGINAL_RPM_VALUES[key])
+                                ORIGINAL_RPM_VALUES[key] = nil
                             end
                         end
                     end
@@ -5744,6 +5748,7 @@ function modifyAllWeaponsRPM(enable)
                         rawset(stats, "RPM", 9999)
                     elseif ORIGINAL_RPM_VALUES[key] then
                         rawset(stats, "RPM", ORIGINAL_RPM_VALUES[key])
+                        ORIGINAL_RPM_VALUES[key] = nil
                     end
                 end
             end
@@ -5764,6 +5769,7 @@ function modifyAllWeaponsRPM(enable)
                     rawset(weaponData, "RPM", 9999)
                 elseif ORIGINAL_RPM_VALUES[key] then
                     rawset(weaponData, "RPM", ORIGINAL_RPM_VALUES[key])
+                    ORIGINAL_RPM_VALUES[key] = nil
                 end
             end
         end
@@ -5980,7 +5986,7 @@ local function startOptimizedMonitoring()
     spawn(function()
         while true do
             wait(4)
-            if FastFireConfig.Enabled then
+            if GunFiraRapidConfig.Enabled then
                 modifyAllWeaponsRPM(true)
             end
             if NoRecoilConfig.Enabled then
@@ -5998,7 +6004,7 @@ local function monitorToolEquipping()
         player.Character.ChildAdded:Connect(function(child)
             if child:IsA("Tool") then
                 wait(0.4)
-                if FastFireConfig.Enabled then
+                if GunFiraRapidConfig.Enabled then
                     modifyAllWeaponsRPM(true)
                 end
                 if NoRecoilConfig.Enabled then
@@ -6011,7 +6017,7 @@ local function monitorToolEquipping()
             if NoRecoilConfig.Enabled then
                 applyRecoilControl(true)
             end
-            if FastFireConfig.Enabled then
+            if GunFiraRapidConfig.Enabled then
                 modifyAllWeaponsRPM(true)
             end
         end)
