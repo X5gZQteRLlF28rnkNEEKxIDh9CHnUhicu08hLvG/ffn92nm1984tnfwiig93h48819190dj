@@ -1,3 +1,7 @@
+pcall(function()
+if _G.__LoneSurvivalLoaded then return end
+_G.__LoneSurvivalLoaded = true
+
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
@@ -6128,3 +6132,4 @@ game:GetService("StarterGui"):SetCore("SendNotification", {
     Text = "TeamCheck, Custom Keys & Improved Aimbot Ready!";
     Duration = 3;
 })
+end)
