@@ -3729,9 +3729,9 @@ function updateOreESP()
                         local screenPos, onScreen = Camera:WorldToViewportPoint(part.Position)
                         if onScreen then
                             esp.Text.Text = string.format("%s [%d]", name, distance)
-                            local textHeight = esp.Text.TextBounds.Y
-                            -- Position Ore ESP label above using its text height to prevent overlap with Dropped ESP
-                            esp.Text.Position = Vector2.new(screenPos.X, screenPos.Y - (textHeight / 2) - 2)
+                            local textHeight = esp.Text.Size
+                            -- Offset Ore label by its full height so it never collides with Dropped ESP
+                            esp.Text.Position = Vector2.new(screenPos.X, screenPos.Y - textHeight - 4)
                             esp.Text.Visible = true
                         else
                             esp.Text.Visible = false
@@ -3781,9 +3781,9 @@ function updateDroppedESP()
                         local screenPos, onScreen = Camera:WorldToViewportPoint(part.Position)
                         if onScreen then
                             esp.Text.Text = string.format("%s [%d]", name, distance)
-                            local textHeight = esp.Text.TextBounds.Y
-                            -- Position Dropped ESP label below using its text height to prevent overlap with Ore ESP
-                            esp.Text.Position = Vector2.new(screenPos.X, screenPos.Y + (textHeight / 2) + 2)
+                            local textHeight = esp.Text.Size
+                            -- Offset Dropped label by its full height so it doesn't overlap Ore ESP
+                            esp.Text.Position = Vector2.new(screenPos.X, screenPos.Y + textHeight + 4)
                             esp.Text.Visible = true
                         else
                             esp.Text.Visible = false
