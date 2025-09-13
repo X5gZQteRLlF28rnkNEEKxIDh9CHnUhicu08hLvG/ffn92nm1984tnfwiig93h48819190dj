@@ -1142,7 +1142,8 @@ IronToggle = createToggle(OreListFrame, "IronToggle", "Iron Ore", 30)
 BrimstoneToggle = createToggle(OreListFrame, "BrimstoneToggle", "Brimstone Ore", 50)
 StoneToggle = createToggle(OreListFrame, "StoneToggle", "Stone Ore", 70)
 
-DroppedToggle = createToggle(VisualTab, "DroppedToggle", "Dropped ESP Enabled", 310)
+-- Shift Dropped ESP toggle below Ore toggle to avoid overlap
+DroppedToggle = createToggle(VisualTab, "DroppedToggle", "Dropped ESP Enabled", 340)
 
 UIState.DroppedArrow = Instance.new("TextButton")
 UIState.DroppedArrow.Parent = DroppedToggle.Holder
@@ -1174,15 +1175,15 @@ for _, name in ipairs(DroppedNames) do
     dropY = dropY + 20
 end
 
-BackpackToggle = createToggle(VisualTab, "BackpackToggle", "Backpack ESP", 340)
+BackpackToggle = createToggle(VisualTab, "BackpackToggle", "Backpack ESP", 370)
 
-GodSkinChangerToggle = createToggle(VisualTab, "GodSkinChangerToggle", "God SkinChanger", 370)
+GodSkinChangerToggle = createToggle(VisualTab, "GodSkinChangerToggle", "God SkinChanger", 400)
 
-MapToggle = createToggle(VisualTab, "MapToggle", "Map", 400)
+MapToggle = createToggle(VisualTab, "MapToggle", "Map", 430)
 
-NewsToggle = createToggle(VisualTab, "NewsToggle", "News", 430)
+NewsToggle = createToggle(VisualTab, "NewsToggle", "News", 460)
 
-SkyColorToggle = createToggle(VisualTab, "SkyColorToggle", "SkyColor", 460)
+SkyColorToggle = createToggle(VisualTab, "SkyColorToggle", "SkyColor", 490)
 SkyAmbientButton = createColorButton(SkyColorToggle.Holder, "SkyAmbientButton", SkyColorConfig.Ambient)
 SkyTopButton = createColorButton(SkyColorToggle.Holder, "SkyTopButton", SkyColorConfig.Top)
 SkyAmbientButton.Position = UDim2.new(1, -40, 0, 2)
@@ -1194,7 +1195,7 @@ RefreshESPButton.Parent = VisualTab
 RefreshESPButton.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
 RefreshESPButton.BorderColor3 = Color3.fromRGB(255, 255, 255)
 RefreshESPButton.BorderSizePixel = 1
-RefreshESPButton.Position = UDim2.new(0.05, 0, 0, 490)
+RefreshESPButton.Position = UDim2.new(0.05, 0, 0, 520)
 RefreshESPButton.Size = UDim2.new(0.9, 0, 0, 20)
 RefreshESPButton.FontFace = customFont
 RefreshESPButton.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -1214,7 +1215,7 @@ end)
 local ShivLabel = Instance.new("TextLabel")
 ShivLabel.Parent = VisualTab
 ShivLabel.BackgroundTransparency = 1
-ShivLabel.Position = UDim2.new(0.05, 0, 0, 520)
+ShivLabel.Position = UDim2.new(0.05, 0, 0, 550)
 ShivLabel.Size = UDim2.new(0.9, 0, 0, 20)
 ShivLabel.FontFace = customFont
 ShivLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -1228,7 +1229,7 @@ ShivSkinButton.Parent = VisualTab
 ShivSkinButton.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
 ShivSkinButton.BorderColor3 = Color3.fromRGB(255, 255, 255)
 ShivSkinButton.BorderSizePixel = 1
-ShivSkinButton.Position = UDim2.new(0.05, 0, 0, 540)
+ShivSkinButton.Position = UDim2.new(0.05, 0, 0, 570)
 ShivSkinButton.Size = UDim2.new(0.9, 0, 0, 20)
 ShivSkinButton.FontFace = customFont
 ShivSkinButton.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -1237,7 +1238,7 @@ ShivSkinButton.TextStrokeTransparency = 0.5
 ShivSkinButton.TextStrokeColor3 = Color3.new(0, 0, 0)
 ShivSkinButton.Text = "Skin: Default"
 
-VisualTab.CanvasSize = UDim2.new(0, 0, 0, 600)
+VisualTab.CanvasSize = UDim2.new(0, 0, 0, 630)
 
 FlyToggle = createToggle(MainTab, "FlyToggle", "Fly Feature", 10)
 NoClipToggle = createToggle(MainTab, "NoClipToggle", "NoClip Feature", 40)
@@ -3729,7 +3730,9 @@ function updateOreESP()
                         local screenPos, onScreen = Camera:WorldToViewportPoint(part.Position)
                         if onScreen then
                             esp.Text.Text = string.format("%s [%d]", name, distance)
-                            esp.Text.Position = Vector2.new(screenPos.X, screenPos.Y)
+                            local textHeight = esp.Text.Size
+                            -- Offset Ore label by its full height so it never collides with Dropped ESP
+                            esp.Text.Position = Vector2.new(screenPos.X, screenPos.Y - textHeight - 4)
                             esp.Text.Visible = true
                         else
                             esp.Text.Visible = false
@@ -3779,7 +3782,9 @@ function updateDroppedESP()
                         local screenPos, onScreen = Camera:WorldToViewportPoint(part.Position)
                         if onScreen then
                             esp.Text.Text = string.format("%s [%d]", name, distance)
-                            esp.Text.Position = Vector2.new(screenPos.X, screenPos.Y)
+                            local textHeight = esp.Text.Size
+                            -- Offset Dropped label by its full height so it doesn't overlap Ore ESP
+                            esp.Text.Position = Vector2.new(screenPos.X, screenPos.Y + textHeight + 4)
                             esp.Text.Visible = true
                         else
                             esp.Text.Visible = false
