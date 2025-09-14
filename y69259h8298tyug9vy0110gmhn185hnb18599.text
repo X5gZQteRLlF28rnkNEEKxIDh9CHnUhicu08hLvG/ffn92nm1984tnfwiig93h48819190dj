@@ -5782,11 +5782,27 @@ local UserInputService = game:GetService("UserInputService")
 -- プレイヤー情報
 local player = Players.LocalPlayer
 
+local function safeRawSet(tbl, key, value)
+    pcall(function()
+        if typeof(tbl) == "table" then
+            rawset(tbl, key, value)
+        end
+    end)
+end
+
+local function safeGetGC()
+    local success, result = pcall(getgc, true)
+    if success and type(result) == "table" then
+        return result
+    end
+    return {}
+end
+
 -- 初回スキャンでオリジナル値を保存
 local function performInitialScan()
     if INITIAL_SCAN_COMPLETED then return end
-    
-    for _, v in pairs(getgc(true)) do
+
+    for _, v in pairs(safeGetGC()) do
         if typeof(v) == "table" then
             if rawget(v, "RPM") and type(rawget(v, "RPM")) == "number" then
                 ORIGINAL_VALUES.RPM[v] = rawget(v, "RPM")
@@ -5841,33 +5857,33 @@ local function modifyAllWeaponsRPM(enable)
         end
         for tbl, orig in pairs(ORIGINAL_VALUES.RPM) do
             if typeof(tbl) == "table" and rawget(tbl, "RPM") then
-                rawset(tbl, "RPM", orig * FIRE_RATE_MULTIPLIER)
+                safeRawSet(tbl, "RPM", orig * FIRE_RATE_MULTIPLIER)
             end
         end
         for tbl, orig in pairs(ORIGINAL_VALUES.FireDelay) do
             if typeof(tbl) == "table" and rawget(tbl, "FireDelay") then
-                rawset(tbl, "FireDelay", orig / FIRE_RATE_MULTIPLIER)
+                safeRawSet(tbl, "FireDelay", orig / FIRE_RATE_MULTIPLIER)
             end
         end
         for tbl, orig in pairs(ORIGINAL_VALUES.FireRate) do
             if typeof(tbl) == "table" and rawget(tbl, "FireRate") then
-                rawset(tbl, "FireRate", orig / FIRE_RATE_MULTIPLIER)
+                safeRawSet(tbl, "FireRate", orig / FIRE_RATE_MULTIPLIER)
             end
         end
     else
         for tbl, val in pairs(ORIGINAL_VALUES.RPM) do
             if typeof(tbl) == "table" and rawget(tbl, "RPM") then
-                rawset(tbl, "RPM", val)
+                safeRawSet(tbl, "RPM", val)
             end
         end
         for tbl, val in pairs(ORIGINAL_VALUES.FireDelay) do
             if typeof(tbl) == "table" and rawget(tbl, "FireDelay") then
-                rawset(tbl, "FireDelay", val)
+                safeRawSet(tbl, "FireDelay", val)
             end
         end
         for tbl, val in pairs(ORIGINAL_VALUES.FireRate) do
             if typeof(tbl) == "table" and rawget(tbl, "FireRate") then
-                rawset(tbl, "FireRate", val)
+                safeRawSet(tbl, "FireRate", val)
             end
         end
     end
@@ -5882,19 +5898,19 @@ local function applySpreadControl(enable)
         for tbl, values in pairs(ORIGINAL_VALUES.Spread) do
             if typeof(tbl) == "table" then
                 if values.Spread and rawget(tbl, "Spread") then
-                    rawset(tbl, "Spread", values.Spread * SPREAD_VALUE)
+                    safeRawSet(tbl, "Spread", values.Spread * SPREAD_VALUE)
                 end
                 if values.SpreadIncrease and rawget(tbl, "SpreadIncrease") then
-                    rawset(tbl, "SpreadIncrease", values.SpreadIncrease * SPREAD_VALUE)
+                    safeRawSet(tbl, "SpreadIncrease", values.SpreadIncrease * SPREAD_VALUE)
                 end
                 if values.MaxSpread and rawget(tbl, "MaxSpread") then
-                    rawset(tbl, "MaxSpread", values.MaxSpread * SPREAD_VALUE)
+                    safeRawSet(tbl, "MaxSpread", values.MaxSpread * SPREAD_VALUE)
                 end
                 if values.MinSpread and rawget(tbl, "MinSpread") then
-                    rawset(tbl, "MinSpread", values.MinSpread * SPREAD_VALUE)
+                    safeRawSet(tbl, "MinSpread", values.MinSpread * SPREAD_VALUE)
                 end
                 if values.Accuracy and rawget(tbl, "Accuracy") and SPREAD_VALUE > 0 then
-                    rawset(tbl, "Accuracy", values.Accuracy / SPREAD_VALUE)
+                    safeRawSet(tbl, "Accuracy", values.Accuracy / SPREAD_VALUE)
                 end
             end
         end
@@ -5902,19 +5918,19 @@ local function applySpreadControl(enable)
         for tbl, values in pairs(ORIGINAL_VALUES.Spread) do
             if typeof(tbl) == "table" then
                 if values.Spread and rawget(tbl, "Spread") then
-                    rawset(tbl, "Spread", values.Spread)
+                    safeRawSet(tbl, "Spread", values.Spread)
                 end
                 if values.SpreadIncrease and rawget(tbl, "SpreadIncrease") then
-                    rawset(tbl, "SpreadIncrease", values.SpreadIncrease)
+                    safeRawSet(tbl, "SpreadIncrease", values.SpreadIncrease)
                 end
                 if values.MaxSpread and rawget(tbl, "MaxSpread") then
-                    rawset(tbl, "MaxSpread", values.MaxSpread)
+                    safeRawSet(tbl, "MaxSpread", values.MaxSpread)
                 end
                 if values.MinSpread and rawget(tbl, "MinSpread") then
-                    rawset(tbl, "MinSpread", values.MinSpread)
+                    safeRawSet(tbl, "MinSpread", values.MinSpread)
                 end
                 if values.Accuracy and rawget(tbl, "Accuracy") then
-                    rawset(tbl, "Accuracy", values.Accuracy)
+                    safeRawSet(tbl, "Accuracy", values.Accuracy)
                 end
             end
         end
@@ -5929,18 +5945,18 @@ local function modifyRecoilTables(enable)
         end
         for tbl, values in pairs(ORIGINAL_VALUES.Recoil) do
             if typeof(tbl) == "table" then
-                if rawget(tbl, "XScale") then rawset(tbl, "XScale", CUSTOM_X_SCALE) end
-                if rawget(tbl, "YScale") then rawset(tbl, "YScale", CUSTOM_Y_SCALE) end
+                if rawget(tbl, "XScale") then safeRawSet(tbl, "XScale", CUSTOM_X_SCALE) end
+                if rawget(tbl, "YScale") then safeRawSet(tbl, "YScale", CUSTOM_Y_SCALE) end
             end
         end
     else
         for tbl, values in pairs(ORIGINAL_VALUES.Recoil) do
             if typeof(tbl) == "table" then
                 if values.XScale and rawget(tbl, "XScale") then
-                    rawset(tbl, "XScale", values.XScale)
+                    safeRawSet(tbl, "XScale", values.XScale)
                 end
                 if values.YScale and rawget(tbl, "YScale") then
-                    rawset(tbl, "YScale", values.YScale)
+                    safeRawSet(tbl, "YScale", values.YScale)
                 end
             end
         end
