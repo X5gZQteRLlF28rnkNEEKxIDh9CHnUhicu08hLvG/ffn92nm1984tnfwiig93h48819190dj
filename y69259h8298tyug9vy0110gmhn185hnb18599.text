@@ -8,7 +8,18 @@ local HttpService = game:GetService("HttpService")
 
 
 local LocalPlayer = Players.LocalPlayer
+if not LocalPlayer then
+    pcall(function()
+        repeat task.wait() LocalPlayer = Players.LocalPlayer until LocalPlayer
+    end)
+end
+
 local Camera = workspace.CurrentCamera
+if not Camera then
+    pcall(function()
+        repeat task.wait() Camera = workspace.CurrentCamera until Camera
+    end)
+end
 
 local function showUnsupported(message)
     pcall(function()
