@@ -21,6 +21,15 @@ if not Camera then
     end)
 end
 
+local function safeConnect(signal, fn)
+    return signal:Connect(function(...)
+        local ok, err = pcall(fn, ...)
+        if not ok then
+            warn("[SafeConnect]", err)
+        end
+    end)
+end
+
 local function showUnsupported(message)
     pcall(function()
         game:GetService("StarterGui"):SetCore("SendNotification", {
@@ -819,7 +828,7 @@ UserInputService.InputChanged:Connect(function(input)
     end
 end)
 
-UserInputService.InputEnded:Connect(function(input)
+safeConnect(UserInputService.InputEnded, function(input)
     if input.UserInputType == Enum.UserInputType.MouseButton1 and oreDragging then
         oreDragging = false
         oreListPos = OreListFrame.Position
@@ -874,7 +883,7 @@ UserInputService.InputChanged:Connect(function(input)
     end
 end)
 
-UserInputService.InputEnded:Connect(function(input)
+safeConnect(UserInputService.InputEnded, function(input)
     if input.UserInputType == Enum.UserInputType.MouseButton1 and droppedDragging then
         droppedDragging = false
         droppedListPos = DroppedListFrame.Position
@@ -5474,7 +5483,7 @@ StatsToggle.Button.MouseButton1Click:Connect(function()
 end)
 
 
-UserInputService.InputBegan:Connect(function(input, gameProcessed)
+safeConnect(UserInputService.InputBegan, function(input, gameProcessed)
     if gameProcessed then return end
     
     
@@ -5531,14 +5540,14 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
     end
 end)
 
-UserInputService.InputEnded:Connect(function(input)
+safeConnect(UserInputService.InputEnded, function(input)
     if input.UserInputType == KeyConfig.AimbotHold then
         AimbotConfig.Aiming = false
         AimbotConfig.Target = nil
     end
 end)
 
-LocalPlayer.CharacterAdded:Connect(function()
+safeConnect(LocalPlayer.CharacterAdded, function()
     cleanupAllESP()
     
     FlyConfig.IsFlying = false
@@ -5607,7 +5616,7 @@ LocalPlayer.CharacterAdded:Connect(function()
     end
 end)
 
-Players.PlayerRemoving:Connect(function(player)
+safeConnect(Players.PlayerRemoving, function(player)
     if player == LocalPlayer then
         if LegacyNoClipConfig.Connection then
             LegacyNoClipConfig.Connection:Disconnect()
@@ -5615,7 +5624,7 @@ Players.PlayerRemoving:Connect(function(player)
     end
 end)
 
-LocalPlayer.CharacterRemoving:Connect(function()
+safeConnect(LocalPlayer.CharacterRemoving, function()
     cleanupAllESP()
 end)
 
@@ -5635,7 +5644,7 @@ FOVSliderBar.Size = UDim2.new((FOVConfig.DefaultFOV - 30) / 150, 0, 1, 0)
 FOVSliderHandle.Position = UDim2.new((FOVConfig.DefaultFOV - 30) / 150, -6, 0.5, -6)
 FOVLabel.Text = "FOV: " .. math.floor(FOVConfig.DefaultFOV)
 
-RunService.Heartbeat:Connect(function()
+safeConnect(RunService.Heartbeat, function()
     pcall(updateESP)
 
     pcall(updateOreESP)
