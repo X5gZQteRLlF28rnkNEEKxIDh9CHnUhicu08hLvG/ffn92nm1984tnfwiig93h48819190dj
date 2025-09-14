@@ -5803,47 +5803,49 @@ local function performInitialScan()
     if INITIAL_SCAN_COMPLETED then return end
 
     for _, v in pairs(safeGetGC()) do
-        if typeof(v) == "table" then
-            if rawget(v, "RPM") and type(rawget(v, "RPM")) == "number" then
-                ORIGINAL_VALUES.RPM[v] = rawget(v, "RPM")
-            end
-            if rawget(v, "FireDelay") and type(rawget(v, "FireDelay")) == "number" then
-                ORIGINAL_VALUES.FireDelay[v] = rawget(v, "FireDelay")
-            end
-            if rawget(v, "FireRate") and type(rawget(v, "FireRate")) == "number" then
-                ORIGINAL_VALUES.FireRate[v] = rawget(v, "FireRate")
-            end
-            if rawget(v, "Spread") and type(rawget(v, "Spread")) == "number" then
-                ORIGINAL_VALUES.Spread[v] = {Spread = rawget(v, "Spread")}
-            end
-            if rawget(v, "SpreadIncrease") and type(rawget(v, "SpreadIncrease")) == "number" then
-                if not ORIGINAL_VALUES.Spread[v] then
-                    ORIGINAL_VALUES.Spread[v] = {}
+        pcall(function()
+            if typeof(v) == "table" then
+                if rawget(v, "RPM") and type(rawget(v, "RPM")) == "number" then
+                    ORIGINAL_VALUES.RPM[v] = rawget(v, "RPM")
                 end
-                ORIGINAL_VALUES.Spread[v].SpreadIncrease = rawget(v, "SpreadIncrease")
-            end
-            if rawget(v, "MaxSpread") and type(rawget(v, "MaxSpread")) == "number" then
-                if not ORIGINAL_VALUES.Spread[v] then
-                    ORIGINAL_VALUES.Spread[v] = {}
+                if rawget(v, "FireDelay") and type(rawget(v, "FireDelay")) == "number" then
+                    ORIGINAL_VALUES.FireDelay[v] = rawget(v, "FireDelay")
                 end
-                ORIGINAL_VALUES.Spread[v].MaxSpread = rawget(v, "MaxSpread")
-            end
-            if rawget(v, "MinSpread") and type(rawget(v, "MinSpread")) == "number" then
-                if not ORIGINAL_VALUES.Spread[v] then
-                    ORIGINAL_VALUES.Spread[v] = {}
+                if rawget(v, "FireRate") and type(rawget(v, "FireRate")) == "number" then
+                    ORIGINAL_VALUES.FireRate[v] = rawget(v, "FireRate")
                 end
-                ORIGINAL_VALUES.Spread[v].MinSpread = rawget(v, "MinSpread")
-            end
-            if rawget(v, "Accuracy") and type(rawget(v, "Accuracy")) == "number" then
-                if not ORIGINAL_VALUES.Spread[v] then
-                    ORIGINAL_VALUES.Spread[v] = {}
+                if rawget(v, "Spread") and type(rawget(v, "Spread")) == "number" then
+                    ORIGINAL_VALUES.Spread[v] = {Spread = rawget(v, "Spread")}
                 end
-                ORIGINAL_VALUES.Spread[v].Accuracy = rawget(v, "Accuracy")
+                if rawget(v, "SpreadIncrease") and type(rawget(v, "SpreadIncrease")) == "number" then
+                    if not ORIGINAL_VALUES.Spread[v] then
+                        ORIGINAL_VALUES.Spread[v] = {}
+                    end
+                    ORIGINAL_VALUES.Spread[v].SpreadIncrease = rawget(v, "SpreadIncrease")
+                end
+                if rawget(v, "MaxSpread") and type(rawget(v, "MaxSpread")) == "number" then
+                    if not ORIGINAL_VALUES.Spread[v] then
+                        ORIGINAL_VALUES.Spread[v] = {}
+                    end
+                    ORIGINAL_VALUES.Spread[v].MaxSpread = rawget(v, "MaxSpread")
+                end
+                if rawget(v, "MinSpread") and type(rawget(v, "MinSpread")) == "number" then
+                    if not ORIGINAL_VALUES.Spread[v] then
+                        ORIGINAL_VALUES.Spread[v] = {}
+                    end
+                    ORIGINAL_VALUES.Spread[v].MinSpread = rawget(v, "MinSpread")
+                end
+                if rawget(v, "Accuracy") and type(rawget(v, "Accuracy")) == "number" then
+                    if not ORIGINAL_VALUES.Spread[v] then
+                        ORIGINAL_VALUES.Spread[v] = {}
+                    end
+                    ORIGINAL_VALUES.Spread[v].Accuracy = rawget(v, "Accuracy")
+                end
+                if rawget(v, "XScale") and rawget(v, "YScale") then
+                    ORIGINAL_VALUES.Recoil[v] = {XScale = rawget(v, "XScale"), YScale = rawget(v, "YScale")}
+                end
             end
-            if rawget(v, "XScale") and rawget(v, "YScale") then
-                ORIGINAL_VALUES.Recoil[v] = {XScale = rawget(v, "XScale"), YScale = rawget(v, "YScale")}
-            end
-        end
+        end)
     end
     
     INITIAL_SCAN_COMPLETED = true
@@ -5856,35 +5858,47 @@ local function modifyAllWeaponsRPM(enable)
             performInitialScan()
         end
         for tbl, orig in pairs(ORIGINAL_VALUES.RPM) do
-            if typeof(tbl) == "table" and rawget(tbl, "RPM") then
-                safeRawSet(tbl, "RPM", orig * FIRE_RATE_MULTIPLIER)
-            end
+            pcall(function()
+                if typeof(tbl) == "table" and rawget(tbl, "RPM") then
+                    safeRawSet(tbl, "RPM", orig * FIRE_RATE_MULTIPLIER)
+                end
+            end)
         end
         for tbl, orig in pairs(ORIGINAL_VALUES.FireDelay) do
-            if typeof(tbl) == "table" and rawget(tbl, "FireDelay") then
-                safeRawSet(tbl, "FireDelay", orig / FIRE_RATE_MULTIPLIER)
-            end
+            pcall(function()
+                if typeof(tbl) == "table" and rawget(tbl, "FireDelay") then
+                    safeRawSet(tbl, "FireDelay", orig / FIRE_RATE_MULTIPLIER)
+                end
+            end)
         end
         for tbl, orig in pairs(ORIGINAL_VALUES.FireRate) do
-            if typeof(tbl) == "table" and rawget(tbl, "FireRate") then
-                safeRawSet(tbl, "FireRate", orig / FIRE_RATE_MULTIPLIER)
-            end
+            pcall(function()
+                if typeof(tbl) == "table" and rawget(tbl, "FireRate") then
+                    safeRawSet(tbl, "FireRate", orig / FIRE_RATE_MULTIPLIER)
+                end
+            end)
         end
     else
         for tbl, val in pairs(ORIGINAL_VALUES.RPM) do
-            if typeof(tbl) == "table" and rawget(tbl, "RPM") then
-                safeRawSet(tbl, "RPM", val)
-            end
+            pcall(function()
+                if typeof(tbl) == "table" and rawget(tbl, "RPM") then
+                    safeRawSet(tbl, "RPM", val)
+                end
+            end)
         end
         for tbl, val in pairs(ORIGINAL_VALUES.FireDelay) do
-            if typeof(tbl) == "table" and rawget(tbl, "FireDelay") then
-                safeRawSet(tbl, "FireDelay", val)
-            end
+            pcall(function()
+                if typeof(tbl) == "table" and rawget(tbl, "FireDelay") then
+                    safeRawSet(tbl, "FireDelay", val)
+                end
+            end)
         end
         for tbl, val in pairs(ORIGINAL_VALUES.FireRate) do
-            if typeof(tbl) == "table" and rawget(tbl, "FireRate") then
-                safeRawSet(tbl, "FireRate", val)
-            end
+            pcall(function()
+                if typeof(tbl) == "table" and rawget(tbl, "FireRate") then
+                    safeRawSet(tbl, "FireRate", val)
+                end
+            end)
         end
     end
 end
@@ -5896,43 +5910,47 @@ local function applySpreadControl(enable)
             performInitialScan()
         end
         for tbl, values in pairs(ORIGINAL_VALUES.Spread) do
-            if typeof(tbl) == "table" then
-                if values.Spread and rawget(tbl, "Spread") then
-                    safeRawSet(tbl, "Spread", values.Spread * SPREAD_VALUE)
+            pcall(function()
+                if typeof(tbl) == "table" then
+                    if values.Spread and rawget(tbl, "Spread") then
+                        safeRawSet(tbl, "Spread", values.Spread * SPREAD_VALUE)
+                    end
+                    if values.SpreadIncrease and rawget(tbl, "SpreadIncrease") then
+                        safeRawSet(tbl, "SpreadIncrease", values.SpreadIncrease * SPREAD_VALUE)
+                    end
+                    if values.MaxSpread and rawget(tbl, "MaxSpread") then
+                        safeRawSet(tbl, "MaxSpread", values.MaxSpread * SPREAD_VALUE)
+                    end
+                    if values.MinSpread and rawget(tbl, "MinSpread") then
+                        safeRawSet(tbl, "MinSpread", values.MinSpread * SPREAD_VALUE)
+                    end
+                    if values.Accuracy and rawget(tbl, "Accuracy") and SPREAD_VALUE > 0 then
+                        safeRawSet(tbl, "Accuracy", values.Accuracy / SPREAD_VALUE)
+                    end
                 end
-                if values.SpreadIncrease and rawget(tbl, "SpreadIncrease") then
-                    safeRawSet(tbl, "SpreadIncrease", values.SpreadIncrease * SPREAD_VALUE)
-                end
-                if values.MaxSpread and rawget(tbl, "MaxSpread") then
-                    safeRawSet(tbl, "MaxSpread", values.MaxSpread * SPREAD_VALUE)
-                end
-                if values.MinSpread and rawget(tbl, "MinSpread") then
-                    safeRawSet(tbl, "MinSpread", values.MinSpread * SPREAD_VALUE)
-                end
-                if values.Accuracy and rawget(tbl, "Accuracy") and SPREAD_VALUE > 0 then
-                    safeRawSet(tbl, "Accuracy", values.Accuracy / SPREAD_VALUE)
-                end
-            end
+            end)
         end
     else
         for tbl, values in pairs(ORIGINAL_VALUES.Spread) do
-            if typeof(tbl) == "table" then
-                if values.Spread and rawget(tbl, "Spread") then
-                    safeRawSet(tbl, "Spread", values.Spread)
+            pcall(function()
+                if typeof(tbl) == "table" then
+                    if values.Spread and rawget(tbl, "Spread") then
+                        safeRawSet(tbl, "Spread", values.Spread)
+                    end
+                    if values.SpreadIncrease and rawget(tbl, "SpreadIncrease") then
+                        safeRawSet(tbl, "SpreadIncrease", values.SpreadIncrease)
+                    end
+                    if values.MaxSpread and rawget(tbl, "MaxSpread") then
+                        safeRawSet(tbl, "MaxSpread", values.MaxSpread)
+                    end
+                    if values.MinSpread and rawget(tbl, "MinSpread") then
+                        safeRawSet(tbl, "MinSpread", values.MinSpread)
+                    end
+                    if values.Accuracy and rawget(tbl, "Accuracy") then
+                        safeRawSet(tbl, "Accuracy", values.Accuracy)
+                    end
                 end
-                if values.SpreadIncrease and rawget(tbl, "SpreadIncrease") then
-                    safeRawSet(tbl, "SpreadIncrease", values.SpreadIncrease)
-                end
-                if values.MaxSpread and rawget(tbl, "MaxSpread") then
-                    safeRawSet(tbl, "MaxSpread", values.MaxSpread)
-                end
-                if values.MinSpread and rawget(tbl, "MinSpread") then
-                    safeRawSet(tbl, "MinSpread", values.MinSpread)
-                end
-                if values.Accuracy and rawget(tbl, "Accuracy") then
-                    safeRawSet(tbl, "Accuracy", values.Accuracy)
-                end
-            end
+            end)
         end
     end
 end
@@ -5944,21 +5962,25 @@ local function modifyRecoilTables(enable)
             performInitialScan()
         end
         for tbl, values in pairs(ORIGINAL_VALUES.Recoil) do
-            if typeof(tbl) == "table" then
-                if rawget(tbl, "XScale") then safeRawSet(tbl, "XScale", CUSTOM_X_SCALE) end
-                if rawget(tbl, "YScale") then safeRawSet(tbl, "YScale", CUSTOM_Y_SCALE) end
-            end
+            pcall(function()
+                if typeof(tbl) == "table" then
+                    if rawget(tbl, "XScale") then safeRawSet(tbl, "XScale", CUSTOM_X_SCALE) end
+                    if rawget(tbl, "YScale") then safeRawSet(tbl, "YScale", CUSTOM_Y_SCALE) end
+                end
+            end)
         end
     else
         for tbl, values in pairs(ORIGINAL_VALUES.Recoil) do
-            if typeof(tbl) == "table" then
-                if values.XScale and rawget(tbl, "XScale") then
-                    safeRawSet(tbl, "XScale", values.XScale)
+            pcall(function()
+                if typeof(tbl) == "table" then
+                    if values.XScale and rawget(tbl, "XScale") then
+                        safeRawSet(tbl, "XScale", values.XScale)
+                    end
+                    if values.YScale and rawget(tbl, "YScale") then
+                        safeRawSet(tbl, "YScale", values.YScale)
+                    end
                 end
-                if values.YScale and rawget(tbl, "YScale") then
-                    safeRawSet(tbl, "YScale", values.YScale)
-                end
-            end
+            end)
         end
     end
 end
@@ -5986,19 +6008,19 @@ local WeaponControl = {}
 
 function WeaponControl.ToggleRapidFire()
     FAST_FIRE_ENABLED = not FAST_FIRE_ENABLED
-    modifyAllWeaponsRPM(FAST_FIRE_ENABLED)
+    pcall(modifyAllWeaponsRPM, FAST_FIRE_ENABLED)
     updateStatusLabels()
 end
 
 function WeaponControl.ToggleNoRecoil()
     NO_RECOIL_ENABLED = not NO_RECOIL_ENABLED
-    modifyRecoilTables(NO_RECOIL_ENABLED)
+    pcall(modifyRecoilTables, NO_RECOIL_ENABLED)
     updateStatusLabels()
 end
 
 function WeaponControl.ToggleSpread()
     SPREAD_ENABLED = not SPREAD_ENABLED
-    applySpreadControl(SPREAD_ENABLED)
+    pcall(applySpreadControl, SPREAD_ENABLED)
     updateStatusLabels()
 end
 
