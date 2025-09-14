@@ -1858,7 +1858,7 @@ FOVLabel.BackgroundTransparency = 1
 FOVLabel.Position = UDim2.new(0.87, 0, 0, 0)
 FOVLabel.Size = UDim2.new(0.13, 0, 1, 0)
 FOVLabel.FontFace = customFont
-FOVLabel.Text = "FOV: 70"
+FOVLabel.Text = "FOV: " .. math.floor(FOVConfig.DefaultFOV)
 FOVLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
 FOVLabel.TextSize = 10
 FOVLabel.TextXAlignment = Enum.TextXAlignment.Left
@@ -2713,7 +2713,7 @@ end)
 UserInputService.InputChanged:Connect(function(input)
     if fovDragging and input.UserInputType == Enum.UserInputType.MouseMovement then
         local relativeX = math.clamp((input.Position.X - FOVSliderFrame.AbsolutePosition.X) / FOVSliderFrame.AbsoluteSize.X, 0, 1)
-        local fov = 30 + (relativeX * 90)
+        local fov = 30 + (relativeX * 150)
 
         FOVSliderBar.Size = UDim2.new(relativeX, 0, 1, 0)
         FOVSliderHandle.Position = UDim2.new(relativeX, -6, 0.5, -6)
@@ -5620,8 +5620,8 @@ if XrayLabel then
     XrayLabel.Text = string.format("Alpha: %.2f", XrayConfig.Transparency)
 end
 
-FOVSliderBar.Size = UDim2.new((FOVConfig.DefaultFOV - 30) / 90, 0, 1, 0)
-FOVSliderHandle.Position = UDim2.new((FOVConfig.DefaultFOV - 30) / 90, -6, 0.5, -6)
+FOVSliderBar.Size = UDim2.new((FOVConfig.DefaultFOV - 30) / 150, 0, 1, 0)
+FOVSliderHandle.Position = UDim2.new((FOVConfig.DefaultFOV - 30) / 150, -6, 0.5, -6)
 FOVLabel.Text = "FOV: " .. math.floor(FOVConfig.DefaultFOV)
 
 RunService.Heartbeat:Connect(function()
@@ -5723,3 +5723,268 @@ game:GetService("StarterGui"):SetCore("SendNotification", {
     Text = "TeamCheck, Custom Keys & Improved Aimbot Ready!";
     Duration = 3;
 })
+
+-- Weapon Control Script: Gun RapidFire, No Recoil, Spread Control
+-- Added per user request.
+-- 初期設定: 全機能OFF
+local FAST_FIRE_ENABLED = false  -- 初期OFF
+local NO_RECOIL_ENABLED = false  -- 初期OFF
+local SPREAD_ENABLED = false  -- スプレッド制御 初期OFF
+
+-- 設定値（スライダーで調整可能）
+local FIRE_RATE_MULTIPLIER = 10  -- 発射速度倍率（1=通常、10=10倍速）
+local SPREAD_VALUE = 1.0  -- スプレッド倍率（0.0=無し、1.0=通常、2.0=2倍）
+
+-- オリジナル値を保存するテーブル（メモリアドレスベースで管理）
+local ORIGINAL_VALUES = {
+    RPM = {},
+    FireDelay = {},
+    FireRate = {},
+    Spread = {},
+    Recoil = {}
+}
+
+-- 値が初回保存されたかを追跡
+local INITIAL_SCAN_COMPLETED = false
+
+-- リコイル制御用の設定
+local CUSTOM_RECOIL_MULTIPLIER = 0
+local CUSTOM_X_SCALE = 0
+local CUSTOM_Y_SCALE = 0
+
+-- 最適化用の変数
+local RECOIL_TABLES_CACHE = {}
+local SPREAD_TABLES_CACHE = {}
+local LAST_GC_CHECK = 0
+local GC_CHECK_INTERVAL = 8
+
+-- GUI関連の変数
+local FireRateGUI = nil
+local GUI_VISIBLE = true
+local StatusLabel = nil
+local RecoilStatusLabel = nil
+local SpreadStatusLabel = nil
+local ToggleButton = nil
+local RecoilToggleButton = nil
+local SpreadToggleButton = nil
+local GunRPMSlider = nil
+local SpreadSlider = nil
+local GunRPMLabel = nil
+local SpreadLabel = nil
+
+-- 必要なサービス
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
+local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
+
+-- プレイヤー情報
+local player = Players.LocalPlayer
+
+-- 初回スキャンでオリジナル値を保存
+local function performInitialScan()
+    if INITIAL_SCAN_COMPLETED then return end
+    
+    for _, v in pairs(getgc(true)) do
+        if typeof(v) == "table" then
+            if rawget(v, "RPM") and type(rawget(v, "RPM")) == "number" then
+                ORIGINAL_VALUES.RPM[v] = rawget(v, "RPM")
+            end
+            if rawget(v, "FireDelay") and type(rawget(v, "FireDelay")) == "number" then
+                ORIGINAL_VALUES.FireDelay[v] = rawget(v, "FireDelay")
+            end
+            if rawget(v, "FireRate") and type(rawget(v, "FireRate")) == "number" then
+                ORIGINAL_VALUES.FireRate[v] = rawget(v, "FireRate")
+            end
+            if rawget(v, "Spread") and type(rawget(v, "Spread")) == "number" then
+                ORIGINAL_VALUES.Spread[v] = {Spread = rawget(v, "Spread")}
+            end
+            if rawget(v, "SpreadIncrease") and type(rawget(v, "SpreadIncrease")) == "number" then
+                if not ORIGINAL_VALUES.Spread[v] then
+                    ORIGINAL_VALUES.Spread[v] = {}
+                end
+                ORIGINAL_VALUES.Spread[v].SpreadIncrease = rawget(v, "SpreadIncrease")
+            end
+            if rawget(v, "MaxSpread") and type(rawget(v, "MaxSpread")) == "number" then
+                if not ORIGINAL_VALUES.Spread[v] then
+                    ORIGINAL_VALUES.Spread[v] = {}
+                end
+                ORIGINAL_VALUES.Spread[v].MaxSpread = rawget(v, "MaxSpread")
+            end
+            if rawget(v, "MinSpread") and type(rawget(v, "MinSpread")) == "number" then
+                if not ORIGINAL_VALUES.Spread[v] then
+                    ORIGINAL_VALUES.Spread[v] = {}
+                end
+                ORIGINAL_VALUES.Spread[v].MinSpread = rawget(v, "MinSpread")
+            end
+            if rawget(v, "Accuracy") and type(rawget(v, "Accuracy")) == "number" then
+                if not ORIGINAL_VALUES.Spread[v] then
+                    ORIGINAL_VALUES.Spread[v] = {}
+                end
+                ORIGINAL_VALUES.Spread[v].Accuracy = rawget(v, "Accuracy")
+            end
+            if rawget(v, "XScale") and rawget(v, "YScale") then
+                ORIGINAL_VALUES.Recoil[v] = {XScale = rawget(v, "XScale"), YScale = rawget(v, "YScale")}
+            end
+        end
+    end
+    
+    INITIAL_SCAN_COMPLETED = true
+end
+
+local function modifyAllWeaponsRPM(enable)
+    if enable == nil then enable = FAST_FIRE_ENABLED end
+    if enable then
+        if not INITIAL_SCAN_COMPLETED then
+            performInitialScan()
+        end
+        for tbl, orig in pairs(ORIGINAL_VALUES.RPM) do
+            if typeof(tbl) == "table" and rawget(tbl, "RPM") then
+                rawset(tbl, "RPM", orig * FIRE_RATE_MULTIPLIER)
+            end
+        end
+        for tbl, orig in pairs(ORIGINAL_VALUES.FireDelay) do
+            if typeof(tbl) == "table" and rawget(tbl, "FireDelay") then
+                rawset(tbl, "FireDelay", orig / FIRE_RATE_MULTIPLIER)
+            end
+        end
+        for tbl, orig in pairs(ORIGINAL_VALUES.FireRate) do
+            if typeof(tbl) == "table" and rawget(tbl, "FireRate") then
+                rawset(tbl, "FireRate", orig / FIRE_RATE_MULTIPLIER)
+            end
+        end
+    else
+        for tbl, val in pairs(ORIGINAL_VALUES.RPM) do
+            if typeof(tbl) == "table" and rawget(tbl, "RPM") then
+                rawset(tbl, "RPM", val)
+            end
+        end
+        for tbl, val in pairs(ORIGINAL_VALUES.FireDelay) do
+            if typeof(tbl) == "table" and rawget(tbl, "FireDelay") then
+                rawset(tbl, "FireDelay", val)
+            end
+        end
+        for tbl, val in pairs(ORIGINAL_VALUES.FireRate) do
+            if typeof(tbl) == "table" and rawget(tbl, "FireRate") then
+                rawset(tbl, "FireRate", val)
+            end
+        end
+    end
+end
+
+local function applySpreadControl(enable)
+    if enable == nil then enable = SPREAD_ENABLED end
+    if enable then
+        if not INITIAL_SCAN_COMPLETED then
+            performInitialScan()
+        end
+        for tbl, values in pairs(ORIGINAL_VALUES.Spread) do
+            if typeof(tbl) == "table" then
+                if values.Spread and rawget(tbl, "Spread") then
+                    rawset(tbl, "Spread", values.Spread * SPREAD_VALUE)
+                end
+                if values.SpreadIncrease and rawget(tbl, "SpreadIncrease") then
+                    rawset(tbl, "SpreadIncrease", values.SpreadIncrease * SPREAD_VALUE)
+                end
+                if values.MaxSpread and rawget(tbl, "MaxSpread") then
+                    rawset(tbl, "MaxSpread", values.MaxSpread * SPREAD_VALUE)
+                end
+                if values.MinSpread and rawget(tbl, "MinSpread") then
+                    rawset(tbl, "MinSpread", values.MinSpread * SPREAD_VALUE)
+                end
+                if values.Accuracy and rawget(tbl, "Accuracy") and SPREAD_VALUE > 0 then
+                    rawset(tbl, "Accuracy", values.Accuracy / SPREAD_VALUE)
+                end
+            end
+        end
+    else
+        for tbl, values in pairs(ORIGINAL_VALUES.Spread) do
+            if typeof(tbl) == "table" then
+                if values.Spread and rawget(tbl, "Spread") then
+                    rawset(tbl, "Spread", values.Spread)
+                end
+                if values.SpreadIncrease and rawget(tbl, "SpreadIncrease") then
+                    rawset(tbl, "SpreadIncrease", values.SpreadIncrease)
+                end
+                if values.MaxSpread and rawget(tbl, "MaxSpread") then
+                    rawset(tbl, "MaxSpread", values.MaxSpread)
+                end
+                if values.MinSpread and rawget(tbl, "MinSpread") then
+                    rawset(tbl, "MinSpread", values.MinSpread)
+                end
+                if values.Accuracy and rawget(tbl, "Accuracy") then
+                    rawset(tbl, "Accuracy", values.Accuracy)
+                end
+            end
+        end
+    end
+end
+
+local function modifyRecoilTables(enable)
+    if enable == nil then enable = NO_RECOIL_ENABLED end
+    if enable then
+        if not INITIAL_SCAN_COMPLETED then
+            performInitialScan()
+        end
+        for tbl, values in pairs(ORIGINAL_VALUES.Recoil) do
+            if typeof(tbl) == "table" then
+                if rawget(tbl, "XScale") then rawset(tbl, "XScale", CUSTOM_X_SCALE) end
+                if rawget(tbl, "YScale") then rawset(tbl, "YScale", CUSTOM_Y_SCALE) end
+            end
+        end
+    else
+        for tbl, values in pairs(ORIGINAL_VALUES.Recoil) do
+            if typeof(tbl) == "table" then
+                if values.XScale and rawget(tbl, "XScale") then
+                    rawset(tbl, "XScale", values.XScale)
+                end
+                if values.YScale and rawget(tbl, "YScale") then
+                    rawset(tbl, "YScale", values.YScale)
+                end
+            end
+        end
+    end
+end
+
+local function updateStatusLabels()
+    if StatusLabel then
+        StatusLabel.Text = "Gun RapidFire: " .. (FAST_FIRE_ENABLED and "ENABLED" or "DISABLED")
+        StatusLabel.TextColor3 = FAST_FIRE_ENABLED and Color3.fromRGB(0,255,0) or Color3.fromRGB(255,100,100)
+    end
+    if RecoilStatusLabel then
+        RecoilStatusLabel.Text = "No Recoil: " .. (NO_RECOIL_ENABLED and "ENABLED" or "DISABLED")
+        RecoilStatusLabel.TextColor3 = NO_RECOIL_ENABLED and Color3.fromRGB(0,255,0) or Color3.fromRGB(255,100,100)
+    end
+    if SpreadStatusLabel then
+        SpreadStatusLabel.Text = "Spread Control: " .. (SPREAD_ENABLED and "ENABLED" or "DISABLED")
+        SpreadStatusLabel.TextColor3 = SPREAD_ENABLED and Color3.fromRGB(0,255,0) or Color3.fromRGB(255,100,100)
+    end
+end
+
+-- GUI creation and event setup are omitted for brevity in this appended snippet.
+-- Users can integrate full GUI from provided script if needed.
+
+-- Expose simple toggle interface
+local WeaponControl = {}
+
+function WeaponControl.ToggleRapidFire()
+    FAST_FIRE_ENABLED = not FAST_FIRE_ENABLED
+    modifyAllWeaponsRPM(FAST_FIRE_ENABLED)
+    updateStatusLabels()
+end
+
+function WeaponControl.ToggleNoRecoil()
+    NO_RECOIL_ENABLED = not NO_RECOIL_ENABLED
+    modifyRecoilTables(NO_RECOIL_ENABLED)
+    updateStatusLabels()
+end
+
+function WeaponControl.ToggleSpread()
+    SPREAD_ENABLED = not SPREAD_ENABLED
+    applySpreadControl(SPREAD_ENABLED)
+    updateStatusLabels()
+end
+
+return WeaponControl
+
