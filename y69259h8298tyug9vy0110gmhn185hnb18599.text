@@ -5718,11 +5718,13 @@ ScreenGui.AncestryChanged:Connect(function()
     end
 end)
 
-game:GetService("StarterGui"):SetCore("SendNotification", {
-    Title = "Enhanced Script Loaded";
-    Text = "TeamCheck, Custom Keys & Improved Aimbot Ready!";
-    Duration = 3;
-})
+pcall(function()
+    game:GetService("StarterGui"):SetCore("SendNotification", {
+        Title = "Enhanced Script Loaded";
+        Text = "TeamCheck, Custom Keys & Improved Aimbot Ready!";
+        Duration = 3;
+    })
+end)
 
 -- Weapon Control Script: Gun RapidFire, No Recoil, Spread Control
 -- Added per user request.
@@ -5781,6 +5783,11 @@ local UserInputService = game:GetService("UserInputService")
 
 -- プレイヤー情報
 local player = Players.LocalPlayer
+if not player then
+    pcall(function()
+        repeat task.wait() player = Players.LocalPlayer until player
+    end)
+end
 
 local function safeRawSet(tbl, key, value)
     pcall(function()
