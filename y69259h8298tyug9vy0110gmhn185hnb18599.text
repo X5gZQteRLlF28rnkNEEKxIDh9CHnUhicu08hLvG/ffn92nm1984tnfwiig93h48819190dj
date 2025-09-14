@@ -5816,6 +5816,65 @@ local function safeGetGC()
     return {}
 end
 
+-- forward declaration for GUI label updater
+local function updateStatusLabels() end
+
+-- 共通のフェイルセーフ: 予期せぬエラーが発生した際に全ての変更を元に戻す
+local function failSafe(err)
+    FAST_FIRE_ENABLED = false
+    NO_RECOIL_ENABLED = false
+    SPREAD_ENABLED = false
+    pcall(function()
+        -- 値の復元は全てのテーブルに対して安全に実行
+        for tbl, val in pairs(ORIGINAL_VALUES.RPM) do
+            if typeof(tbl) == "table" and rawget(tbl, "RPM") then
+                safeRawSet(tbl, "RPM", val)
+            end
+        end
+        for tbl, val in pairs(ORIGINAL_VALUES.FireDelay) do
+            if typeof(tbl) == "table" and rawget(tbl, "FireDelay") then
+                safeRawSet(tbl, "FireDelay", val)
+            end
+        end
+        for tbl, val in pairs(ORIGINAL_VALUES.FireRate) do
+            if typeof(tbl) == "table" and rawget(tbl, "FireRate") then
+                safeRawSet(tbl, "FireRate", val)
+            end
+        end
+        for tbl, values in pairs(ORIGINAL_VALUES.Spread) do
+            if typeof(tbl) == "table" then
+                if values.Spread and rawget(tbl, "Spread") then
+                    safeRawSet(tbl, "Spread", values.Spread)
+                end
+                if values.SpreadIncrease and rawget(tbl, "SpreadIncrease") then
+                    safeRawSet(tbl, "SpreadIncrease", values.SpreadIncrease)
+                end
+                if values.MaxSpread and rawget(tbl, "MaxSpread") then
+                    safeRawSet(tbl, "MaxSpread", values.MaxSpread)
+                end
+                if values.MinSpread and rawget(tbl, "MinSpread") then
+                    safeRawSet(tbl, "MinSpread", values.MinSpread)
+                end
+                if values.Accuracy and rawget(tbl, "Accuracy") then
+                    safeRawSet(tbl, "Accuracy", values.Accuracy)
+                end
+            end
+        end
+        for tbl, values in pairs(ORIGINAL_VALUES.Recoil) do
+            if typeof(tbl) == "table" then
+                if values.XScale and rawget(tbl, "XScale") then
+                    safeRawSet(tbl, "XScale", values.XScale)
+                end
+                if values.YScale and rawget(tbl, "YScale") then
+                    safeRawSet(tbl, "YScale", values.YScale)
+                end
+            end
+        end
+    end)
+    if err then warn("[WeaponControl] Reset due to error:", err) end
+    updateStatusLabels()
+end
+
 -- 初回スキャンでオリジナル値を保存
 local function performInitialScan()
     if INITIAL_SCAN_COMPLETED then return end
@@ -6003,7 +6062,7 @@ local function modifyRecoilTables(enable)
     end
 end
 
-local function updateStatusLabels()
+function updateStatusLabels()
     if StatusLabel then
         StatusLabel.Text = "Gun RapidFire: " .. (FAST_FIRE_ENABLED and "ENABLED" or "DISABLED")
         StatusLabel.TextColor3 = FAST_FIRE_ENABLED and Color3.fromRGB(0,255,0) or Color3.fromRGB(255,100,100)
@@ -6026,20 +6085,32 @@ local WeaponControl = {}
 
 function WeaponControl.ToggleRapidFire()
     FAST_FIRE_ENABLED = not FAST_FIRE_ENABLED
-    pcall(modifyAllWeaponsRPM, FAST_FIRE_ENABLED)
-    updateStatusLabels()
+    local ok, err = pcall(modifyAllWeaponsRPM, FAST_FIRE_ENABLED)
+    if not ok then
+        failSafe(err)
+    else
+        updateStatusLabels()
+    end
 end
 
 function WeaponControl.ToggleNoRecoil()
     NO_RECOIL_ENABLED = not NO_RECOIL_ENABLED
-    pcall(modifyRecoilTables, NO_RECOIL_ENABLED)
-    updateStatusLabels()
+    local ok, err = pcall(modifyRecoilTables, NO_RECOIL_ENABLED)
+    if not ok then
+        failSafe(err)
+    else
+        updateStatusLabels()
+    end
 end
 
 function WeaponControl.ToggleSpread()
     SPREAD_ENABLED = not SPREAD_ENABLED
-    pcall(applySpreadControl, SPREAD_ENABLED)
-    updateStatusLabels()
+    local ok, err = pcall(applySpreadControl, SPREAD_ENABLED)
+    if not ok then
+        failSafe(err)
+    else
+        updateStatusLabels()
+    end
 end
 
 return WeaponControl
