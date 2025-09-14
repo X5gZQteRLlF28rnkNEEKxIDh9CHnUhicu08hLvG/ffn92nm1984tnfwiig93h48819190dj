@@ -5884,6 +5884,15 @@ local function failSafe(err)
     updateStatusLabels()
 end
 
+-- Helper to run weapon modifications with full traceback protection
+local function runSafely(fn, ...)
+    local ok, result = xpcall(fn, debug.traceback, ...)
+    if not ok then
+        failSafe(result)
+    end
+    return ok, result
+end
+
 -- 初回スキャンでオリジナル値を保存
 local function performInitialScan()
     if INITIAL_SCAN_COMPLETED then return end
@@ -6094,30 +6103,21 @@ local WeaponControl = {}
 
 function WeaponControl.ToggleRapidFire()
     FAST_FIRE_ENABLED = not FAST_FIRE_ENABLED
-    local ok, err = pcall(modifyAllWeaponsRPM, FAST_FIRE_ENABLED)
-    if not ok then
-        failSafe(err)
-    else
+    if runSafely(modifyAllWeaponsRPM, FAST_FIRE_ENABLED) then
         updateStatusLabels()
     end
 end
 
 function WeaponControl.ToggleNoRecoil()
     NO_RECOIL_ENABLED = not NO_RECOIL_ENABLED
-    local ok, err = pcall(modifyRecoilTables, NO_RECOIL_ENABLED)
-    if not ok then
-        failSafe(err)
-    else
+    if runSafely(modifyRecoilTables, NO_RECOIL_ENABLED) then
         updateStatusLabels()
     end
 end
 
 function WeaponControl.ToggleSpread()
     SPREAD_ENABLED = not SPREAD_ENABLED
-    local ok, err = pcall(applySpreadControl, SPREAD_ENABLED)
-    if not ok then
-        failSafe(err)
-    else
+    if runSafely(applySpreadControl, SPREAD_ENABLED) then
         updateStatusLabels()
     end
 end
