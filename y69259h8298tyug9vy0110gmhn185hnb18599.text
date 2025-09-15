@@ -371,6 +371,7 @@ LegacyNoClipConfig = {
     OriginalY = nil,
 }
 allConns = {}
+local deathConn = nil
 
 local Assets = ReplicatedStorage:WaitForChild("Assets")
 local ShivPrefabMain = Assets:WaitForChild("Prefabs"):WaitForChild("Tools"):WaitForChild("Shiv").Viewmodel.Rock.main
@@ -3175,6 +3176,19 @@ local function cleanupAllESP()
     playerTracker = {}
 end
 
+local function attachDeathCleanup(character)
+    if deathConn then
+        deathConn:Disconnect()
+        deathConn = nil
+    end
+    local humanoid = character and character:FindFirstChild("Humanoid")
+    if humanoid then
+        deathConn = humanoid.Died:Connect(function()
+            cleanupAllESP()
+        end)
+    end
+end
+
 local function hideESP(esp)
     if esp.Box then esp.Box.Visible = false end
     if esp.BoxOuter then esp.BoxOuter.Visible = false end
@@ -5231,8 +5245,9 @@ UserInputService.InputEnded:Connect(function(input)
     end
 end)
 
-LocalPlayer.CharacterAdded:Connect(function()
+LocalPlayer.CharacterAdded:Connect(function(character)
     cleanupAllESP()
+    attachDeathCleanup(character)
     
     FlyConfig.IsFlying = false
     FlyKeyLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
@@ -5310,7 +5325,15 @@ end)
 
 LocalPlayer.CharacterRemoving:Connect(function()
     cleanupAllESP()
+    if deathConn then
+        deathConn:Disconnect()
+        deathConn = nil
+    end
 end)
+
+if LocalPlayer.Character then
+    attachDeathCleanup(LocalPlayer.Character)
+end
 
 refreshModels()
 updateButtons()
