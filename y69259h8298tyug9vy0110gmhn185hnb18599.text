@@ -4508,6 +4508,12 @@ function applyConfig(cfg)
         if cfg.AimFov.Enabled ~= AimFovConfig.Enabled then
             toggleAimFov()
         end
+        local aimFovRelative = (AimFovConfig.Radius - 90) / 210
+        AimFovSliderBar.Size = UDim2.new(aimFovRelative, 0, 1, 0)
+        AimFovSliderHandle.Position = UDim2.new(aimFovRelative, -6, 0.5, -6)
+        AimFovValueLabel.Text = "FOV: " .. math.floor(AimFovConfig.Radius)
+        AimFovSliderFrame.Visible = AimFovConfig.Enabled
+        AimFovValueLabel.Visible = AimFovConfig.Enabled
     end
     if cfg.Aimbot and cfg.Aimbot.Enabled ~= AimbotConfig.Enabled then
         toggleAimbot()
@@ -4574,6 +4580,12 @@ function applyConfig(cfg)
         if cfg.FOV.Enabled ~= FOVConfig.Enabled then
             toggleFOV()
         end
+        local fovRelative = (FOVConfig.Value - 30) / 90
+        FOVSliderBar.Size = UDim2.new(fovRelative, 0, 1, 0)
+        FOVSliderHandle.Position = UDim2.new(fovRelative, -6, 0.5, -6)
+        FOVLabel.Text = "FOV: " .. math.floor(FOVConfig.Value)
+        FOVSliderFrame.Visible = FOVConfig.Enabled
+        FOVLabel.Visible = FOVConfig.Enabled
     end
     if cfg.Crosshair then
         if cfg.Crosshair.Color then
