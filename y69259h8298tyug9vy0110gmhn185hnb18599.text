@@ -2713,7 +2713,7 @@ end)
 UserInputService.InputChanged:Connect(function(input)
     if fovDragging and input.UserInputType == Enum.UserInputType.MouseMovement then
         local relativeX = math.clamp((input.Position.X - FOVSliderFrame.AbsolutePosition.X) / FOVSliderFrame.AbsoluteSize.X, 0, 1)
-        local fov = 30 + (relativeX * 90)
+        local fov = 30 + (relativeX * 150)
 
         FOVSliderBar.Size = UDim2.new(relativeX, 0, 1, 0)
         FOVSliderHandle.Position = UDim2.new(relativeX, -6, 0.5, -6)
@@ -5620,8 +5620,8 @@ if XrayLabel then
     XrayLabel.Text = string.format("Alpha: %.2f", XrayConfig.Transparency)
 end
 
-FOVSliderBar.Size = UDim2.new((FOVConfig.DefaultFOV - 30) / 90, 0, 1, 0)
-FOVSliderHandle.Position = UDim2.new((FOVConfig.DefaultFOV - 30) / 90, -6, 0.5, -6)
+FOVSliderBar.Size = UDim2.new((FOVConfig.DefaultFOV - 30) / 150, 0, 1, 0)
+FOVSliderHandle.Position = UDim2.new((FOVConfig.DefaultFOV - 30) / 150, -6, 0.5, -6)
 FOVLabel.Text = "FOV: " .. math.floor(FOVConfig.DefaultFOV)
 
 RunService.Heartbeat:Connect(function()
