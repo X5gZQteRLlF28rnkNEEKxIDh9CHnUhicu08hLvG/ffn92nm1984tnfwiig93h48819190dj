@@ -2472,44 +2472,71 @@ local function toggleAimFov()
     end
 end
 
+local function renderCrosshair()
+    local cam = workspace.CurrentCamera or Camera
+    if cam ~= Camera then
+        Camera = cam
+    end
+
+    if not cam then
+        for _, line in ipairs(CrosshairConfig.Lines) do
+            if line then
+                line.Visible = false
+            end
+        end
+        return
+    end
+
+    local center = Vector2.new(cam.ViewportSize.X / 2, cam.ViewportSize.Y / 2)
+    local half = CrosshairConfig.Size
+    local horizontal = CrosshairConfig.Lines[1]
+    local vertical = CrosshairConfig.Lines[2]
+
+    if horizontal then
+        horizontal.From = center + Vector2.new(-half, 0)
+        horizontal.To = center + Vector2.new(half, 0)
+        horizontal.Color = CrosshairConfig.Color
+        horizontal.Thickness = CrosshairConfig.Thickness
+        horizontal.Visible = true
+    end
+
+    if vertical then
+        vertical.From = center + Vector2.new(0, -half)
+        vertical.To = center + Vector2.new(0, half)
+        vertical.Color = CrosshairConfig.Color
+        vertical.Thickness = CrosshairConfig.Thickness
+        vertical.Visible = true
+    end
+end
+
 local function toggleCrosshair()
     CrosshairConfig.Enabled = not CrosshairConfig.Enabled
 
     if CrosshairConfig.Enabled then
-        for i = 1, 4 do
-            local line = Drawing.new("Line")
-            line.Color = CrosshairConfig.Color
-            line.Thickness = CrosshairConfig.Thickness
-            line.Visible = true
-            CrosshairConfig.Lines[i] = line
+        for i = 1, 2 do
+            if not CrosshairConfig.Lines[i] then
+                local line = Drawing.new("Line")
+                line.Visible = false
+                CrosshairConfig.Lines[i] = line
+            end
         end
         if CrosshairConfig.Connection then
             CrosshairConfig.Connection:Disconnect()
         end
-        CrosshairConfig.Connection = RunService.RenderStepped:Connect(function()
-            local center = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
-            local inner = 0
-            local outer = CrosshairConfig.Size
-            for i = 1, 4 do
-                local ang = (i - 1) * (math.pi / 2)
-                local dir = Vector2.new(math.cos(ang), math.sin(ang))
-                local from = center + dir * inner
-                local to = center + dir * outer
-                local line = CrosshairConfig.Lines[i]
-                line.From = from
-                line.To = to
-                line.Visible = true
-                line.Color = CrosshairConfig.Color
-                line.Thickness = CrosshairConfig.Thickness
-            end
-        end)
+        renderCrosshair()
+        CrosshairConfig.Connection = RunService.RenderStepped:Connect(renderCrosshair)
     else
         if CrosshairConfig.Connection then
             CrosshairConfig.Connection:Disconnect()
             CrosshairConfig.Connection = nil
         end
         for i, line in ipairs(CrosshairConfig.Lines) do
-            pcall(function() line:Remove() end)
+            pcall(function()
+                if line then
+                    line.Visible = false
+                    line:Remove()
+                end
+            end)
             CrosshairConfig.Lines[i] = nil
         end
     end
