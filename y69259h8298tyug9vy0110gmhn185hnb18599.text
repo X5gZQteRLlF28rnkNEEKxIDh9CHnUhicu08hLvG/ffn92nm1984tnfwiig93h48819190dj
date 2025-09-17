@@ -593,6 +593,8 @@ KeyListTitle.TextSize = 14
 KeyListTitle.TextStrokeTransparency = 0.5
 KeyListTitle.TextStrokeColor3 = Color3.new(0, 0, 0)
 
+local KeyListActiveColor = Color3.fromRGB(110, 80, 255)
+
 local FlyKeyLabel = Instance.new("TextLabel")
 FlyKeyLabel.Parent = KeyListFrame
 FlyKeyLabel.BackgroundTransparency = 1
@@ -1345,8 +1347,9 @@ FlyKeyButton = createKeyButton(SettingTab, "FlyKeyButton", "Fly key", KeyConfig.
 NoClipKeyButton = createKeyButton(SettingTab, "NoClipKeyButton", "Noclip key", KeyConfig.NoClipToggle, 40)
 CFrameSpeedKeyButton = createKeyButton(SettingTab, "CFrameSpeedKeyButton", "CFrameSpeed key", KeyConfig.CFrameSpeedToggle, 70)
 ZoomKeyButton = createKeyButton(SettingTab, "ZoomKeyButton", "Zoom key", KeyConfig.ZoomToggle, 100)
-KeyListToggle = createToggle(SettingTab, "KeyListToggle", "Key List", 130)
-StatsToggle = createToggle(SettingTab, "StatsToggle", "FPS/Ping", 160)
+MenuKeyButton = createKeyButton(SettingTab, "MenuKeyButton", "Menu key", KeyConfig.MenuToggle, 130)
+KeyListToggle = createToggle(SettingTab, "KeyListToggle", "Key List", 160)
+StatsToggle = createToggle(SettingTab, "StatsToggle", "FPS/Ping", 190)
 
 
 local ConfigNameBox = Instance.new("TextBox")
@@ -1354,7 +1357,7 @@ ConfigNameBox.Parent = SettingTab
 ConfigNameBox.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
 ConfigNameBox.BorderColor3 = Color3.fromRGB(255, 255, 255)
 ConfigNameBox.BorderSizePixel = 1
-ConfigNameBox.Position = UDim2.new(0.05, 0, 0, 190)
+ConfigNameBox.Position = UDim2.new(0.05, 0, 0, 220)
 ConfigNameBox.Size = UDim2.new(0.6, 0, 0, 20)
 ConfigNameBox.FontFace = customFont
 ConfigNameBox.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -1367,7 +1370,7 @@ SaveConfigButton.Parent = SettingTab
 SaveConfigButton.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
 SaveConfigButton.BorderColor3 = Color3.fromRGB(255, 255, 255)
 SaveConfigButton.BorderSizePixel = 1
-SaveConfigButton.Position = UDim2.new(0.7, 0, 0, 190)
+SaveConfigButton.Position = UDim2.new(0.7, 0, 0, 220)
 SaveConfigButton.Size = UDim2.new(0.25, 0, 0, 20)
 SaveConfigButton.FontFace = customFont
 SaveConfigButton.Text = "Save"
@@ -1379,7 +1382,7 @@ ConfigListFrame.Parent = SettingTab
 ConfigListFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
 ConfigListFrame.BorderColor3 = Color3.fromRGB(100, 100, 100)
 ConfigListFrame.BorderSizePixel = 1
-ConfigListFrame.Position = UDim2.new(0.05, 0, 0, 220)
+ConfigListFrame.Position = UDim2.new(0.05, 0, 0, 250)
 ConfigListFrame.Size = UDim2.new(0.9, 0, 0, 100)
 
 local ConfigListLayout = Instance.new("UIListLayout")
@@ -1391,7 +1394,7 @@ LoadConfigButton.Parent = SettingTab
 LoadConfigButton.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
 LoadConfigButton.BorderColor3 = Color3.fromRGB(255, 255, 255)
 LoadConfigButton.BorderSizePixel = 1
-LoadConfigButton.Position = UDim2.new(0.7, 0, 0, 330)
+LoadConfigButton.Position = UDim2.new(0.7, 0, 0, 360)
 LoadConfigButton.Size = UDim2.new(0.25, 0, 0, 20)
 LoadConfigButton.FontFace = customFont
 LoadConfigButton.Text = "Load"
@@ -1403,14 +1406,14 @@ DeleteConfigButton.Parent = SettingTab
 DeleteConfigButton.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
 DeleteConfigButton.BorderColor3 = Color3.fromRGB(255, 255, 255)
 DeleteConfigButton.BorderSizePixel = 1
-DeleteConfigButton.Position = UDim2.new(0.7, 0, 0, 360)
+DeleteConfigButton.Position = UDim2.new(0.7, 0, 0, 390)
 DeleteConfigButton.Size = UDim2.new(0.25, 0, 0, 20)
 DeleteConfigButton.FontFace = customFont
 DeleteConfigButton.Text = "Delete"
 DeleteConfigButton.TextColor3 = Color3.fromRGB(255, 255, 255)
 DeleteConfigButton.TextSize = 12
 
-SettingTab.CanvasSize = UDim2.new(0, 0, 0, 390)
+SettingTab.CanvasSize = UDim2.new(0, 0, 0, 420)
 
 local ConfigButtons = {}
 local SelectedConfig
@@ -2140,6 +2143,7 @@ local function updateKeyLabels()
     NoClipKeyButton.Text = "[" .. getKeyName(KeyConfig.NoClipToggle) .. "]"
     CFrameSpeedKeyButton.Text = "[" .. getKeyName(KeyConfig.CFrameSpeedToggle) .. "]"
     ZoomKeyButton.Text = "[" .. getKeyName(KeyConfig.ZoomToggle) .. "]"
+    MenuKeyButton.Text = "[" .. getKeyName(KeyConfig.MenuToggle) .. "]"
 
     -- InfoLabel removed in redesigned GUI
     refreshKeyList()
@@ -2196,7 +2200,7 @@ local function toggleCFrameSpeed()
     CFrameSpeedConfig.IsActive = not CFrameSpeedConfig.IsActive
 
     if CFrameSpeedConfig.IsActive then
-        CFrameSpeedKeyLabel.TextColor3 = Color3.fromRGB(150, 100, 255)
+        CFrameSpeedKeyLabel.TextColor3 = KeyListActiveColor
         if CFrameSpeedConfig.Connection then
             CFrameSpeedConfig.Connection:Disconnect()
         end
@@ -2216,7 +2220,7 @@ local function toggleZoom()
     ZoomConfig.IsZooming = not ZoomConfig.IsZooming
 
     if ZoomConfig.IsZooming then
-        ZoomKeyLabel.TextColor3 = Color3.fromRGB(150, 100, 255)
+        ZoomKeyLabel.TextColor3 = KeyListActiveColor
         Camera.FieldOfView = ZoomConfig.Value
     else
         ZoomKeyLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
@@ -2874,10 +2878,10 @@ end
 function toggleNoClip()
     if NoClipConfig.Mode == "legacy" then
         toggleLegacyNoClip()
-        NoClipKeyLabel.TextColor3 = LegacyNoClipConfig.IsActive and Color3.fromRGB(150, 100, 255) or Color3.fromRGB(200, 200, 200)
+        NoClipKeyLabel.TextColor3 = LegacyNoClipConfig.IsActive and KeyListActiveColor or Color3.fromRGB(200, 200, 200)
     else
         setNoClipState(not states.noclip)
-        NoClipKeyLabel.TextColor3 = states.noclip and Color3.fromRGB(150, 100, 255) or Color3.fromRGB(200, 200, 200)
+        NoClipKeyLabel.TextColor3 = states.noclip and KeyListActiveColor or Color3.fromRGB(200, 200, 200)
     end
     updateStatusDisplay()
 end
@@ -2982,7 +2986,7 @@ local function toggleFly()
     FlyConfig.IsFlying = not FlyConfig.IsFlying
     
     if FlyConfig.IsFlying then
-        FlyKeyLabel.TextColor3 = Color3.fromRGB(150, 100, 255)
+        FlyKeyLabel.TextColor3 = KeyListActiveColor
         if FlyConfig.Connection then
             FlyConfig.Connection:Disconnect()
         end
@@ -5376,6 +5380,10 @@ ZoomKeyButton.MouseButton1Click:Connect(function()
     waitForKeyInput("ZoomToggle", ZoomKeyButton)
 end)
 
+MenuKeyButton.MouseButton1Click:Connect(function()
+    waitForKeyInput("MenuToggle", MenuKeyButton)
+end)
+
 
 TimeToggle.Button.MouseButton1Click:Connect(function()
     TimeControl.Enabled = not TimeControl.Enabled
@@ -5440,8 +5448,10 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
                 CFrameSpeedKeyButton.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
             elseif waitingForKey == "ZoomToggle" then
                 ZoomKeyButton.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+            elseif waitingForKey == "MenuToggle" then
+                MenuKeyButton.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
             end
-            
+
             waitingForKey = nil
             return
         end
