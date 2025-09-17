@@ -3937,19 +3937,39 @@ function updateHighlight(model, esp, distance)
     end
 end
 
-clearHandHighlights = function()
-    for part, highlight in pairs(SkinChangerConfig.HandHighlights) do
-        if highlight then
-            highlight:Destroy()
+local function restoreHandPartColor(part)
+    local original = SkinChangerConfig.HandHighlights[part]
+    SkinChangerConfig.HandHighlights[part] = nil
+    if not original or not part then
+        return
+    end
+
+    pcall(function()
+        if original.Color then
+            part.Color = original.Color
         end
-        SkinChangerConfig.HandHighlights[part] = nil
+    end)
+end
+
+clearHandHighlights = function()
+    local parts = {}
+    for part in pairs(SkinChangerConfig.HandHighlights) do
+        table.insert(parts, part)
+    end
+
+    for _, part in ipairs(parts) do
+        restoreHandPartColor(part)
     end
 end
 
 refreshHandHighlightColors = function()
-    for _, highlight in pairs(SkinChangerConfig.HandHighlights) do
-        if highlight then
-            highlight.FillColor = HighlightConfig.Color
+    for part, original in pairs(SkinChangerConfig.HandHighlights) do
+        if part and part.Parent then
+            pcall(function()
+                part.Color = HighlightConfig.Color
+            end)
+        else
+            SkinChangerConfig.HandHighlights[part] = nil
         end
     end
 end
@@ -3961,21 +3981,22 @@ local function shouldHighlightHandPart(part)
     return name:find("hand") ~= nil or name:find("arm") ~= nil
 end
 
-local function highlightHandPart(part)
-    if SkinChangerConfig.HandHighlights[part] then
-        local highlight = SkinChangerConfig.HandHighlights[part]
-        highlight.FillColor = HighlightConfig.Color
-        highlight.Enabled = true
+local function applyHandColor(part)
+    if not shouldHighlightHandPart(part) then
         return
     end
-    local highlight = Instance.new("Highlight")
-    highlight.Name = "SkinChangerHandHighlight"
-    highlight.FillColor = HighlightConfig.Color
-    highlight.FillTransparency = 0
-    highlight.OutlineTransparency = 1
-    highlight.Adornee = part
-    highlight.Parent = part
-    SkinChangerConfig.HandHighlights[part] = highlight
+
+    if not SkinChangerConfig.HandHighlights[part] then
+        SkinChangerConfig.HandHighlights[part] = {
+            Color = part and part.Color or nil
+        }
+    end
+
+    pcall(function()
+        if part then
+            part.Color = HighlightConfig.Color
+        end
+    end)
 end
 
 local function disconnectViewmodelConnections()
@@ -4008,9 +4029,7 @@ end
 local function applyHandHighlights(viewmodel)
     if not viewmodel or not SkinChangerConfig.HandEnabled then return end
     for _, descendant in ipairs(viewmodel:GetDescendants()) do
-        if shouldHighlightHandPart(descendant) then
-            highlightHandPart(descendant)
-        end
+        applyHandColor(descendant)
     end
 end
 
@@ -4029,17 +4048,13 @@ local function setCurrentViewmodel(viewmodel)
     if not viewmodel then return end
 
     SkinChangerConfig.ViewmodelAddedConn = viewmodel.DescendantAdded:Connect(function(descendant)
-        if SkinChangerConfig.Enabled and SkinChangerConfig.HandEnabled and shouldHighlightHandPart(descendant) then
-            highlightHandPart(descendant)
+        if SkinChangerConfig.Enabled and SkinChangerConfig.HandEnabled then
+            applyHandColor(descendant)
         end
     end)
 
     SkinChangerConfig.ViewmodelRemovedConn = viewmodel.DescendantRemoving:Connect(function(descendant)
-        local highlight = SkinChangerConfig.HandHighlights[descendant]
-        if highlight then
-            highlight:Destroy()
-            SkinChangerConfig.HandHighlights[descendant] = nil
-        end
+        restoreHandPartColor(descendant)
     end)
 
     SkinChangerConfig.ViewmodelAncestryConn = viewmodel.AncestryChanged:Connect(function(_, parent)
