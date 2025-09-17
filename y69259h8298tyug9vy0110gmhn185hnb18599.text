@@ -205,25 +205,6 @@ HighlightConfig = {
     Color = Color3.new(1, 1, 0)
 }
 
-local function createHandHighlightCache()
-    return setmetatable({}, {__mode = "k"})
-end
-
-SkinChangerConfig = {
-    Enabled = false,
-    HandEnabled = false,
-    HandHighlights = createHandHighlightCache(),
-    CurrentViewmodel = nil,
-    ActiveCamera = nil,
-    ViewmodelAddedConn = nil,
-    ViewmodelRemovedConn = nil,
-    ViewmodelAncestryConn = nil,
-    CameraChildAddedConn = nil,
-    CameraChildRemovedConn = nil,
-    UpdaterConn = nil,
-    UpdateAccumulator = 0
-}
-
 OreESP = {
     Enabled = false,
     IronEnabled = false,
@@ -379,16 +360,6 @@ WallClimbConfig = {
     RootPart = nil
 }
 
-local clearHandHighlights
-local refreshHandHighlightColors
-local refreshSkinChangerViewmodel
-local setSkinChangerEnabled
-local setHandHighlightEnabled
-local toggleSkinChanger
-local toggleHandHighlight
-local startSkinChangerMonitor
-local stopSkinChangerMonitor
-
 UIState = {
     KeyListVisible = true,
     StatsVisible = true,
@@ -396,8 +367,6 @@ UIState = {
     OreArrow = nil,
     droppedListExpanded = false,
     DroppedArrow = nil,
-    skinListExpanded = false,
-    SkinArrow = nil,
     ConfigNotify = nil,
 }
 
@@ -563,9 +532,6 @@ workspace:GetPropertyChangedSignal("CurrentCamera"):Connect(function()
         Camera = waitForCurrentCamera()
     end
     updateRaycastFilter(LocalPlayer.Character)
-    if SkinChangerConfig.Enabled then
-        refreshSkinChangerViewmodel()
-    end
 end)
 
 local customFont = Font.new("rbxasset://fonts/families/Sarpanch.json")
@@ -982,36 +948,8 @@ DroppedTitle.TextSize = 14
 DroppedTitle.TextStrokeTransparency = 0.5
 DroppedTitle.TextStrokeColor3 = Color3.new(0, 0, 0)
 
-local SkinChangerListFrame = Instance.new("Frame")
-SkinChangerListFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-SkinChangerListFrame.BorderColor3 = Color3.fromRGB(100, 100, 100)
-SkinChangerListFrame.BorderSizePixel = 1
-SkinChangerListFrame.Size = UDim2.new(0, 170, 0, 60)
-SkinChangerListFrame.BackgroundTransparency = 0.3
-SkinChangerListFrame.Visible = false
-SkinChangerListFrame.Active = true
-local skinListPos
-
-local SkinChangerCorner = Instance.new("UICorner")
-SkinChangerCorner.CornerRadius = UDim.new(0, 6)
-SkinChangerCorner.Parent = SkinChangerListFrame
-
-local SkinChangerTitle = Instance.new("TextLabel")
-SkinChangerTitle.Parent = SkinChangerListFrame
-SkinChangerTitle.BackgroundTransparency = 1
-SkinChangerTitle.Size = UDim2.new(1, 0, 0, 20)
-SkinChangerTitle.FontFace = customFont
-SkinChangerTitle.Text = "Skin Changer"
-SkinChangerTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
-SkinChangerTitle.TextSize = 14
-SkinChangerTitle.TextStrokeTransparency = 0.5
-SkinChangerTitle.TextStrokeColor3 = Color3.new(0, 0, 0)
-
 local droppedDragging = false
 local droppedDragStart, droppedStartPos
-
-local skinDragging = false
-local skinDragStart, skinStartPos
 
 DroppedListFrame.InputBegan:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseButton1 then
@@ -1021,22 +959,10 @@ DroppedListFrame.InputBegan:Connect(function(input)
     end
 end)
 
-SkinChangerListFrame.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 then
-        skinDragging = true
-        skinDragStart = input.Position
-        skinStartPos = SkinChangerListFrame.Position
-    end
-end)
-
 UserInputService.InputChanged:Connect(function(input)
     if droppedDragging and input.UserInputType == Enum.UserInputType.MouseMovement then
         local delta = input.Position - droppedDragStart
         DroppedListFrame.Position = UDim2.new(droppedStartPos.X.Scale, droppedStartPos.X.Offset + delta.X, droppedStartPos.Y.Scale, droppedStartPos.Y.Offset + delta.Y)
-    end
-    if skinDragging and input.UserInputType == Enum.UserInputType.MouseMovement then
-        local delta = input.Position - skinDragStart
-        SkinChangerListFrame.Position = UDim2.new(skinStartPos.X.Scale, skinStartPos.X.Offset + delta.X, skinStartPos.Y.Scale, skinStartPos.Y.Offset + delta.Y)
     end
 end)
 
@@ -1044,10 +970,6 @@ UserInputService.InputEnded:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseButton1 and droppedDragging then
         droppedDragging = false
         droppedListPos = DroppedListFrame.Position
-    end
-    if input.UserInputType == Enum.UserInputType.MouseButton1 and skinDragging then
-        skinDragging = false
-        skinListPos = SkinChangerListFrame.Position
     end
 end)
 
@@ -1125,7 +1047,6 @@ local function createTab(name, order, scrollable, icon)
         end
         UIState.oreListExpanded = false
         UIState.droppedListExpanded = false
-        UIState.skinListExpanded = false
         if updateButtons then
             updateButtons()
         end
@@ -1315,11 +1236,6 @@ DroppedListFrame.Parent = ScreenGui
 DroppedListFrame.Position = UDim2.new(0, 0, 0, 0)
 DroppedTitle.Visible = true
 
-SkinChangerListFrame.Parent = ScreenGui
-SkinChangerListFrame.Position = UDim2.new(0, 0, 0, 0)
-SkinChangerTitle.Visible = true
-skinListPos = SkinChangerListFrame.Position
-
 local refreshDroppedList
 local DroppedToggles = {}
 local dropY = 30
@@ -1344,24 +1260,7 @@ SkyColorToggle = createToggle(VisualTab, "SkyColorToggle", "SkyColor", 460)
 SkyAmbientButton = createColorButton(SkyColorToggle.Holder, "SkyAmbientButton", SkyColorConfig.Ambient)
 SkyTopButton = createColorButton(SkyColorToggle.Holder, "SkyTopButton", SkyColorConfig.Top)
 SkyAmbientButton.Position = UDim2.new(1, -40, 0, 2)
-
 SkyTopButton.Position = UDim2.new(1, -20, 0, 2)
-
-SkinChangerToggle = createToggle(VisualTab, "SkinChangerToggle", "Enabled SkinChanger", 490)
-
-UIState.SkinArrow = Instance.new("TextButton")
-UIState.SkinArrow.Parent = SkinChangerToggle.Holder
-UIState.SkinArrow.BackgroundTransparency = 1
-UIState.SkinArrow.BorderSizePixel = 0
-UIState.SkinArrow.Position = UDim2.new(1, -20, 0, 0)
-UIState.SkinArrow.Size = UDim2.new(0, 20, 0, 20)
-UIState.SkinArrow.Text = ">"
-UIState.SkinArrow.FontFace = customFont
-UIState.SkinArrow.TextSize = 16
-UIState.SkinArrow.TextColor3 = Color3.fromRGB(255, 255, 255)
-UIState.SkinArrow.AutoButtonColor = false
-
-local HandToggle = createToggle(SkinChangerListFrame, "HandToggle", "Hand", 30)
 
 local RefreshESPButton = Instance.new("TextButton")
 RefreshESPButton.Parent = VisualTab
@@ -1767,7 +1666,6 @@ HighlightColorPicker = createColorPicker(190, HighlightConfig.Color, function(co
             esp.Highlight.OutlineColor = color
         end
     end
-    refreshHandHighlightColors()
 end)
 
 BoneColorPicker = createColorPicker(200, ESP.BoneColor, function(color)
@@ -3652,7 +3550,6 @@ local function cleanupAllESP()
     lastOreRefresh = 0
     lastBackpackRefresh = 0
     playerTracker = {}
-    clearHandHighlights()
 end
 
 local function attachDeathCleanup(character)
@@ -3943,278 +3840,6 @@ function updateHighlight(model, esp, distance)
         esp.Highlight:Destroy()
         esp.Highlight = nil
     end
-end
-
-local function restoreHandPartColor(part)
-    local original = SkinChangerConfig.HandHighlights[part]
-    SkinChangerConfig.HandHighlights[part] = nil
-    if not original or not part then
-        return
-    end
-
-    pcall(function()
-        if original.Color then
-            part.Color = original.Color
-        end
-    end)
-end
-
-clearHandHighlights = function()
-    local highlights = SkinChangerConfig.HandHighlights
-    local parts = {}
-    for part in pairs(highlights) do
-        table.insert(parts, part)
-    end
-
-    for _, part in ipairs(parts) do
-        restoreHandPartColor(part)
-    end
-
-    SkinChangerConfig.HandHighlights = createHandHighlightCache()
-end
-
-refreshHandHighlightColors = function()
-    if not SkinChangerConfig.Enabled or not SkinChangerConfig.HandEnabled then
-        return
-    end
-
-    for part in pairs(SkinChangerConfig.HandHighlights) do
-        if part and part.Parent then
-            local ok = pcall(function()
-                part.Color = HighlightConfig.Color
-            end)
-            if not ok then
-                SkinChangerConfig.HandHighlights[part] = nil
-            end
-        else
-            SkinChangerConfig.HandHighlights[part] = nil
-        end
-    end
-end
-
-local function shouldHighlightHandPart(part)
-    if not part or not part:IsA("BasePart") then return false end
-    local name = part.Name:lower()
-    if name == "handle" then return false end
-    return name:find("hand") ~= nil or name:find("arm") ~= nil
-end
-
-local function applyHandColor(part)
-    if not shouldHighlightHandPart(part) then
-        return
-    end
-
-    if not SkinChangerConfig.HandHighlights[part] then
-        SkinChangerConfig.HandHighlights[part] = {
-            Color = part and part.Color or nil
-        }
-    end
-
-    pcall(function()
-        if part then
-            part.Color = HighlightConfig.Color
-        end
-    end)
-end
-
-local function disconnectViewmodelConnections()
-    if SkinChangerConfig.ViewmodelAddedConn then
-        SkinChangerConfig.ViewmodelAddedConn:Disconnect()
-        SkinChangerConfig.ViewmodelAddedConn = nil
-    end
-    if SkinChangerConfig.ViewmodelRemovedConn then
-        SkinChangerConfig.ViewmodelRemovedConn:Disconnect()
-        SkinChangerConfig.ViewmodelRemovedConn = nil
-    end
-    if SkinChangerConfig.ViewmodelAncestryConn then
-        SkinChangerConfig.ViewmodelAncestryConn:Disconnect()
-        SkinChangerConfig.ViewmodelAncestryConn = nil
-    end
-end
-
-local function disconnectSkinCamera()
-    if SkinChangerConfig.CameraChildAddedConn then
-        SkinChangerConfig.CameraChildAddedConn:Disconnect()
-        SkinChangerConfig.CameraChildAddedConn = nil
-    end
-    if SkinChangerConfig.CameraChildRemovedConn then
-        SkinChangerConfig.CameraChildRemovedConn:Disconnect()
-        SkinChangerConfig.CameraChildRemovedConn = nil
-    end
-    SkinChangerConfig.ActiveCamera = nil
-end
-
-local function skinChangerHeartbeat(dt)
-    if not SkinChangerConfig.Enabled then
-        return
-    end
-
-    SkinChangerConfig.UpdateAccumulator = SkinChangerConfig.UpdateAccumulator + dt
-    if SkinChangerConfig.UpdateAccumulator < 0.1 then
-        return
-    end
-
-    SkinChangerConfig.UpdateAccumulator = 0
-
-    local ok, err = pcall(function()
-        refreshSkinChangerViewmodel()
-        if SkinChangerConfig.HandEnabled then
-            refreshHandHighlightColors()
-        end
-    end)
-
-    if not ok then
-        warn("[SkinChanger] update failed", err)
-    end
-end
-
-startSkinChangerMonitor = function()
-    if SkinChangerConfig.UpdaterConn then return end
-    SkinChangerConfig.UpdateAccumulator = 0
-    SkinChangerConfig.UpdaterConn = RunService.Heartbeat:Connect(skinChangerHeartbeat)
-end
-
-stopSkinChangerMonitor = function()
-    if SkinChangerConfig.UpdaterConn then
-        SkinChangerConfig.UpdaterConn:Disconnect()
-        SkinChangerConfig.UpdaterConn = nil
-    end
-    SkinChangerConfig.UpdateAccumulator = 0
-end
-
-local function applyHandHighlights(viewmodel)
-    if not viewmodel or not SkinChangerConfig.HandEnabled then return end
-    for _, descendant in ipairs(viewmodel:GetDescendants()) do
-        applyHandColor(descendant)
-    end
-end
-
-local function setCurrentViewmodel(viewmodel)
-    if SkinChangerConfig.CurrentViewmodel == viewmodel then
-        if viewmodel and SkinChangerConfig.HandEnabled then
-            applyHandHighlights(viewmodel)
-        end
-        return
-    end
-
-    disconnectViewmodelConnections()
-    clearHandHighlights()
-    SkinChangerConfig.CurrentViewmodel = viewmodel
-
-    if not viewmodel then return end
-
-    SkinChangerConfig.ViewmodelAddedConn = viewmodel.DescendantAdded:Connect(function(descendant)
-        if SkinChangerConfig.Enabled and SkinChangerConfig.HandEnabled then
-            applyHandColor(descendant)
-        end
-    end)
-
-    SkinChangerConfig.ViewmodelRemovedConn = viewmodel.DescendantRemoving:Connect(function(descendant)
-        restoreHandPartColor(descendant)
-    end)
-
-    SkinChangerConfig.ViewmodelAncestryConn = viewmodel.AncestryChanged:Connect(function(_, parent)
-        if not parent then
-            disconnectViewmodelConnections()
-            SkinChangerConfig.CurrentViewmodel = nil
-            clearHandHighlights()
-            if SkinChangerConfig.Enabled then
-                task.defer(refreshSkinChangerViewmodel)
-            end
-        end
-    end)
-
-    if SkinChangerConfig.HandEnabled then
-        applyHandHighlights(viewmodel)
-    end
-end
-
-local function getCameraWithFallback()
-    local camera = workspace.CurrentCamera
-    if camera then return camera end
-    return workspace:FindFirstChildOfClass("Camera")
-end
-
-refreshSkinChangerViewmodel = function()
-    if not SkinChangerConfig.Enabled then
-        return
-    end
-
-    local camera = getCameraWithFallback()
-    if SkinChangerConfig.ActiveCamera ~= camera then
-        disconnectSkinCamera()
-        SkinChangerConfig.ActiveCamera = camera
-        if camera then
-            SkinChangerConfig.CameraChildAddedConn = camera.ChildAdded:Connect(function(child)
-                if SkinChangerConfig.Enabled and child:IsA("Model") and child.Name:lower() == "viewmodel" then
-                    setCurrentViewmodel(child)
-                end
-            end)
-            SkinChangerConfig.CameraChildRemovedConn = camera.ChildRemoved:Connect(function(child)
-                if child == SkinChangerConfig.CurrentViewmodel then
-                    setCurrentViewmodel(nil)
-                    if SkinChangerConfig.Enabled then
-                        task.defer(refreshSkinChangerViewmodel)
-                    end
-                end
-            end)
-        end
-    end
-
-    local viewmodel
-    if camera then
-        viewmodel = camera:FindFirstChild("Viewmodel")
-    end
-    if not viewmodel then
-        local workspaceCamera = workspace:FindFirstChild("Camera")
-        if workspaceCamera and workspaceCamera:IsA("Camera") then
-            viewmodel = workspaceCamera:FindFirstChild("Viewmodel")
-        end
-    end
-
-    setCurrentViewmodel(viewmodel)
-end
-
-local function updateSkinChangerState()
-    if not SkinChangerConfig.Enabled then
-        stopSkinChangerMonitor()
-        disconnectSkinCamera()
-        setCurrentViewmodel(nil)
-        return
-    end
-
-    startSkinChangerMonitor()
-    refreshSkinChangerViewmodel()
-    if SkinChangerConfig.HandEnabled then
-        refreshHandHighlightColors()
-    else
-        clearHandHighlights()
-    end
-end
-
-setSkinChangerEnabled = function(state)
-    if SkinChangerConfig.Enabled == state then return end
-    SkinChangerConfig.Enabled = state
-    if not state then
-        UIState.skinListExpanded = false
-    end
-    updateSkinChangerState()
-    updateButtons()
-end
-
-toggleSkinChanger = function()
-    setSkinChangerEnabled(not SkinChangerConfig.Enabled)
-end
-
-setHandHighlightEnabled = function(state)
-    if SkinChangerConfig.HandEnabled == state then return end
-    SkinChangerConfig.HandEnabled = state
-    updateSkinChangerState()
-    updateButtons()
-end
-
-toggleHandHighlight = function()
-    setHandHighlightEnabled(not SkinChangerConfig.HandEnabled)
 end
 
 function updateOreESP()
@@ -4832,7 +4457,6 @@ ToggleBindings = {
     {button = MapToggle,        state = function() return MapConfig.Enabled end},
     {button = NewsToggle,       state = function() return NewsConfig.Enabled end},
     {button = SkyColorToggle,   state = function() return SkyColorConfig.Enabled end},
-    {button = SkinChangerToggle,state = function() return SkinChangerConfig.Enabled end},
     {button = FlyToggle,        state = function() return FlyConfig.Enabled end},
     {button = NoClipToggle,     state = function() return NoClipConfig.Enabled end},
     {button = NoClipReturnToggle, state = function() return NoClipConfig.ReturnY end},
@@ -4847,7 +4471,6 @@ ToggleBindings = {
     {button = CrosshairToggle,  state = function() return CrosshairConfig.Enabled end},
     {button = KeyListToggle,    state = function() return UIState.KeyListVisible end},
     {button = StatsToggle,      state = function() return UIState.StatsVisible end},
-    {button = HandToggle,       state = function() return SkinChangerConfig.HandEnabled end},
     {button = WallClimbToggle,  state = function() return WallClimbConfig.Enabled end},
 }
 
@@ -4869,13 +4492,6 @@ function updateButtons()
     DroppedListFrame.Visible = UIState.droppedListExpanded
     if UIState.DroppedArrow then
         UIState.DroppedArrow.Text = UIState.droppedListExpanded and "v" or ">"
-    end
-    if not SkinChangerConfig.Enabled and UIState.skinListExpanded then
-        UIState.skinListExpanded = false
-    end
-    SkinChangerListFrame.Visible = SkinChangerConfig.Enabled and UIState.skinListExpanded
-    if UIState.SkinArrow then
-        UIState.SkinArrow.Text = UIState.skinListExpanded and "v" or ">"
     end
     for name, tgl in pairs(DroppedToggles) do
         tgl.Check.Visible = DroppedESP.Items[name]
@@ -4988,7 +4604,6 @@ function collectConfig()
         },
         TeamCheck = TeamCheckConfig.Enabled,
         Highlight = {Enabled = HighlightConfig.Enabled, Color = colorToTable(HighlightConfig.Color)},
-        SkinChanger = {Enabled = SkinChangerConfig.Enabled, HandEnabled = SkinChangerConfig.HandEnabled},
         OreESP = {
             Enabled = OreESP.Enabled,
             IronEnabled = OreESP.IronEnabled,
@@ -5052,9 +4667,6 @@ local function resetConfig()
 
     TeamCheckConfig.Enabled = false
     HighlightConfig.Enabled = false
-    SkinChangerConfig.Enabled = false
-    SkinChangerConfig.HandEnabled = false
-    updateSkinChangerState()
     OreESP.Enabled = false
     OreESP.IronEnabled = false
     OreESP.BrimstoneEnabled = false
@@ -5100,7 +4712,6 @@ local function resetConfig()
     KeyListFrame.Visible = false
     UIState.StatsVisible = false
     StatsFrame.Visible = false
-    UIState.skinListExpanded = false
 end
 
 function applyConfig(cfg)
@@ -5179,11 +4790,6 @@ function applyConfig(cfg)
             HighlightColorButton.BackgroundColor3 = c
             if HighlightColorPicker then HighlightColorPicker.SetColor(c) end
         end
-        refreshHandHighlightColors()
-    end
-    if cfg.SkinChanger then
-        setSkinChangerEnabled(cfg.SkinChanger.Enabled or false)
-        setHandHighlightEnabled(cfg.SkinChanger.HandEnabled or false)
     end
     if cfg.OreESP then
         OreESP.Enabled = cfg.OreESP.Enabled
@@ -5815,36 +5421,6 @@ UIState.OreArrow.MouseButton1Click:Connect(function()
     updateButtons()
 end)
 
-SkinChangerToggle.Button.MouseButton1Click:Connect(function()
-    toggleSkinChanger()
-end)
-
-UIState.SkinArrow.MouseButton1Click:Connect(function()
-    if not SkinChangerConfig.Enabled then
-        UIState.skinListExpanded = false
-    else
-        if UIState.skinListExpanded then
-            UIState.skinListExpanded = false
-        else
-            hideAllPickers()
-            UIState.skinListExpanded = true
-            if skinListPos then
-                SkinChangerListFrame.Position = skinListPos
-            else
-                local offsetX = SkinChangerToggle.Holder.AbsolutePosition.X + SkinChangerToggle.Holder.AbsoluteSize.X + 5
-                local offsetY = SkinChangerToggle.Holder.AbsolutePosition.Y - 30
-                SkinChangerListFrame.Position = UDim2.new(0, offsetX, 0, offsetY)
-                skinListPos = SkinChangerListFrame.Position
-            end
-        end
-    end
-    updateButtons()
-end)
-
-HandToggle.Button.MouseButton1Click:Connect(function()
-    toggleHandHighlight()
-end)
-
 IronToggle.Button.MouseButton1Click:Connect(function()
     OreESP.IronEnabled = not OreESP.IronEnabled
     refreshOreList()
@@ -6276,7 +5852,6 @@ end)
 
 ScreenGui.AncestryChanged:Connect(function()
     if not ScreenGui.Parent then
-        stopSkinChangerMonitor()
         if TimeControl.Enabled then
             Lighting.ClockTime = TimeControl.OriginalTime
         end
