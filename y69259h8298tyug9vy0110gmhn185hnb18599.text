@@ -10,6 +10,15 @@ local HttpService = game:GetService("HttpService")
 local LocalPlayer = Players.LocalPlayer
 local Camera = workspace.CurrentCamera
 
+local function waitForCurrentCamera()
+    local cam = workspace.CurrentCamera
+    while not cam do
+        task.wait()
+        cam = workspace.CurrentCamera
+    end
+    return cam
+end
+
 local function showUnsupported(message)
     pcall(function()
         game:GetService("StarterGui"):SetCore("SendNotification", {
@@ -44,6 +53,7 @@ end
 if not game:IsLoaded() then
     game.Loaded:Wait()
 end
+Camera = waitForCurrentCamera()
 local function detectExecutor()
     if syn and syn.request then return "Synapse X" end
     if krnl and krnl.request then return "Krnl" end
@@ -488,9 +498,30 @@ local function applyShivSkin(skinName)
     end
 end
 
-local RaycastParams = RaycastParams.new()
-RaycastParams.FilterType = Enum.RaycastFilterType.Blacklist
-RaycastParams.FilterDescendantsInstances = {Camera}
+local RayParams = RaycastParams.new()
+RayParams.FilterType = Enum.RaycastFilterType.Blacklist
+
+local function updateRaycastFilter(character)
+    if not Camera then
+        return
+    end
+
+    if character and character.Parent then
+        RayParams.FilterDescendantsInstances = {Camera, character}
+    else
+        RayParams.FilterDescendantsInstances = {Camera}
+    end
+end
+
+updateRaycastFilter(LocalPlayer.Character)
+
+workspace:GetPropertyChangedSignal("CurrentCamera"):Connect(function()
+    Camera = workspace.CurrentCamera
+    if not Camera then
+        Camera = waitForCurrentCamera()
+    end
+    updateRaycastFilter(LocalPlayer.Character)
+end)
 
 local customFont = Font.new("rbxasset://fonts/families/Sarpanch.json")
 local tabSelectedColor = Color3.fromRGB(80, 0, 160)
@@ -2948,7 +2979,7 @@ local function infiniteFlyCorrection(character)
     if not root then return end
     
     local origin = root.Position
-    local result = workspace:Raycast(origin, Vector3.new(0, -1000, 0), RaycastParams)
+    local result = workspace:Raycast(origin, Vector3.new(0, -1000, 0), RayParams)
     
     if result and result.Distance > 4 then
         task.spawn(function()
@@ -5613,9 +5644,10 @@ LocalPlayer.CharacterAdded:Connect(function(character)
 
     updateStatusDisplay()
     
-    local character = LocalPlayer.Character
     if character then
-        RaycastParams.FilterDescendantsInstances = {Camera, character}
+        updateRaycastFilter(character)
+    else
+        updateRaycastFilter(LocalPlayer.Character)
     end
 
     wait(0.5)
@@ -5663,6 +5695,7 @@ LocalPlayer.CharacterRemoving:Connect(function()
         deathConn:Disconnect()
         deathConn = nil
     end
+    updateRaycastFilter(nil)
 end)
 
 if LocalPlayer.Character then
