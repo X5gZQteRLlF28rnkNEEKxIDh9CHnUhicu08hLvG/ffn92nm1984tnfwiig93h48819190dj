@@ -576,6 +576,7 @@ KeyListFrame.BorderSizePixel = 1
 KeyListFrame.Position = UDim2.new(0, 10, 0.5, -80)
 KeyListFrame.Size = UDim2.new(0, 170, 0, 220)
 KeyListFrame.BackgroundTransparency = 0.3
+KeyListFrame.Active = true
 
 local KeyListCorner = Instance.new("UICorner")
 KeyListCorner.CornerRadius = UDim.new(0, 6)
@@ -669,6 +670,7 @@ ToggleKeyLabel.TextSize = 11
 ToggleKeyLabel.TextXAlignment = Enum.TextXAlignment.Left
 ToggleKeyLabel.TextStrokeTransparency = 0.5
 ToggleKeyLabel.TextStrokeColor3 = Color3.new(0, 0, 0)
+ToggleKeyLabel.Visible = false
 
 local CustomizeKeysLabel = Instance.new("TextLabel")
 CustomizeKeysLabel.Parent = KeyListFrame
@@ -682,6 +684,7 @@ CustomizeKeysLabel.TextSize = 10
 CustomizeKeysLabel.TextXAlignment = Enum.TextXAlignment.Left
 CustomizeKeysLabel.TextStrokeTransparency = 0.5
 CustomizeKeysLabel.TextStrokeColor3 = Color3.new(0, 0, 0)
+CustomizeKeysLabel.Visible = false
 
 local SeparatorLine = Instance.new("Frame")
 SeparatorLine.Parent = KeyListFrame
@@ -689,6 +692,7 @@ SeparatorLine.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
 SeparatorLine.BorderSizePixel = 0
 SeparatorLine.Position = UDim2.new(0.1, 0, 0, 175)
 SeparatorLine.Size = UDim2.new(0.8, 0, 0, 1)
+SeparatorLine.Visible = false
 
 local StatusLabel = Instance.new("TextLabel")
 StatusLabel.Parent = KeyListFrame
@@ -703,6 +707,7 @@ StatusLabel.TextXAlignment = Enum.TextXAlignment.Left
 StatusLabel.TextYAlignment = Enum.TextYAlignment.Top
 StatusLabel.TextStrokeTransparency = 0.5
 StatusLabel.TextStrokeColor3 = Color3.new(0, 0, 0)
+StatusLabel.Visible = false
 
 local StatsFrame = Instance.new("Frame")
 StatsFrame.Parent = ScreenGui
@@ -713,6 +718,70 @@ StatsFrame.Position = UDim2.new(0, 10, 0.5, 130)
 StatsFrame.Size = UDim2.new(0, 170, 0, 70)
 StatsFrame.BackgroundTransparency = 0.3
 StatsFrame.Visible = UIState.StatsVisible
+StatsFrame.Active = true
+
+local keyListPos = KeyListFrame.Position
+local statsPos = StatsFrame.Position
+
+local keyListDragging = false
+local keyListDragStart, keyListStartPos
+
+KeyListFrame.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        keyListDragging = true
+        keyListDragStart = input.Position
+        keyListStartPos = KeyListFrame.Position
+    end
+end)
+
+local statsDragging = false
+local statsDragStart, statsStartPos
+
+StatsFrame.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        statsDragging = true
+        statsDragStart = input.Position
+        statsStartPos = StatsFrame.Position
+    end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+    if input.UserInputType ~= Enum.UserInputType.MouseMovement then return end
+
+    if keyListDragging then
+        local delta = input.Position - keyListDragStart
+        KeyListFrame.Position = UDim2.new(
+            keyListStartPos.X.Scale,
+            keyListStartPos.X.Offset + delta.X,
+            keyListStartPos.Y.Scale,
+            keyListStartPos.Y.Offset + delta.Y
+        )
+    end
+
+    if statsDragging then
+        local delta = input.Position - statsDragStart
+        StatsFrame.Position = UDim2.new(
+            statsStartPos.X.Scale,
+            statsStartPos.X.Offset + delta.X,
+            statsStartPos.Y.Scale,
+            statsStartPos.Y.Offset + delta.Y
+        )
+    end
+end)
+
+UserInputService.InputEnded:Connect(function(input)
+    if input.UserInputType ~= Enum.UserInputType.MouseButton1 then return end
+
+    if keyListDragging then
+        keyListDragging = false
+        keyListPos = KeyListFrame.Position
+    end
+
+    if statsDragging then
+        statsDragging = false
+        statsPos = StatsFrame.Position
+    end
+end)
 
 local StatsCorner = Instance.new("UICorner")
 StatsCorner.CornerRadius = UDim.new(0, 6)
@@ -1973,6 +2042,58 @@ local function hasTeamDot(model)
 end
 
 
+local keyListEntryStartY = 30
+local keyListEntrySpacing = 20
+local keyListStatusCount = 0
+local updateStatusDisplay
+
+local keyListEntries = {
+    {label = FlyKeyLabel, isActive = function() return FlyConfig.Enabled end},
+    {label = NoClipKeyLabel, isActive = function() return NoClipConfig.Enabled end},
+    {label = CFrameSpeedKeyLabel, isActive = function() return CFrameSpeedConfig.Enabled end},
+    {label = ZoomKeyLabel, isActive = function() return ZoomConfig.Enabled end},
+    {label = AimbotKeyLabel, isActive = function() return AimbotConfig.Enabled end},
+}
+
+local function refreshKeyList()
+    local y = keyListEntryStartY
+    local visibleCount = 0
+
+    for _, entry in ipairs(keyListEntries) do
+        local shouldShow = entry.isActive()
+        entry.label.Visible = shouldShow
+        if shouldShow then
+            entry.label.Position = UDim2.new(0, 8, 0, y)
+            y = y + keyListEntrySpacing
+            visibleCount += 1
+        end
+    end
+
+    ToggleKeyLabel.Visible = false
+    CustomizeKeysLabel.Visible = false
+
+    if keyListStatusCount > 0 then
+        SeparatorLine.Visible = visibleCount > 0
+        if SeparatorLine.Visible then
+            SeparatorLine.Position = UDim2.new(0.1, 0, 0, y + 4)
+        end
+        StatusLabel.Visible = true
+        StatusLabel.Position = UDim2.new(0, 8, 0, y + 10)
+        local bounds = StatusLabel.TextBounds
+        local statusHeight = bounds and bounds.Y or 0
+        if statusHeight <= 0 then
+            statusHeight = keyListStatusCount * 14
+        end
+        y = y + 10 + statusHeight
+    else
+        SeparatorLine.Visible = false
+        StatusLabel.Visible = false
+    end
+
+    local totalHeight = math.max(60, y + 30)
+    KeyListFrame.Size = UDim2.new(0, 170, 0, totalHeight)
+end
+
 local function getKeyName(keyCode)
     if keyCode == Enum.KeyCode.RightShift then return "RShift"
     elseif keyCode == Enum.KeyCode.LeftShift then return "LShift"
@@ -1994,12 +2115,34 @@ local function updateKeyLabels()
     ZoomKeyLabel.Text = "[" .. getKeyName(KeyConfig.ZoomToggle) .. "] Zoom"
     ToggleKeyLabel.Text = "[" .. getKeyName(KeyConfig.MenuToggle) .. "] Menu"
 
+    local aimDisplay = "RMB"
+    local aimHold = KeyConfig.AimbotHold
+    if typeof(aimHold) == "EnumItem" then
+        if aimHold.EnumType == Enum.KeyCode then
+            aimDisplay = getKeyName(aimHold)
+        elseif aimHold.EnumType == Enum.UserInputType then
+            if aimHold == Enum.UserInputType.MouseButton1 then
+                aimDisplay = "LMB"
+            elseif aimHold == Enum.UserInputType.MouseButton2 then
+                aimDisplay = "RMB"
+            elseif aimHold == Enum.UserInputType.MouseButton3 then
+                aimDisplay = "MMB"
+            elseif aimHold == Enum.UserInputType.Touch then
+                aimDisplay = "Touch"
+            else
+                aimDisplay = tostring(aimHold):match("%w+$") or aimDisplay
+            end
+        end
+    end
+    AimbotKeyLabel.Text = "[" .. aimDisplay .. "] Aimbot"
+
     FlyKeyButton.Text = "[" .. getKeyName(KeyConfig.FlyToggle) .. "]"
     NoClipKeyButton.Text = "[" .. getKeyName(KeyConfig.NoClipToggle) .. "]"
     CFrameSpeedKeyButton.Text = "[" .. getKeyName(KeyConfig.CFrameSpeedToggle) .. "]"
     ZoomKeyButton.Text = "[" .. getKeyName(KeyConfig.ZoomToggle) .. "]"
 
     -- InfoLabel removed in redesigned GUI
+    refreshKeyList()
 end
 
 
@@ -2066,6 +2209,7 @@ local function toggleCFrameSpeed()
             CFrameSpeedConfig.Connection = nil
         end
     end
+    updateStatusDisplay()
 end
 
 local function toggleZoom()
@@ -2082,6 +2226,7 @@ local function toggleZoom()
             Camera.FieldOfView = FOVConfig.DefaultFOV
         end
     end
+    updateStatusDisplay()
 end
 
 local function createAimFovCircle()
@@ -2400,17 +2545,49 @@ end
 
 local function toggleAimbot()
     AimbotConfig.Enabled = not AimbotConfig.Enabled
-    
+
     if not AimbotConfig.Enabled then
         AimbotConfig.Aiming = false
         AimbotConfig.Target = nil
     end
+    updateStatusDisplay()
 end
 
-local function updateStatusDisplay()
-    local flyStatus = (FlyConfig.IsFlying or NoClipConfig.IsActive) and "ON" or "OFF"
-    local noclipStatus = NoClipConfig.IsActive and "ON" or "OFF"
-    StatusLabel.Text = "Fly: " .. flyStatus .. "\nNoClip: " .. noclipStatus
+updateStatusDisplay = function()
+    local statuses = {}
+
+    if FlyConfig.Enabled then
+        table.insert(statuses, "Fly: " .. (FlyConfig.IsFlying and "ON" or "OFF"))
+    end
+
+    if NoClipConfig.Enabled then
+        table.insert(statuses, "NoClip: " .. (NoClipConfig.IsActive and "ON" or "OFF"))
+    end
+
+    if CFrameSpeedConfig.Enabled then
+        table.insert(statuses, "CFrameSpeed: " .. (CFrameSpeedConfig.IsActive and "ON" or "OFF"))
+    end
+
+    if ZoomConfig.Enabled then
+        table.insert(statuses, "Zoom: " .. (ZoomConfig.IsZooming and "ON" or "OFF"))
+    end
+
+    if AimbotConfig.Enabled then
+        local aimState = AimbotConfig.Aiming and "AIMING" or "READY"
+        table.insert(statuses, "Aimbot: " .. aimState)
+    end
+
+    keyListStatusCount = #statuses
+
+    if keyListStatusCount > 0 then
+        StatusLabel.Visible = true
+        StatusLabel.Text = table.concat(statuses, "\n")
+    else
+        StatusLabel.Visible = false
+        StatusLabel.Text = ""
+    end
+
+    refreshKeyList()
 end
 
 local function toggleNightVision()
@@ -4130,6 +4307,7 @@ function updateButtons()
             XrayLabel.Text = string.format("Alpha: %.2f", XrayConfig.Transparency)
         end
     end
+    refreshKeyList()
 end
 
 function updateTimeControlUI()
@@ -4268,7 +4446,9 @@ function collectConfig()
             AimbotHold = enumToString(KeyConfig.AimbotHold)
         },
         KeyList = UIState.KeyListVisible,
-        Stats = UIState.StatsVisible
+        KeyListPosition = {KeyListFrame.Position.X.Scale, KeyListFrame.Position.X.Offset, KeyListFrame.Position.Y.Scale, KeyListFrame.Position.Y.Offset},
+        Stats = UIState.StatsVisible,
+        StatsPosition = {StatsFrame.Position.X.Scale, StatsFrame.Position.X.Offset, StatsFrame.Position.Y.Scale, StatsFrame.Position.Y.Offset}
     }
 end
 
@@ -4618,13 +4798,43 @@ function applyConfig(cfg)
         end
         updateKeyLabels()
     end
+    if cfg.KeyListPosition then
+        local pos = cfg.KeyListPosition
+        if type(pos) == "table" and #pos == 4 then
+            local sx, ox, sy, oy = pos[1], pos[2], pos[3], pos[4]
+            if type(sx) == "number" and type(ox) == "number" and type(sy) == "number" and type(oy) == "number" then
+                keyListPos = UDim2.new(sx, ox, sy, oy)
+                KeyListFrame.Position = keyListPos
+            end
+        end
+    end
     if cfg.KeyList ~= nil then
         UIState.KeyListVisible = cfg.KeyList
         KeyListFrame.Visible = UIState.KeyListVisible
+        if UIState.KeyListVisible and keyListPos then
+            KeyListFrame.Position = keyListPos
+        elseif not UIState.KeyListVisible then
+            keyListDragging = false
+        end
+    end
+    if cfg.StatsPosition then
+        local pos = cfg.StatsPosition
+        if type(pos) == "table" and #pos == 4 then
+            local sx, ox, sy, oy = pos[1], pos[2], pos[3], pos[4]
+            if type(sx) == "number" and type(ox) == "number" and type(sy) == "number" and type(oy) == "number" then
+                statsPos = UDim2.new(sx, ox, sy, oy)
+                StatsFrame.Position = statsPos
+            end
+        end
     end
     if cfg.Stats ~= nil then
         UIState.StatsVisible = cfg.Stats
         StatsFrame.Visible = UIState.StatsVisible
+        if UIState.StatsVisible and statsPos then
+            StatsFrame.Position = statsPos
+        elseif not UIState.StatsVisible then
+            statsDragging = false
+        end
     end
 end
 
@@ -4649,6 +4859,8 @@ function loadConfigFile(name)
         local data = HttpService:JSONDecode(readfile(path))
         applyConfig(data)
         updateButtons()
+        updateStatusDisplay()
+        updateKeyLabels()
         notifyConfig("Loaded " .. name)
     end
 end
@@ -5137,6 +5349,7 @@ CFrameSpeedToggle.Button.MouseButton1Click:Connect(function()
     if not CFrameSpeedConfig.Enabled and CFrameSpeedConfig.IsActive then
         toggleCFrameSpeed()
     end
+    updateStatusDisplay()
 end)
 
 ZoomToggle.Button.MouseButton1Click:Connect(function()
@@ -5145,6 +5358,7 @@ ZoomToggle.Button.MouseButton1Click:Connect(function()
     if not ZoomConfig.Enabled and ZoomConfig.IsZooming then
         toggleZoom()
     end
+    updateStatusDisplay()
 end)
 FlyKeyButton.MouseButton1Click:Connect(function()
     waitForKeyInput("FlyToggle", FlyKeyButton)
@@ -5183,12 +5397,27 @@ end)
 KeyListToggle.Button.MouseButton1Click:Connect(function()
     UIState.KeyListVisible = not UIState.KeyListVisible
     KeyListFrame.Visible = UIState.KeyListVisible
+    if UIState.KeyListVisible then
+        if keyListPos then
+            KeyListFrame.Position = keyListPos
+        end
+        refreshKeyList()
+    else
+        keyListDragging = false
+    end
     updateButtons()
 end)
 
 StatsToggle.Button.MouseButton1Click:Connect(function()
     UIState.StatsVisible = not UIState.StatsVisible
     StatsFrame.Visible = UIState.StatsVisible
+    if UIState.StatsVisible then
+        if statsPos then
+            StatsFrame.Position = statsPos
+        end
+    else
+        statsDragging = false
+    end
     updateButtons()
 end)
 
@@ -5246,6 +5475,7 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
         if AimbotConfig.Enabled and AimFovConfig.Enabled then
             AimbotConfig.Aiming = true
             AimbotConfig.Target = getClosestPlayerInFOV()
+            updateStatusDisplay()
         end
     end
 end)
@@ -5254,6 +5484,7 @@ UserInputService.InputEnded:Connect(function(input)
     if input.UserInputType == KeyConfig.AimbotHold then
         AimbotConfig.Aiming = false
         AimbotConfig.Target = nil
+        updateStatusDisplay()
     end
 end)
 
