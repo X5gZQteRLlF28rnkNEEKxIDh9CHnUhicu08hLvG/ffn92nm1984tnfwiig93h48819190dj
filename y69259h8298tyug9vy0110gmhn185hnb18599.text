@@ -205,17 +205,23 @@ HighlightConfig = {
     Color = Color3.new(1, 1, 0)
 }
 
+local function createHandHighlightCache()
+    return setmetatable({}, {__mode = "k"})
+end
+
 SkinChangerConfig = {
     Enabled = false,
     HandEnabled = false,
-    HandHighlights = {},
+    HandHighlights = createHandHighlightCache(),
     CurrentViewmodel = nil,
     ActiveCamera = nil,
     ViewmodelAddedConn = nil,
     ViewmodelRemovedConn = nil,
     ViewmodelAncestryConn = nil,
     CameraChildAddedConn = nil,
-    CameraChildRemovedConn = nil
+    CameraChildRemovedConn = nil,
+    UpdaterConn = nil,
+    UpdateAccumulator = 0
 }
 
 OreESP = {
@@ -380,6 +386,8 @@ local setSkinChangerEnabled
 local setHandHighlightEnabled
 local toggleSkinChanger
 local toggleHandHighlight
+local startSkinChangerMonitor
+local stopSkinChangerMonitor
 
 UIState = {
     KeyListVisible = true,
@@ -3952,22 +3960,32 @@ local function restoreHandPartColor(part)
 end
 
 clearHandHighlights = function()
+    local highlights = SkinChangerConfig.HandHighlights
     local parts = {}
-    for part in pairs(SkinChangerConfig.HandHighlights) do
+    for part in pairs(highlights) do
         table.insert(parts, part)
     end
 
     for _, part in ipairs(parts) do
         restoreHandPartColor(part)
     end
+
+    SkinChangerConfig.HandHighlights = createHandHighlightCache()
 end
 
 refreshHandHighlightColors = function()
-    for part, original in pairs(SkinChangerConfig.HandHighlights) do
+    if not SkinChangerConfig.Enabled or not SkinChangerConfig.HandEnabled then
+        return
+    end
+
+    for part in pairs(SkinChangerConfig.HandHighlights) do
         if part and part.Parent then
-            pcall(function()
+            local ok = pcall(function()
                 part.Color = HighlightConfig.Color
             end)
+            if not ok then
+                SkinChangerConfig.HandHighlights[part] = nil
+            end
         else
             SkinChangerConfig.HandHighlights[part] = nil
         end
@@ -4024,6 +4042,44 @@ local function disconnectSkinCamera()
         SkinChangerConfig.CameraChildRemovedConn = nil
     end
     SkinChangerConfig.ActiveCamera = nil
+end
+
+local function skinChangerHeartbeat(dt)
+    if not SkinChangerConfig.Enabled then
+        return
+    end
+
+    SkinChangerConfig.UpdateAccumulator = SkinChangerConfig.UpdateAccumulator + dt
+    if SkinChangerConfig.UpdateAccumulator < 0.1 then
+        return
+    end
+
+    SkinChangerConfig.UpdateAccumulator = 0
+
+    local ok, err = pcall(function()
+        refreshSkinChangerViewmodel()
+        if SkinChangerConfig.HandEnabled then
+            refreshHandHighlightColors()
+        end
+    end)
+
+    if not ok then
+        warn("[SkinChanger] update failed", err)
+    end
+end
+
+startSkinChangerMonitor = function()
+    if SkinChangerConfig.UpdaterConn then return end
+    SkinChangerConfig.UpdateAccumulator = 0
+    SkinChangerConfig.UpdaterConn = RunService.Heartbeat:Connect(skinChangerHeartbeat)
+end
+
+stopSkinChangerMonitor = function()
+    if SkinChangerConfig.UpdaterConn then
+        SkinChangerConfig.UpdaterConn:Disconnect()
+        SkinChangerConfig.UpdaterConn = nil
+    end
+    SkinChangerConfig.UpdateAccumulator = 0
 end
 
 local function applyHandHighlights(viewmodel)
@@ -4121,13 +4177,17 @@ end
 
 local function updateSkinChangerState()
     if not SkinChangerConfig.Enabled then
+        stopSkinChangerMonitor()
         disconnectSkinCamera()
         setCurrentViewmodel(nil)
         return
     end
 
+    startSkinChangerMonitor()
     refreshSkinChangerViewmodel()
-    if not SkinChangerConfig.HandEnabled then
+    if SkinChangerConfig.HandEnabled then
+        refreshHandHighlightColors()
+    else
         clearHandHighlights()
     end
 end
@@ -5119,6 +5179,7 @@ function applyConfig(cfg)
             HighlightColorButton.BackgroundColor3 = c
             if HighlightColorPicker then HighlightColorPicker.SetColor(c) end
         end
+        refreshHandHighlightColors()
     end
     if cfg.SkinChanger then
         setSkinChangerEnabled(cfg.SkinChanger.Enabled or false)
@@ -6215,10 +6276,11 @@ end)
 
 ScreenGui.AncestryChanged:Connect(function()
     if not ScreenGui.Parent then
+        stopSkinChangerMonitor()
         if TimeControl.Enabled then
             Lighting.ClockTime = TimeControl.OriginalTime
         end
-        
+
         if XrayConfig.Enabled then
             for part, originalTransparency in pairs(XrayConfig.OriginalTransparencies) do
                 if part and part.Parent then
