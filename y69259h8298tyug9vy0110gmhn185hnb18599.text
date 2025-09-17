@@ -360,6 +360,8 @@ WallClimbConfig = {
     RootPart = nil
 }
 
+local setWallClimbEnabled
+
 UIState = {
     KeyListVisible = true,
     StatsVisible = true,
@@ -2996,21 +2998,30 @@ local function updateWallClimbReferences()
 end
 
 local function setupWallClimbAnimation()
-    if not WallClimbConfig.Humanoid then return end
+    local humanoid = WallClimbConfig.Humanoid
+    if not humanoid or not humanoid.Parent then
+        return
+    end
     if WallClimbConfig.AnimationTrack then
-        WallClimbConfig.AnimationTrack:Stop()
-        WallClimbConfig.AnimationTrack:Destroy()
+        local track = WallClimbConfig.AnimationTrack
         WallClimbConfig.AnimationTrack = nil
+        pcall(function()
+            track:Stop()
+            track:Destroy()
+        end)
     end
     if WallClimbConfig.Animation then
-        WallClimbConfig.Animation:Destroy()
+        local animation = WallClimbConfig.Animation
         WallClimbConfig.Animation = nil
+        pcall(function()
+            animation:Destroy()
+        end)
     end
     local animation = Instance.new("Animation")
     animation.AnimationId = "rbxassetid://507765644"
     WallClimbConfig.Animation = animation
     local success, track = pcall(function()
-        return WallClimbConfig.Humanoid:LoadAnimation(animation)
+        return humanoid:LoadAnimation(animation)
     end)
     if success and track then
         track.Looped = true
@@ -3022,12 +3033,18 @@ end
 
 local function clearWallClimbForces()
     if WallClimbConfig.BodyVelocity then
-        WallClimbConfig.BodyVelocity:Destroy()
+        local bodyVelocity = WallClimbConfig.BodyVelocity
         WallClimbConfig.BodyVelocity = nil
+        pcall(function()
+            bodyVelocity:Destroy()
+        end)
     end
     if WallClimbConfig.BodyAngularVelocity then
-        WallClimbConfig.BodyAngularVelocity:Destroy()
+        local bodyAngularVelocity = WallClimbConfig.BodyAngularVelocity
         WallClimbConfig.BodyAngularVelocity = nil
+        pcall(function()
+            bodyAngularVelocity:Destroy()
+        end)
     end
 end
 
@@ -3047,49 +3064,77 @@ end
 
 local function startWallClimbing()
     if WallClimbConfig.IsClimbing then return end
-    if not WallClimbConfig.RootPart then return end
+
+    updateWallClimbReferences()
+    local root = WallClimbConfig.RootPart
+    local humanoid = WallClimbConfig.Humanoid
+    if not root or not root.Parent or not humanoid or humanoid.Health <= 0 then
+        clearWallClimbForces()
+        WallClimbConfig.IsClimbing = false
+        return
+    end
+
     WallClimbConfig.IsClimbing = true
     clearWallClimbForces()
+
     local bodyVelocity = Instance.new("BodyVelocity")
     bodyVelocity.MaxForce = Vector3.new(WallClimbConfig.WallStickForce, math.huge, WallClimbConfig.WallStickForce)
     bodyVelocity.Velocity = Vector3.zero
-    bodyVelocity.Parent = WallClimbConfig.RootPart
-    WallClimbConfig.BodyVelocity = bodyVelocity
+    local successVelocity = pcall(function()
+        bodyVelocity.Parent = root
+    end)
+    if successVelocity and bodyVelocity.Parent == root then
+        WallClimbConfig.BodyVelocity = bodyVelocity
+    else
+        bodyVelocity:Destroy()
+        WallClimbConfig.IsClimbing = false
+        return
+    end
 
     local bodyAngularVelocity = Instance.new("BodyAngularVelocity")
     bodyAngularVelocity.MaxTorque = Vector3.new(0, math.huge, 0)
     bodyAngularVelocity.AngularVelocity = Vector3.zero
-    bodyAngularVelocity.Parent = WallClimbConfig.RootPart
-    WallClimbConfig.BodyAngularVelocity = bodyAngularVelocity
+    local successAngular = pcall(function()
+        bodyAngularVelocity.Parent = root
+    end)
+    if successAngular and bodyAngularVelocity.Parent == root then
+        WallClimbConfig.BodyAngularVelocity = bodyAngularVelocity
+    else
+        bodyAngularVelocity:Destroy()
+        clearWallClimbForces()
+        WallClimbConfig.IsClimbing = false
+        return
+    end
 
-    if WallClimbConfig.Humanoid then
-        WallClimbConfig.Humanoid.AutoRotate = false
-        WallClimbConfig.Humanoid.PlatformStand = false
-        WallClimbConfig.Humanoid:ChangeState(Enum.HumanoidStateType.Physics)
-        if WallClimbConfig.AnimationTrack then
-            WallClimbConfig.AnimationTrack:Play()
-        end
+    humanoid.AutoRotate = false
+    humanoid.PlatformStand = false
+    humanoid:ChangeState(Enum.HumanoidStateType.Physics)
+    if WallClimbConfig.AnimationTrack then
+        WallClimbConfig.AnimationTrack:Play()
     end
 end
 
 local function detectClimbableWall()
-    if not WallClimbConfig.RootPart or not WallClimbConfig.Character then
-        return false, Vector3.new()
+    local root = WallClimbConfig.RootPart
+    local character = WallClimbConfig.Character
+    if not root or not root.Parent or not character then
+        return false, Vector3.zero
     end
-    local rayOrigin = WallClimbConfig.RootPart.Position
-    local rayDirection = WallClimbConfig.RootPart.CFrame.LookVector * WallClimbConfig.WallCheckDistance
+    local rayOrigin = root.Position
+    local rayDirection = root.CFrame.LookVector * WallClimbConfig.WallCheckDistance
     local params = RaycastParams.new()
     params.FilterType = Enum.RaycastFilterType.Blacklist
-    params.FilterDescendantsInstances = {WallClimbConfig.Character}
+    params.FilterDescendantsInstances = {character}
     local result = workspace:Raycast(rayOrigin, rayDirection, params)
     if result then
         local normal = result.Normal
-        local angle = math.deg(math.acos(math.abs(normal:Dot(Vector3.new(0, 1, 0)))))
+        local dot = math.clamp(normal:Dot(Vector3.new(0, 1, 0)), -1, 1)
+        local angle = math.deg(math.acos(math.abs(dot)))
         if angle >= WallClimbConfig.MinWallAngle then
             return true, normal
         end
     end
-    return false, Vector3.new()
+    return false, Vector3.zero
 end
 
 local function wallClimbHeartbeat()
@@ -3102,7 +3147,9 @@ local function wallClimbHeartbeat()
 
     updateWallClimbReferences()
 
-    if not WallClimbConfig.Humanoid or not WallClimbConfig.RootPart or WallClimbConfig.Humanoid.Health <= 0 then
+    local humanoid = WallClimbConfig.Humanoid
+    local root = WallClimbConfig.RootPart
+    if not humanoid or not humanoid.Parent or humanoid.Health <= 0 or not root or not root.Parent then
         if WallClimbConfig.IsClimbing then
             stopWallClimbing()
         end
@@ -3112,12 +3159,15 @@ local function wallClimbHeartbeat()
     local nearWall, normal = detectClimbableWall()
     WallClimbConfig.WallNormal = normal
 
-    local moveDir = WallClimbConfig.Humanoid.MoveDirection
+    local moveDir = humanoid.MoveDirection
     if nearWall and moveDir.Magnitude > 0 then
         if not WallClimbConfig.IsClimbing then
             startWallClimbing()
         end
-        if WallClimbConfig.IsClimbing and WallClimbConfig.BodyVelocity then
+        local bodyVelocity = WallClimbConfig.BodyVelocity
+        local bodyAngularVelocity = WallClimbConfig.BodyAngularVelocity
+        root = WallClimbConfig.RootPart
+        if WallClimbConfig.IsClimbing and bodyVelocity and root and root.Parent then
             local forwardInput = 0
             local rightInput = 0
             if UserInputService:IsKeyDown(Enum.KeyCode.W) then
@@ -3151,16 +3201,16 @@ local function wallClimbHeartbeat()
                 end
             end
             climbVelocity += -WallClimbConfig.WallNormal * (WallClimbConfig.WallStickForce / 80)
-            WallClimbConfig.BodyVelocity.Velocity = climbVelocity
+            bodyVelocity.Velocity = climbVelocity
 
-            if WallClimbConfig.WallNormal.Magnitude > 0 and WallClimbConfig.BodyAngularVelocity then
+            if WallClimbConfig.WallNormal.Magnitude > 0 and bodyAngularVelocity and bodyAngularVelocity.Parent then
                 local lookDirection = -WallClimbConfig.WallNormal
-                local rootPosition = WallClimbConfig.RootPart.Position
+                local rootPosition = root.Position
                 local target = CFrame.lookAt(rootPosition, rootPosition + Vector3.new(lookDirection.X, 0, lookDirection.Z))
-                local currentLook = WallClimbConfig.RootPart.CFrame.LookVector
+                local currentLook = root.CFrame.LookVector
                 local targetLook = target.LookVector
                 local rotationDiff = targetLook - currentLook
-                WallClimbConfig.BodyAngularVelocity.AngularVelocity = Vector3.new(0, rotationDiff.Y * 8, 0)
+                bodyAngularVelocity.AngularVelocity = Vector3.new(0, rotationDiff.Y * 8, 0)
             end
         end
     else
@@ -3177,12 +3227,26 @@ local function disconnectWallClimbHeartbeat()
     end
 end
 
+local function wallClimbHeartbeatRunner()
+    local success, err = pcall(wallClimbHeartbeat)
+    if not success then
+        warn("[WallClimb] Heartbeat error:", err)
+        disconnectWallClimbHeartbeat()
+        stopWallClimbing()
+        if WallClimbConfig.Enabled then
+            task.defer(function()
+                setWallClimbEnabled(false)
+            end)
+        end
+    end
+end
+
 local function applyWallClimbState()
     if WallClimbConfig.Enabled then
         updateWallClimbReferences()
         setupWallClimbAnimation()
         disconnectWallClimbHeartbeat()
-        WallClimbConfig.HeartbeatConnection = RunService.Heartbeat:Connect(wallClimbHeartbeat)
+        WallClimbConfig.HeartbeatConnection = RunService.Heartbeat:Connect(wallClimbHeartbeatRunner)
         WallClimbKeyLabel.TextColor3 = KeyListActiveColor
     else
         disconnectWallClimbHeartbeat()
@@ -3191,7 +3255,7 @@ local function applyWallClimbState()
     end
 end
 
-local function setWallClimbEnabled(state)
+setWallClimbEnabled = function(state)
     if WallClimbConfig.Enabled == state then return end
     WallClimbConfig.Enabled = state
     applyWallClimbState()
