@@ -197,7 +197,8 @@ HighlightConfig = {
 GodSkinChanger = {
     Enabled = false,
     Highlights = {},
-    Hue = 0
+    Hue = 0,
+    HandsEnabled = true
 }
 
 OreESP = {
@@ -343,6 +344,8 @@ UIState = {
     OreArrow = nil,
     droppedListExpanded = false,
     DroppedArrow = nil,
+    godSkinListExpanded = false,
+    GodSkinArrow = nil,
     ConfigNotify = nil,
 }
 
@@ -688,29 +691,6 @@ CustomizeKeysLabel.TextStrokeTransparency = 0.5
 CustomizeKeysLabel.TextStrokeColor3 = Color3.new(0, 0, 0)
 CustomizeKeysLabel.Visible = false
 
-local SeparatorLine = Instance.new("Frame")
-SeparatorLine.Parent = KeyListFrame
-SeparatorLine.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
-SeparatorLine.BorderSizePixel = 0
-SeparatorLine.Position = UDim2.new(0.1, 0, 0, 175)
-SeparatorLine.Size = UDim2.new(0.8, 0, 0, 1)
-SeparatorLine.Visible = false
-
-local StatusLabel = Instance.new("TextLabel")
-StatusLabel.Parent = KeyListFrame
-StatusLabel.BackgroundTransparency = 1
-StatusLabel.Position = UDim2.new(0, 8, 0, 180)
-StatusLabel.Size = UDim2.new(1, -16, 0, 30)
-StatusLabel.FontFace = customFont
-StatusLabel.Text = "Fly: OFF\nNoClip: OFF"
-StatusLabel.TextColor3 = Color3.fromRGB(100, 200, 100)
-StatusLabel.TextSize = 10
-StatusLabel.TextXAlignment = Enum.TextXAlignment.Left
-StatusLabel.TextYAlignment = Enum.TextYAlignment.Top
-StatusLabel.TextStrokeTransparency = 0.5
-StatusLabel.TextStrokeColor3 = Color3.new(0, 0, 0)
-StatusLabel.Visible = false
-
 local StatsFrame = Instance.new("Frame")
 StatsFrame.Parent = ScreenGui
 StatsFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
@@ -938,32 +918,89 @@ UserInputService.InputEnded:Connect(function(input)
     end
 end)
 
+local GodSkinListFrame = Instance.new("Frame")
+GodSkinListFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+GodSkinListFrame.BorderColor3 = Color3.fromRGB(100, 100, 100)
+GodSkinListFrame.BorderSizePixel = 1
+GodSkinListFrame.Size = UDim2.new(0, 170, 0, 70)
+GodSkinListFrame.BackgroundTransparency = 0.3
+GodSkinListFrame.Visible = false
+GodSkinListFrame.Active = true
+local godSkinListPos
+
+local GodSkinCorner = Instance.new("UICorner")
+GodSkinCorner.CornerRadius = UDim.new(0, 6)
+GodSkinCorner.Parent = GodSkinListFrame
+
+local GodSkinTitle = Instance.new("TextLabel")
+GodSkinTitle.Parent = GodSkinListFrame
+GodSkinTitle.BackgroundTransparency = 1
+GodSkinTitle.Size = UDim2.new(1, 0, 0, 20)
+GodSkinTitle.FontFace = customFont
+GodSkinTitle.Text = "God Skin Options"
+GodSkinTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
+GodSkinTitle.TextSize = 14
+GodSkinTitle.TextStrokeTransparency = 0.5
+GodSkinTitle.TextStrokeColor3 = Color3.new(0, 0, 0)
+
+local godSkinDragging = false
+local godSkinDragStart, godSkinStartPos
+
+GodSkinListFrame.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        godSkinDragging = true
+        godSkinDragStart = input.Position
+        godSkinStartPos = GodSkinListFrame.Position
+    end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+    if godSkinDragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+        local delta = input.Position - godSkinDragStart
+        GodSkinListFrame.Position = UDim2.new(godSkinStartPos.X.Scale, godSkinStartPos.X.Offset + delta.X, godSkinStartPos.Y.Scale, godSkinStartPos.Y.Offset + delta.Y)
+    end
+end)
+
+UserInputService.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 and godSkinDragging then
+        godSkinDragging = false
+        godSkinListPos = GodSkinListFrame.Position
+    end
+end)
+
 -- Title label and info text replaced by TitleBar at initialization
 
 RunService.RenderStepped:Connect(function()
     if GodSkinChanger.Enabled then
         GodSkinChanger.Hue = (GodSkinChanger.Hue + 0.01) % 1
         for _, name in ipairs({"Viewmodel", "Model"}) do
-            local obj = Camera:FindFirstChild(name)
-            if obj then
-                local highlight = GodSkinChanger.Highlights[name]
-                if not highlight or highlight.Parent ~= obj then
-                    if highlight then
-                        highlight:Destroy()
-                    end
-                    highlight = Instance.new("Highlight")
-                    highlight.Name = "GodSkinHighlight"
-                    highlight.FillTransparency = 0
-                    highlight.OutlineTransparency = 0
-                    highlight.Parent = obj
-                    GodSkinChanger.Highlights[name] = highlight
+            if name == "Viewmodel" and not GodSkinChanger.HandsEnabled then
+                if GodSkinChanger.Highlights[name] then
+                    GodSkinChanger.Highlights[name]:Destroy()
+                    GodSkinChanger.Highlights[name] = nil
                 end
-                local col = Color3.fromHSV(GodSkinChanger.Hue, 1, 1)
-                highlight.OutlineColor = col
-                highlight.FillColor = col
-            elseif GodSkinChanger.Highlights[name] then
-                GodSkinChanger.Highlights[name]:Destroy()
-                GodSkinChanger.Highlights[name] = nil
+            else
+                local obj = Camera:FindFirstChild(name)
+                if obj then
+                    local highlight = GodSkinChanger.Highlights[name]
+                    if not highlight or highlight.Parent ~= obj then
+                        if highlight then
+                            highlight:Destroy()
+                        end
+                        highlight = Instance.new("Highlight")
+                        highlight.Name = "GodSkinHighlight"
+                        highlight.FillTransparency = 0
+                        highlight.OutlineTransparency = 0
+                        highlight.Parent = obj
+                        GodSkinChanger.Highlights[name] = highlight
+                    end
+                    local col = Color3.fromHSV(GodSkinChanger.Hue, 1, 1)
+                    highlight.OutlineColor = col
+                    highlight.FillColor = col
+                elseif GodSkinChanger.Highlights[name] then
+                    GodSkinChanger.Highlights[name]:Destroy()
+                    GodSkinChanger.Highlights[name] = nil
+                end
             end
         end
     elseif next(GodSkinChanger.Highlights) then
@@ -1043,6 +1080,15 @@ local function createTab(name, order, scrollable, icon)
         end
         frame.Visible = true
         button.BackgroundColor3 = tabSelectedColor
+        if hideAllPickers then
+            hideAllPickers()
+        end
+        UIState.oreListExpanded = false
+        UIState.droppedListExpanded = false
+        UIState.godSkinListExpanded = false
+        if updateButtons then
+            updateButtons()
+        end
     end)
 
     return frame
@@ -1229,6 +1275,10 @@ DroppedListFrame.Parent = ScreenGui
 DroppedListFrame.Position = UDim2.new(0, 0, 0, 0)
 DroppedTitle.Visible = true
 
+GodSkinListFrame.Parent = ScreenGui
+GodSkinListFrame.Position = UDim2.new(0, 0, 0, 0)
+GodSkinTitle.Visible = true
+
 local refreshDroppedList
 local DroppedToggles = {}
 local dropY = 30
@@ -1246,6 +1296,20 @@ end
 BackpackToggle = createToggle(VisualTab, "BackpackToggle", "Backpack ESP", 370)
 
 GodSkinChangerToggle = createToggle(VisualTab, "GodSkinChangerToggle", "God SkinChanger", 400)
+
+UIState.GodSkinArrow = Instance.new("TextButton")
+UIState.GodSkinArrow.Parent = GodSkinChangerToggle.Holder
+UIState.GodSkinArrow.BackgroundTransparency = 1
+UIState.GodSkinArrow.BorderSizePixel = 0
+UIState.GodSkinArrow.Position = UDim2.new(1, -20, 0, 0)
+UIState.GodSkinArrow.Size = UDim2.new(0, 20, 0, 20)
+UIState.GodSkinArrow.Text = ">"
+UIState.GodSkinArrow.FontFace = customFont
+UIState.GodSkinArrow.TextSize = 16
+UIState.GodSkinArrow.TextColor3 = Color3.fromRGB(255, 255, 255)
+UIState.GodSkinArrow.AutoButtonColor = false
+
+GodSkinHandsToggle = createToggle(GodSkinListFrame, "GodSkinHandsToggle", "Hand Color", 30)
 
 MapToggle = createToggle(VisualTab, "MapToggle", "Map", 430)
 
@@ -2047,7 +2111,6 @@ end
 
 local keyListEntryStartY = 30
 local keyListEntrySpacing = 20
-local keyListStatusCount = 0
 local updateStatusDisplay
 
 local keyListEntries = {
@@ -2060,7 +2123,6 @@ local keyListEntries = {
 
 local function refreshKeyList()
     local y = keyListEntryStartY
-    local visibleCount = 0
 
     for _, entry in ipairs(keyListEntries) do
         local shouldShow = entry.isActive()
@@ -2068,32 +2130,12 @@ local function refreshKeyList()
         if shouldShow then
             entry.label.Position = UDim2.new(0, 8, 0, y)
             y = y + keyListEntrySpacing
-            visibleCount += 1
         end
     end
 
     ToggleKeyLabel.Visible = false
     CustomizeKeysLabel.Visible = false
-
-    if keyListStatusCount > 0 then
-        SeparatorLine.Visible = visibleCount > 0
-        if SeparatorLine.Visible then
-            SeparatorLine.Position = UDim2.new(0.1, 0, 0, y + 4)
-        end
-        StatusLabel.Visible = true
-        StatusLabel.Position = UDim2.new(0, 8, 0, y + 10)
-        local bounds = StatusLabel.TextBounds
-        local statusHeight = bounds and bounds.Y or 0
-        if statusHeight <= 0 then
-            statusHeight = keyListStatusCount * 14
-        end
-        y = y + 10 + statusHeight
-    else
-        SeparatorLine.Visible = false
-        StatusLabel.Visible = false
-    end
-
-    local totalHeight = math.max(60, y + 30)
+    local totalHeight = math.max(60, y + 20)
     KeyListFrame.Size = UDim2.new(0, 170, 0, totalHeight)
 end
 
@@ -2558,39 +2600,6 @@ local function toggleAimbot()
 end
 
 updateStatusDisplay = function()
-    local statuses = {}
-
-    if FlyConfig.Enabled then
-        table.insert(statuses, "Fly: " .. (FlyConfig.IsFlying and "ON" or "OFF"))
-    end
-
-    if NoClipConfig.Enabled then
-        table.insert(statuses, "NoClip: " .. (NoClipConfig.IsActive and "ON" or "OFF"))
-    end
-
-    if CFrameSpeedConfig.Enabled then
-        table.insert(statuses, "CFrameSpeed: " .. (CFrameSpeedConfig.IsActive and "ON" or "OFF"))
-    end
-
-    if ZoomConfig.Enabled then
-        table.insert(statuses, "Zoom: " .. (ZoomConfig.IsZooming and "ON" or "OFF"))
-    end
-
-    if AimbotConfig.Enabled then
-        local aimState = AimbotConfig.Aiming and "AIMING" or "READY"
-        table.insert(statuses, "Aimbot: " .. aimState)
-    end
-
-    keyListStatusCount = #statuses
-
-    if keyListStatusCount > 0 then
-        StatusLabel.Visible = true
-        StatusLabel.Text = table.concat(statuses, "\n")
-    else
-        StatusLabel.Visible = false
-        StatusLabel.Text = ""
-    end
-
     refreshKeyList()
 end
 
@@ -4260,6 +4269,7 @@ ToggleBindings = {
     {button = DroppedToggle,    state = function() return DroppedESP.Enabled end},
     {button = BackpackToggle,   state = function() return BackpackESP.Enabled end},
     {button = GodSkinChangerToggle, state = function() return GodSkinChanger.Enabled end},
+    {button = GodSkinHandsToggle, state = function() return GodSkinChanger.HandsEnabled end},
     {button = MapToggle,        state = function() return MapConfig.Enabled end},
     {button = NewsToggle,       state = function() return NewsConfig.Enabled end},
     {button = SkyColorToggle,   state = function() return SkyColorConfig.Enabled end},
@@ -4297,6 +4307,10 @@ function updateButtons()
     DroppedListFrame.Visible = UIState.droppedListExpanded
     if UIState.DroppedArrow then
         UIState.DroppedArrow.Text = UIState.droppedListExpanded and "v" or ">"
+    end
+    GodSkinListFrame.Visible = UIState.godSkinListExpanded
+    if UIState.GodSkinArrow then
+        UIState.GodSkinArrow.Text = UIState.godSkinListExpanded and "v" or ">"
     end
     for name, tgl in pairs(DroppedToggles) do
         tgl.Check.Visible = DroppedESP.Items[name]
@@ -4409,7 +4423,10 @@ function collectConfig()
         },
         TeamCheck = TeamCheckConfig.Enabled,
         Highlight = {Enabled = HighlightConfig.Enabled, Color = colorToTable(HighlightConfig.Color)},
-        GodSkinChanger = GodSkinChanger.Enabled,
+        GodSkinChanger = {
+            Enabled = GodSkinChanger.Enabled,
+            HandsEnabled = GodSkinChanger.HandsEnabled,
+        },
         OreESP = {
             Enabled = OreESP.Enabled,
             IronEnabled = OreESP.IronEnabled,
@@ -4472,6 +4489,7 @@ local function resetConfig()
     TeamCheckConfig.Enabled = false
     HighlightConfig.Enabled = false
     GodSkinChanger.Enabled = false
+    GodSkinChanger.HandsEnabled = true
     OreESP.Enabled = false
     OreESP.IronEnabled = false
     OreESP.BrimstoneEnabled = false
@@ -4516,6 +4534,8 @@ local function resetConfig()
     KeyListFrame.Visible = false
     UIState.StatsVisible = false
     StatsFrame.Visible = false
+    UIState.godSkinListExpanded = false
+    GodSkinListFrame.Visible = false
 end
 
 function applyConfig(cfg)
@@ -4596,7 +4616,14 @@ function applyConfig(cfg)
         end
     end
     if cfg.GodSkinChanger ~= nil then
-        GodSkinChanger.Enabled = cfg.GodSkinChanger
+        if type(cfg.GodSkinChanger) == "table" then
+            GodSkinChanger.Enabled = cfg.GodSkinChanger.Enabled or false
+            if cfg.GodSkinChanger.HandsEnabled ~= nil then
+                GodSkinChanger.HandsEnabled = cfg.GodSkinChanger.HandsEnabled
+            end
+        else
+            GodSkinChanger.Enabled = cfg.GodSkinChanger
+        end
     end
     if cfg.OreESP then
         OreESP.Enabled = cfg.OreESP.Enabled
@@ -5016,6 +5043,16 @@ GodSkinChangerToggle.Button.MouseButton1Click:Connect(function()
             highlight:Destroy()
         end
         GodSkinChanger.Highlights = {}
+        UIState.godSkinListExpanded = false
+    end
+    updateButtons()
+end)
+
+GodSkinHandsToggle.Button.MouseButton1Click:Connect(function()
+    GodSkinChanger.HandsEnabled = not GodSkinChanger.HandsEnabled
+    if not GodSkinChanger.HandsEnabled and GodSkinChanger.Highlights.Viewmodel then
+        GodSkinChanger.Highlights.Viewmodel:Destroy()
+        GodSkinChanger.Highlights.Viewmodel = nil
     end
     updateButtons()
 end)
@@ -5277,6 +5314,23 @@ UIState.DroppedArrow.MouseButton1Click:Connect(function()
             local offsetX = DroppedToggle.Holder.AbsolutePosition.X + DroppedToggle.Holder.AbsoluteSize.X + 5
             local offsetY = DroppedToggle.Holder.AbsolutePosition.Y - 30
             DroppedListFrame.Position = UDim2.new(0, offsetX, 0, offsetY)
+        end
+    end
+    updateButtons()
+end)
+
+UIState.GodSkinArrow.MouseButton1Click:Connect(function()
+    if UIState.godSkinListExpanded then
+        UIState.godSkinListExpanded = false
+    else
+        hideAllPickers()
+        UIState.godSkinListExpanded = true
+        if godSkinListPos then
+            GodSkinListFrame.Position = godSkinListPos
+        else
+            local offsetX = GodSkinChangerToggle.Holder.AbsolutePosition.X + GodSkinChangerToggle.Holder.AbsoluteSize.X + 5
+            local offsetY = GodSkinChangerToggle.Holder.AbsolutePosition.Y - 30
+            GodSkinListFrame.Position = UDim2.new(0, offsetX, 0, offsetY)
         end
     end
     updateButtons()
