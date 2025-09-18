@@ -147,7 +147,6 @@ local KeyConfig = {
     NoClipToggle = Enum.KeyCode.Z,
     CFrameSpeedToggle = Enum.KeyCode.V,
     ZoomToggle = Enum.KeyCode.C,
-    WallClimbToggle = Enum.KeyCode.H,
     AimbotHold = Enum.UserInputType.MouseButton2,
     CustomizeMode = false
 }
@@ -340,27 +339,6 @@ ZoomConfig = {
     Value = 30,
     IsZooming = false
 }
-
-WallClimbConfig = {
-    Enabled = false,
-    IsClimbing = false,
-    ToggleKey = Enum.KeyCode.H,
-    ClimbSpeed = 14,
-    WallCheckDistance = 2.5,
-    MinWallAngle = 25,
-    WallStickForce = 1200,
-    BodyVelocity = nil,
-    BodyAngularVelocity = nil,
-    WallNormal = Vector3.new(),
-    Animation = nil,
-    AnimationTrack = nil,
-    HeartbeatConnection = nil,
-    Character = nil,
-    Humanoid = nil,
-    RootPart = nil
-}
-
-local setWallClimbEnabled
 
 UIState = {
     KeyListVisible = true,
@@ -694,23 +672,10 @@ ZoomKeyLabel.TextXAlignment = Enum.TextXAlignment.Left
 ZoomKeyLabel.TextStrokeTransparency = 0.5
 ZoomKeyLabel.TextStrokeColor3 = Color3.new(0, 0, 0)
 
-local WallClimbKeyLabel = Instance.new("TextLabel")
-WallClimbKeyLabel.Parent = KeyListFrame
-WallClimbKeyLabel.BackgroundTransparency = 1
-WallClimbKeyLabel.Position = UDim2.new(0, 8, 0, 110)
-WallClimbKeyLabel.Size = UDim2.new(1, -16, 0, 18)
-WallClimbKeyLabel.FontFace = customFont
-WallClimbKeyLabel.Text = "[H] WallClimb"
-WallClimbKeyLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
-WallClimbKeyLabel.TextSize = 12
-WallClimbKeyLabel.TextXAlignment = Enum.TextXAlignment.Left
-WallClimbKeyLabel.TextStrokeTransparency = 0.5
-WallClimbKeyLabel.TextStrokeColor3 = Color3.new(0, 0, 0)
-
 local AimbotKeyLabel = Instance.new("TextLabel")
 AimbotKeyLabel.Parent = KeyListFrame
 AimbotKeyLabel.BackgroundTransparency = 1
-AimbotKeyLabel.Position = UDim2.new(0, 8, 0, 130)
+AimbotKeyLabel.Position = UDim2.new(0, 8, 0, 110)
 AimbotKeyLabel.Size = UDim2.new(1, -16, 0, 18)
 AimbotKeyLabel.FontFace = customFont
 AimbotKeyLabel.Text = "[RMB] Aimbot"
@@ -1331,9 +1296,6 @@ NoClipModeButton.TextStrokeTransparency = 0.5
 NoClipModeButton.TextStrokeColor3 = Color3.new(0, 0, 0)
 NoClipModeButton.AutoButtonColor = false
 NoClipModeButton.Text = "NoClip Mode: " .. (NoClipConfig.Mode == "legacy" and "Legacy" or "Modern")
-
-WallClimbToggle = createToggle(MainTab, "WallClimbToggle", "Wall Climb", 130)
-
 
 XrayToggle = createToggle(MiscTab, "XrayToggle", "Xray Feature", 10)
 FOVToggle = createToggle(MiscTab, "FOVToggle", "FOV Changer", 40)
@@ -2062,7 +2024,6 @@ local keyListEntries = {
     {label = NoClipKeyLabel, isActive = function() return NoClipConfig.Enabled end},
     {label = CFrameSpeedKeyLabel, isActive = function() return CFrameSpeedConfig.Enabled end},
     {label = ZoomKeyLabel, isActive = function() return ZoomConfig.Enabled end},
-    {label = WallClimbKeyLabel, isActive = function() return WallClimbConfig.Enabled end},
     {label = AimbotKeyLabel, isActive = function() return AimbotConfig.Enabled end},
 }
 
@@ -2103,7 +2064,6 @@ local function updateKeyLabels()
     NoClipKeyLabel.Text = "[" .. getKeyName(KeyConfig.NoClipToggle) .. "] NoClip"
     CFrameSpeedKeyLabel.Text = "[" .. getKeyName(KeyConfig.CFrameSpeedToggle) .. "] CFrameSpeed"
     ZoomKeyLabel.Text = "[" .. getKeyName(KeyConfig.ZoomToggle) .. "] Zoom"
-    WallClimbKeyLabel.Text = "[" .. getKeyName(KeyConfig.WallClimbToggle) .. "] WallClimb"
     ToggleKeyLabel.Text = "[" .. getKeyName(KeyConfig.MenuToggle) .. "] Menu"
 
     local aimDisplay = "RMB"
@@ -2988,283 +2948,6 @@ local function toggleFly()
     end
 
     updateStatusDisplay()
-end
-
-local function updateWallClimbReferences()
-    local character = LocalPlayer.Character
-    WallClimbConfig.Character = character
-    WallClimbConfig.Humanoid = character and character:FindFirstChildOfClass("Humanoid") or nil
-    WallClimbConfig.RootPart = character and character:FindFirstChild("HumanoidRootPart") or nil
-end
-
-local function setupWallClimbAnimation()
-    local humanoid = WallClimbConfig.Humanoid
-    if not humanoid or not humanoid.Parent then
-        return
-    end
-    if WallClimbConfig.AnimationTrack then
-        local track = WallClimbConfig.AnimationTrack
-        WallClimbConfig.AnimationTrack = nil
-        pcall(function()
-            track:Stop()
-            track:Destroy()
-        end)
-    end
-    if WallClimbConfig.Animation then
-        local animation = WallClimbConfig.Animation
-        WallClimbConfig.Animation = nil
-        pcall(function()
-            animation:Destroy()
-        end)
-    end
-    local animation = Instance.new("Animation")
-    animation.AnimationId = "rbxassetid://507765644"
-    WallClimbConfig.Animation = animation
-    local success, track = pcall(function()
-        return humanoid:LoadAnimation(animation)
-    end)
-    if success and track then
-        track.Looped = true
-        WallClimbConfig.AnimationTrack = track
-    else
-        WallClimbConfig.AnimationTrack = nil
-    end
-end
-
-local function clearWallClimbForces()
-    if WallClimbConfig.BodyVelocity then
-        local bodyVelocity = WallClimbConfig.BodyVelocity
-        WallClimbConfig.BodyVelocity = nil
-        pcall(function()
-            bodyVelocity:Destroy()
-        end)
-    end
-    if WallClimbConfig.BodyAngularVelocity then
-        local bodyAngularVelocity = WallClimbConfig.BodyAngularVelocity
-        WallClimbConfig.BodyAngularVelocity = nil
-        pcall(function()
-            bodyAngularVelocity:Destroy()
-        end)
-    end
-end
-
-local function stopWallClimbing()
-    if not WallClimbConfig.IsClimbing then return end
-    WallClimbConfig.IsClimbing = false
-    if WallClimbConfig.AnimationTrack then
-        WallClimbConfig.AnimationTrack:Stop()
-    end
-    clearWallClimbForces()
-    if WallClimbConfig.Humanoid then
-        WallClimbConfig.Humanoid.AutoRotate = true
-        WallClimbConfig.Humanoid.PlatformStand = false
-        WallClimbConfig.Humanoid:ChangeState(Enum.HumanoidStateType.Freefall)
-    end
-end
-
-local function startWallClimbing()
-    if WallClimbConfig.IsClimbing then return end
-
-    updateWallClimbReferences()
-    local root = WallClimbConfig.RootPart
-    local humanoid = WallClimbConfig.Humanoid
-    if not root or not root.Parent or not humanoid or humanoid.Health <= 0 then
-        clearWallClimbForces()
-        WallClimbConfig.IsClimbing = false
-        return
-    end
-
-    WallClimbConfig.IsClimbing = true
-    clearWallClimbForces()
-
-    local bodyVelocity = Instance.new("BodyVelocity")
-    bodyVelocity.MaxForce = Vector3.new(WallClimbConfig.WallStickForce, math.huge, WallClimbConfig.WallStickForce)
-    bodyVelocity.Velocity = Vector3.zero
-    local successVelocity = pcall(function()
-        bodyVelocity.Parent = root
-    end)
-    if successVelocity and bodyVelocity.Parent == root then
-        WallClimbConfig.BodyVelocity = bodyVelocity
-    else
-        bodyVelocity:Destroy()
-        WallClimbConfig.IsClimbing = false
-        return
-    end
-
-    local bodyAngularVelocity = Instance.new("BodyAngularVelocity")
-    bodyAngularVelocity.MaxTorque = Vector3.new(0, math.huge, 0)
-    bodyAngularVelocity.AngularVelocity = Vector3.zero
-    local successAngular = pcall(function()
-        bodyAngularVelocity.Parent = root
-    end)
-    if successAngular and bodyAngularVelocity.Parent == root then
-        WallClimbConfig.BodyAngularVelocity = bodyAngularVelocity
-    else
-        bodyAngularVelocity:Destroy()
-        clearWallClimbForces()
-        WallClimbConfig.IsClimbing = false
-        return
-    end
-
-    humanoid.AutoRotate = false
-    humanoid.PlatformStand = false
-    humanoid:ChangeState(Enum.HumanoidStateType.Physics)
-    if WallClimbConfig.AnimationTrack then
-        WallClimbConfig.AnimationTrack:Play()
-    end
-end
-
-local function detectClimbableWall()
-    local root = WallClimbConfig.RootPart
-    local character = WallClimbConfig.Character
-    if not root or not root.Parent or not character then
-        return false, Vector3.zero
-    end
-    local rayOrigin = root.Position
-    local rayDirection = root.CFrame.LookVector * WallClimbConfig.WallCheckDistance
-    local params = RaycastParams.new()
-    params.FilterType = Enum.RaycastFilterType.Blacklist
-    params.FilterDescendantsInstances = {character}
-    local result = workspace:Raycast(rayOrigin, rayDirection, params)
-    if result then
-        local normal = result.Normal
-        local dot = math.clamp(normal:Dot(Vector3.new(0, 1, 0)), -1, 1)
-        local angle = math.deg(math.acos(math.abs(dot)))
-        if angle >= WallClimbConfig.MinWallAngle then
-            return true, normal
-        end
-    end
-    return false, Vector3.zero
-end
-
-local function wallClimbHeartbeat()
-    if not WallClimbConfig.Enabled then
-        if WallClimbConfig.IsClimbing then
-            stopWallClimbing()
-        end
-        return
-    end
-
-    updateWallClimbReferences()
-
-    local humanoid = WallClimbConfig.Humanoid
-    local root = WallClimbConfig.RootPart
-    if not humanoid or not humanoid.Parent or humanoid.Health <= 0 or not root or not root.Parent then
-        if WallClimbConfig.IsClimbing then
-            stopWallClimbing()
-        end
-        return
-    end
-
-    local nearWall, normal = detectClimbableWall()
-    WallClimbConfig.WallNormal = normal
-
-    local moveDir = humanoid.MoveDirection
-    if nearWall and moveDir.Magnitude > 0 then
-        if not WallClimbConfig.IsClimbing then
-            startWallClimbing()
-        end
-        local bodyVelocity = WallClimbConfig.BodyVelocity
-        local bodyAngularVelocity = WallClimbConfig.BodyAngularVelocity
-        root = WallClimbConfig.RootPart
-        if WallClimbConfig.IsClimbing and bodyVelocity and root and root.Parent then
-            local forwardInput = 0
-            local rightInput = 0
-            if UserInputService:IsKeyDown(Enum.KeyCode.W) then
-                forwardInput = 1
-            elseif UserInputService:IsKeyDown(Enum.KeyCode.S) then
-                forwardInput = -1
-            end
-            if UserInputService:IsKeyDown(Enum.KeyCode.D) then
-                rightInput = 1
-            elseif UserInputService:IsKeyDown(Enum.KeyCode.A) then
-                rightInput = -1
-            end
-
-            if WallClimbConfig.AnimationTrack then
-                local moveAmount = math.abs(forwardInput) + math.abs(rightInput)
-                if moveAmount > 0 then
-                    WallClimbConfig.AnimationTrack:AdjustSpeed(1.2)
-                else
-                    WallClimbConfig.AnimationTrack:AdjustSpeed(0.3)
-                end
-            end
-
-            local climbVelocity = Vector3.zero
-            if forwardInput ~= 0 then
-                climbVelocity += Vector3.new(0, forwardInput * WallClimbConfig.ClimbSpeed, 0)
-            end
-            if rightInput ~= 0 then
-                local cam = Camera
-                if cam then
-                    climbVelocity += cam.CFrame.RightVector * rightInput * WallClimbConfig.ClimbSpeed * 0.7
-                end
-            end
-            climbVelocity += -WallClimbConfig.WallNormal * (WallClimbConfig.WallStickForce / 80)
-            bodyVelocity.Velocity = climbVelocity
-
-            if WallClimbConfig.WallNormal.Magnitude > 0 and bodyAngularVelocity and bodyAngularVelocity.Parent then
-                local lookDirection = -WallClimbConfig.WallNormal
-                local rootPosition = root.Position
-                local target = CFrame.lookAt(rootPosition, rootPosition + Vector3.new(lookDirection.X, 0, lookDirection.Z))
-                local currentLook = root.CFrame.LookVector
-                local targetLook = target.LookVector
-                local rotationDiff = targetLook - currentLook
-                bodyAngularVelocity.AngularVelocity = Vector3.new(0, rotationDiff.Y * 8, 0)
-            end
-        end
-    else
-        if WallClimbConfig.IsClimbing then
-            stopWallClimbing()
-        end
-    end
-end
-
-local function disconnectWallClimbHeartbeat()
-    if WallClimbConfig.HeartbeatConnection then
-        WallClimbConfig.HeartbeatConnection:Disconnect()
-        WallClimbConfig.HeartbeatConnection = nil
-    end
-end
-
-local function wallClimbHeartbeatRunner()
-    local success, err = pcall(wallClimbHeartbeat)
-    if not success then
-        warn("[WallClimb] Heartbeat error:", err)
-        disconnectWallClimbHeartbeat()
-        stopWallClimbing()
-        if WallClimbConfig.Enabled then
-            task.defer(function()
-                setWallClimbEnabled(false)
-            end)
-        end
-    end
-end
-
-local function applyWallClimbState()
-    if WallClimbConfig.Enabled then
-        updateWallClimbReferences()
-        setupWallClimbAnimation()
-        disconnectWallClimbHeartbeat()
-        WallClimbConfig.HeartbeatConnection = RunService.Heartbeat:Connect(wallClimbHeartbeatRunner)
-        WallClimbKeyLabel.TextColor3 = KeyListActiveColor
-    else
-        disconnectWallClimbHeartbeat()
-        stopWallClimbing()
-        WallClimbKeyLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
-    end
-end
-
-setWallClimbEnabled = function(state)
-    if WallClimbConfig.Enabled == state then return end
-    WallClimbConfig.Enabled = state
-    applyWallClimbState()
-    updateStatusDisplay()
-end
-
-local function toggleWallClimb()
-    setWallClimbEnabled(not WallClimbConfig.Enabled)
-    updateButtons()
 end
 
 local timeDragging = false
@@ -4535,7 +4218,6 @@ ToggleBindings = {
     {button = CrosshairToggle,  state = function() return CrosshairConfig.Enabled end},
     {button = KeyListToggle,    state = function() return UIState.KeyListVisible end},
     {button = StatsToggle,      state = function() return UIState.StatsVisible end},
-    {button = WallClimbToggle,  state = function() return WallClimbConfig.Enabled end},
 }
 
 function updateButtons()
@@ -4691,7 +4373,6 @@ function collectConfig()
         NightVision = NightVisionConfig.Enabled,
         Fly = FlyConfig.Enabled,
         NoClip = {Enabled = NoClipConfig.Enabled, ReturnY = NoClipConfig.ReturnY, Mode = NoClipConfig.Mode},
-        WallClimb = WallClimbConfig.Enabled,
         FOV = {Enabled = FOVConfig.Enabled, Value = FOVConfig.Value},
         CFrameSpeed = {Enabled = CFrameSpeedConfig.Enabled, Speed = CFrameSpeedConfig.Speed},
         Zoom = {Enabled = ZoomConfig.Enabled, Value = ZoomConfig.Value},
@@ -4706,7 +4387,6 @@ function collectConfig()
             NoClipToggle = enumToString(KeyConfig.NoClipToggle),
             CFrameSpeedToggle = enumToString(KeyConfig.CFrameSpeedToggle),
             ZoomToggle = enumToString(KeyConfig.ZoomToggle),
-            WallClimbToggle = enumToString(KeyConfig.WallClimbToggle),
             AimbotHold = enumToString(KeyConfig.AimbotHold)
         },
         KeyList = UIState.KeyListVisible,
@@ -4766,7 +4446,6 @@ local function resetConfig()
     FlyConfig.Enabled = false
     if NoClipConfig.IsActive then toggleNoClip() end
     NoClipConfig.Enabled = false
-    setWallClimbEnabled(false)
     if FOVConfig.Enabled then toggleFOV() end
     FOVConfig.Enabled = false
     if CrosshairConfig.Enabled then toggleCrosshair() end
@@ -5016,9 +4695,6 @@ function applyConfig(cfg)
             toggleNoClip()
         end
     end
-    if cfg.WallClimb ~= nil then
-        setWallClimbEnabled(cfg.WallClimb)
-    end
     if cfg.FOV then
         FOVConfig.Value = cfg.FOV.Value or FOVConfig.Value
         if cfg.FOV.Enabled ~= FOVConfig.Enabled then
@@ -5056,9 +4732,6 @@ function applyConfig(cfg)
         end
         if cfg.Keys.ZoomToggle then
             KeyConfig.ZoomToggle = Enum.KeyCode[cfg.Keys.ZoomToggle] or KeyConfig.ZoomToggle
-        end
-        if cfg.Keys.WallClimbToggle then
-            KeyConfig.WallClimbToggle = Enum.KeyCode[cfg.Keys.WallClimbToggle] or KeyConfig.WallClimbToggle
         end
         if cfg.Keys.AimbotHold then
             KeyConfig.AimbotHold = Enum.UserInputType[cfg.Keys.AimbotHold] or KeyConfig.AimbotHold
@@ -5571,10 +5244,6 @@ NoClipModeButton.MouseButton1Click:Connect(function()
     NoClipModeButton.Text = "NoClip Mode: " .. (NoClipConfig.Mode == "legacy" and "Legacy" or "Modern")
 end)
 
-WallClimbToggle.Button.MouseButton1Click:Connect(function()
-    toggleWallClimb()
-end)
-
 XrayToggle.Button.MouseButton1Click:Connect(function()
     toggleXray()
     updateButtons()
@@ -5733,10 +5402,6 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
         toggleZoom()
     end
 
-    if input.KeyCode == KeyConfig.WallClimbToggle then
-        toggleWallClimb()
-    end
-
     if input.KeyCode == KeyConfig.MenuToggle then
         slideMenu(not MenuOpen)
     end
@@ -5798,11 +5463,6 @@ LocalPlayer.CharacterAdded:Connect(function(character)
         updateRaycastFilter(LocalPlayer.Character)
     end
 
-    updateWallClimbReferences()
-    if WallClimbConfig.Enabled then
-        setupWallClimbAnimation()
-    end
-
     wait(0.5)
     refreshModels()
     connectResourceEvents()
@@ -5849,10 +5509,6 @@ LocalPlayer.CharacterRemoving:Connect(function()
         deathConn = nil
     end
     updateRaycastFilter(nil)
-    stopWallClimbing()
-    WallClimbConfig.Character = nil
-    WallClimbConfig.Humanoid = nil
-    WallClimbConfig.RootPart = nil
 end)
 
 if LocalPlayer.Character then
