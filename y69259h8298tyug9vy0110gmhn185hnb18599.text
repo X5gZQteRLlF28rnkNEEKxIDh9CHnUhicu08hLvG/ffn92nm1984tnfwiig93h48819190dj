@@ -147,6 +147,7 @@ local KeyConfig = {
     NoClipToggle = Enum.KeyCode.Z,
     CFrameSpeedToggle = Enum.KeyCode.V,
     ZoomToggle = Enum.KeyCode.C,
+    WallClimbToggle = Enum.KeyCode.H,
     AimbotHold = Enum.UserInputType.MouseButton2,
     CustomizeMode = false
 }
@@ -304,6 +305,17 @@ FlyConfig = {
     IsFlying = false,
     Connection = nil,
     ToggleKey = Enum.KeyCode.F
+}
+
+WallClimbConfig = {
+    Enabled = false,
+    IsClimbing = false,
+    Connection = nil,
+    BodyVelocity = nil,
+    BodyAngularVelocity = nil,
+    Animation = nil,
+    AnimationTrack = nil,
+    WallNormal = Vector3.new(),
 }
 
 NoClipConfig = {
@@ -672,10 +684,23 @@ ZoomKeyLabel.TextXAlignment = Enum.TextXAlignment.Left
 ZoomKeyLabel.TextStrokeTransparency = 0.5
 ZoomKeyLabel.TextStrokeColor3 = Color3.new(0, 0, 0)
 
+local WallClimbKeyLabel = Instance.new("TextLabel")
+WallClimbKeyLabel.Parent = KeyListFrame
+WallClimbKeyLabel.BackgroundTransparency = 1
+WallClimbKeyLabel.Position = UDim2.new(0, 8, 0, 110)
+WallClimbKeyLabel.Size = UDim2.new(1, -16, 0, 18)
+WallClimbKeyLabel.FontFace = customFont
+WallClimbKeyLabel.Text = "[H] WallClimb"
+WallClimbKeyLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+WallClimbKeyLabel.TextSize = 12
+WallClimbKeyLabel.TextXAlignment = Enum.TextXAlignment.Left
+WallClimbKeyLabel.TextStrokeTransparency = 0.5
+WallClimbKeyLabel.TextStrokeColor3 = Color3.new(0, 0, 0)
+
 local AimbotKeyLabel = Instance.new("TextLabel")
 AimbotKeyLabel.Parent = KeyListFrame
 AimbotKeyLabel.BackgroundTransparency = 1
-AimbotKeyLabel.Position = UDim2.new(0, 8, 0, 110)
+AimbotKeyLabel.Position = UDim2.new(0, 8, 0, 130)
 AimbotKeyLabel.Size = UDim2.new(1, -16, 0, 18)
 AimbotKeyLabel.FontFace = customFont
 AimbotKeyLabel.Text = "[RMB] Aimbot"
@@ -1282,6 +1307,7 @@ VisualTab.CanvasSize = UDim2.new(0, 0, 0, 660)
 FlyToggle = createToggle(MainTab, "FlyToggle", "Fly Feature", 10)
 NoClipToggle = createToggle(MainTab, "NoClipToggle", "NoClip Feature", 40)
 NoClipReturnToggle = createToggle(MainTab, "NoClipReturnToggle", "Reset Y on NoClip Off", 70)
+WallClimbToggle = createToggle(MainTab, "WallClimbToggle", "Wall Climb", 130)
 NoClipModeButton = Instance.new("TextButton")
 NoClipModeButton.Parent = MainTab
 NoClipModeButton.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
@@ -1317,9 +1343,10 @@ FlyKeyButton = createKeyButton(SettingTab, "FlyKeyButton", "Fly key", KeyConfig.
 NoClipKeyButton = createKeyButton(SettingTab, "NoClipKeyButton", "Noclip key", KeyConfig.NoClipToggle, 40)
 CFrameSpeedKeyButton = createKeyButton(SettingTab, "CFrameSpeedKeyButton", "CFrameSpeed key", KeyConfig.CFrameSpeedToggle, 70)
 ZoomKeyButton = createKeyButton(SettingTab, "ZoomKeyButton", "Zoom key", KeyConfig.ZoomToggle, 100)
-MenuKeyButton = createKeyButton(SettingTab, "MenuKeyButton", "Menu key", KeyConfig.MenuToggle, 130)
-KeyListToggle = createToggle(SettingTab, "KeyListToggle", "Key List", 160)
-StatsToggle = createToggle(SettingTab, "StatsToggle", "FPS/Ping", 190)
+WallClimbKeyButton = createKeyButton(SettingTab, "WallClimbKeyButton", "WallClimb key", KeyConfig.WallClimbToggle, 130)
+MenuKeyButton = createKeyButton(SettingTab, "MenuKeyButton", "Menu key", KeyConfig.MenuToggle, 160)
+KeyListToggle = createToggle(SettingTab, "KeyListToggle", "Key List", 190)
+StatsToggle = createToggle(SettingTab, "StatsToggle", "FPS/Ping", 220)
 
 
 local ConfigNameBox = Instance.new("TextBox")
@@ -1327,7 +1354,7 @@ ConfigNameBox.Parent = SettingTab
 ConfigNameBox.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
 ConfigNameBox.BorderColor3 = Color3.fromRGB(255, 255, 255)
 ConfigNameBox.BorderSizePixel = 1
-ConfigNameBox.Position = UDim2.new(0.05, 0, 0, 220)
+ConfigNameBox.Position = UDim2.new(0.05, 0, 0, 250)
 ConfigNameBox.Size = UDim2.new(0.6, 0, 0, 20)
 ConfigNameBox.FontFace = customFont
 ConfigNameBox.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -1340,7 +1367,7 @@ SaveConfigButton.Parent = SettingTab
 SaveConfigButton.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
 SaveConfigButton.BorderColor3 = Color3.fromRGB(255, 255, 255)
 SaveConfigButton.BorderSizePixel = 1
-SaveConfigButton.Position = UDim2.new(0.7, 0, 0, 220)
+SaveConfigButton.Position = UDim2.new(0.7, 0, 0, 250)
 SaveConfigButton.Size = UDim2.new(0.25, 0, 0, 20)
 SaveConfigButton.FontFace = customFont
 SaveConfigButton.Text = "Save"
@@ -1352,7 +1379,7 @@ ConfigListFrame.Parent = SettingTab
 ConfigListFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
 ConfigListFrame.BorderColor3 = Color3.fromRGB(100, 100, 100)
 ConfigListFrame.BorderSizePixel = 1
-ConfigListFrame.Position = UDim2.new(0.05, 0, 0, 250)
+ConfigListFrame.Position = UDim2.new(0.05, 0, 0, 280)
 ConfigListFrame.Size = UDim2.new(0.9, 0, 0, 100)
 
 local ConfigListLayout = Instance.new("UIListLayout")
@@ -1364,7 +1391,7 @@ LoadConfigButton.Parent = SettingTab
 LoadConfigButton.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
 LoadConfigButton.BorderColor3 = Color3.fromRGB(255, 255, 255)
 LoadConfigButton.BorderSizePixel = 1
-LoadConfigButton.Position = UDim2.new(0.7, 0, 0, 360)
+LoadConfigButton.Position = UDim2.new(0.7, 0, 0, 390)
 LoadConfigButton.Size = UDim2.new(0.25, 0, 0, 20)
 LoadConfigButton.FontFace = customFont
 LoadConfigButton.Text = "Load"
@@ -1376,14 +1403,14 @@ DeleteConfigButton.Parent = SettingTab
 DeleteConfigButton.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
 DeleteConfigButton.BorderColor3 = Color3.fromRGB(255, 255, 255)
 DeleteConfigButton.BorderSizePixel = 1
-DeleteConfigButton.Position = UDim2.new(0.7, 0, 0, 390)
+DeleteConfigButton.Position = UDim2.new(0.7, 0, 0, 420)
 DeleteConfigButton.Size = UDim2.new(0.25, 0, 0, 20)
 DeleteConfigButton.FontFace = customFont
 DeleteConfigButton.Text = "Delete"
 DeleteConfigButton.TextColor3 = Color3.fromRGB(255, 255, 255)
 DeleteConfigButton.TextSize = 12
 
-SettingTab.CanvasSize = UDim2.new(0, 0, 0, 420)
+SettingTab.CanvasSize = UDim2.new(0, 0, 0, 450)
 
 local ConfigButtons = {}
 local SelectedConfig
@@ -2024,6 +2051,7 @@ local keyListEntries = {
     {label = NoClipKeyLabel, isActive = function() return NoClipConfig.Enabled end},
     {label = CFrameSpeedKeyLabel, isActive = function() return CFrameSpeedConfig.Enabled end},
     {label = ZoomKeyLabel, isActive = function() return ZoomConfig.Enabled end},
+    {label = WallClimbKeyLabel, isActive = function() return WallClimbConfig.Enabled end},
     {label = AimbotKeyLabel, isActive = function() return AimbotConfig.Enabled end},
 }
 
@@ -2064,6 +2092,7 @@ local function updateKeyLabels()
     NoClipKeyLabel.Text = "[" .. getKeyName(KeyConfig.NoClipToggle) .. "] NoClip"
     CFrameSpeedKeyLabel.Text = "[" .. getKeyName(KeyConfig.CFrameSpeedToggle) .. "] CFrameSpeed"
     ZoomKeyLabel.Text = "[" .. getKeyName(KeyConfig.ZoomToggle) .. "] Zoom"
+    WallClimbKeyLabel.Text = "[" .. getKeyName(KeyConfig.WallClimbToggle) .. "] WallClimb"
     ToggleKeyLabel.Text = "[" .. getKeyName(KeyConfig.MenuToggle) .. "] Menu"
 
     local aimDisplay = "RMB"
@@ -2091,6 +2120,7 @@ local function updateKeyLabels()
     NoClipKeyButton.Text = "[" .. getKeyName(KeyConfig.NoClipToggle) .. "]"
     CFrameSpeedKeyButton.Text = "[" .. getKeyName(KeyConfig.CFrameSpeedToggle) .. "]"
     ZoomKeyButton.Text = "[" .. getKeyName(KeyConfig.ZoomToggle) .. "]"
+    WallClimbKeyButton.Text = "[" .. getKeyName(KeyConfig.WallClimbToggle) .. "]"
     MenuKeyButton.Text = "[" .. getKeyName(KeyConfig.MenuToggle) .. "]"
 
     -- InfoLabel removed in redesigned GUI
@@ -2948,6 +2978,299 @@ local function toggleFly()
     end
 
     updateStatusDisplay()
+end
+
+local WALL_CLIMB_SPEED = 14
+local WALL_CLIMB_CHECK_DISTANCE = 2.5
+local WALL_CLIMB_MIN_ANGLE = 25
+local WALL_CLIMB_STICK_FORCE = 1200
+
+local wallClimbRayParams = RaycastParams.new()
+wallClimbRayParams.FilterType = Enum.RaycastFilterType.Blacklist
+local wallClimbFilter = {}
+
+local function updateWallClimbFilter(character)
+    table.clear(wallClimbFilter)
+    if character and character.Parent then
+        table.insert(wallClimbFilter, character)
+    end
+    wallClimbRayParams.FilterDescendantsInstances = wallClimbFilter
+end
+
+updateWallClimbFilter(LocalPlayer.Character)
+
+local function cleanupWallClimbForces()
+    if WallClimbConfig.BodyVelocity then
+        WallClimbConfig.BodyVelocity:Destroy()
+        WallClimbConfig.BodyVelocity = nil
+    end
+    if WallClimbConfig.BodyAngularVelocity then
+        WallClimbConfig.BodyAngularVelocity:Destroy()
+        WallClimbConfig.BodyAngularVelocity = nil
+    end
+end
+
+local function stopWallClimbing()
+    if not WallClimbConfig.IsClimbing then
+        return
+    end
+
+    WallClimbConfig.IsClimbing = false
+
+    if WallClimbConfig.AnimationTrack then
+        WallClimbConfig.AnimationTrack:Stop()
+        if WallClimbConfig.AnimationTrack.Destroy then
+            WallClimbConfig.AnimationTrack:Destroy()
+        end
+        WallClimbConfig.AnimationTrack = nil
+    end
+
+    cleanupWallClimbForces()
+
+    local character = LocalPlayer.Character
+    local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+    if humanoid then
+        humanoid.AutoRotate = true
+        humanoid.PlatformStand = false
+        humanoid:ChangeState(Enum.HumanoidStateType.Freefall)
+    end
+
+    WallClimbConfig.WallNormal = Vector3.new()
+end
+
+local function ensureWallClimbAnimation(humanoid)
+    if not humanoid then
+        return nil
+    end
+
+    if WallClimbConfig.AnimationTrack and WallClimbConfig.AnimationTrack.Parent == humanoid then
+        return WallClimbConfig.AnimationTrack
+    end
+
+    if WallClimbConfig.AnimationTrack then
+        WallClimbConfig.AnimationTrack:Stop()
+        if WallClimbConfig.AnimationTrack.Destroy then
+            WallClimbConfig.AnimationTrack:Destroy()
+        end
+        WallClimbConfig.AnimationTrack = nil
+    end
+
+    if not WallClimbConfig.Animation then
+        local animation = Instance.new("Animation")
+        animation.AnimationId = "rbxassetid://507765644"
+        WallClimbConfig.Animation = animation
+    end
+
+    local ok, track = pcall(function()
+        return humanoid:LoadAnimation(WallClimbConfig.Animation)
+    end)
+
+    if ok and track then
+        WallClimbConfig.AnimationTrack = track
+        return track
+    end
+
+    WallClimbConfig.AnimationTrack = nil
+    return nil
+end
+
+local function startWallClimbing(humanoid, rootPart)
+    if WallClimbConfig.IsClimbing then
+        return
+    end
+
+    WallClimbConfig.IsClimbing = true
+
+    cleanupWallClimbForces()
+
+    if rootPart then
+        local bodyVelocity = Instance.new("BodyVelocity")
+        bodyVelocity.MaxForce = Vector3.new(WALL_CLIMB_STICK_FORCE, math.huge, WALL_CLIMB_STICK_FORCE)
+        bodyVelocity.Velocity = Vector3.zero
+        bodyVelocity.Parent = rootPart
+        WallClimbConfig.BodyVelocity = bodyVelocity
+
+        local bodyAngularVelocity = Instance.new("BodyAngularVelocity")
+        bodyAngularVelocity.MaxTorque = Vector3.new(0, math.huge, 0)
+        bodyAngularVelocity.AngularVelocity = Vector3.zero
+        bodyAngularVelocity.Parent = rootPart
+        WallClimbConfig.BodyAngularVelocity = bodyAngularVelocity
+    end
+
+    if humanoid then
+        local track = ensureWallClimbAnimation(humanoid)
+        if track then
+            humanoid:ChangeState(Enum.HumanoidStateType.Physics)
+            track.Looped = true
+            track:Play()
+        end
+
+        humanoid.AutoRotate = false
+        humanoid.PlatformStand = false
+    end
+end
+
+local function detectWall(rootPart, character)
+    if not rootPart then
+        return false, Vector3.new()
+    end
+
+    if character then
+        wallClimbFilter[1] = character
+        wallClimbRayParams.FilterDescendantsInstances = wallClimbFilter
+    else
+        table.clear(wallClimbFilter)
+        wallClimbRayParams.FilterDescendantsInstances = wallClimbFilter
+    end
+
+    local rayOrigin = rootPart.Position
+    local rayDirection = rootPart.CFrame.LookVector * WALL_CLIMB_CHECK_DISTANCE
+
+    local result = workspace:Raycast(rayOrigin, rayDirection, wallClimbRayParams)
+    if result then
+        local surfaceNormal = result.Normal
+        local dot = math.clamp(math.abs(surfaceNormal:Dot(Vector3.new(0, 1, 0))), -1, 1)
+        local wallAngle = math.deg(math.acos(dot))
+        if wallAngle >= WALL_CLIMB_MIN_ANGLE then
+            return true, surfaceNormal
+        end
+    end
+
+    return false, Vector3.new()
+end
+
+local function updateWallClimb()
+    if not WallClimbConfig.Enabled then
+        if WallClimbConfig.IsClimbing then
+            stopWallClimbing()
+        end
+        return
+    end
+
+    local character = LocalPlayer.Character
+    local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+    local rootPart = character and character:FindFirstChild("HumanoidRootPart")
+
+    if not character or not humanoid or humanoid.Health <= 0 or not rootPart then
+        if WallClimbConfig.IsClimbing then
+            stopWallClimbing()
+        end
+        return
+    end
+
+    local nearWall, normal = detectWall(rootPart, character)
+    WallClimbConfig.WallNormal = normal
+
+    local moveVector = humanoid.MoveDirection
+    local isMoving = moveVector.Magnitude > 0
+
+    if nearWall and isMoving then
+        if not WallClimbConfig.IsClimbing then
+            startWallClimbing(humanoid, rootPart)
+        end
+
+        if WallClimbConfig.IsClimbing and WallClimbConfig.BodyVelocity then
+            local camera = workspace.CurrentCamera or Camera
+            if not camera then
+                return
+            end
+
+            local cameraCFrame = camera.CFrame
+
+            local forwardInput = 0
+            local rightInput = 0
+
+            if UserInputService:IsKeyDown(Enum.KeyCode.W) then
+                forwardInput = 1
+            elseif UserInputService:IsKeyDown(Enum.KeyCode.S) then
+                forwardInput = -1
+            end
+
+            if UserInputService:IsKeyDown(Enum.KeyCode.D) then
+                rightInput = 1
+            elseif UserInputService:IsKeyDown(Enum.KeyCode.A) then
+                rightInput = -1
+            end
+
+            if WallClimbConfig.AnimationTrack then
+                local movementAmount = math.abs(forwardInput) + math.abs(rightInput)
+                if movementAmount > 0 then
+                    WallClimbConfig.AnimationTrack:AdjustSpeed(1.2)
+                else
+                    WallClimbConfig.AnimationTrack:AdjustSpeed(0.3)
+                end
+            end
+
+            local climbVelocity = Vector3.zero
+
+            if forwardInput ~= 0 then
+                climbVelocity += Vector3.new(0, forwardInput * WALL_CLIMB_SPEED, 0)
+            end
+
+            if rightInput ~= 0 then
+                local rightVector = cameraCFrame.RightVector
+                climbVelocity += rightVector * rightInput * WALL_CLIMB_SPEED * 0.7
+            end
+
+            local wallForce = -WallClimbConfig.WallNormal * (WALL_CLIMB_STICK_FORCE / 80)
+            climbVelocity += wallForce
+
+            WallClimbConfig.BodyVelocity.Velocity = climbVelocity
+
+            if WallClimbConfig.WallNormal.Magnitude > 0 and WallClimbConfig.BodyAngularVelocity then
+                local lookDirection = -WallClimbConfig.WallNormal
+                local targetCFrame = CFrame.lookAt(rootPart.Position, rootPart.Position + Vector3.new(lookDirection.X, 0, lookDirection.Z))
+                local currentLook = rootPart.CFrame.LookVector
+                local targetLook = targetCFrame.LookVector
+                local rotationDiff = targetLook - currentLook
+                WallClimbConfig.BodyAngularVelocity.AngularVelocity = Vector3.new(0, rotationDiff.Y * 8, 0)
+            end
+        end
+    else
+        if WallClimbConfig.IsClimbing then
+            stopWallClimbing()
+        end
+    end
+end
+
+local function disconnectWallClimb()
+    if WallClimbConfig.Connection then
+        WallClimbConfig.Connection:Disconnect()
+        WallClimbConfig.Connection = nil
+    end
+end
+
+local function setWallClimbEnabled(state)
+    state = state and true or false
+    WallClimbConfig.Enabled = state
+
+    if state then
+        WallClimbKeyLabel.TextColor3 = KeyListActiveColor
+        updateWallClimbFilter(LocalPlayer.Character)
+        disconnectWallClimb()
+        WallClimbConfig.Connection = RunService.Heartbeat:Connect(function()
+            local success, err = pcall(updateWallClimb)
+            if not success then
+                warn("[WallClimb] " .. tostring(err))
+                setWallClimbEnabled(false)
+            end
+        end)
+    else
+        WallClimbKeyLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+        disconnectWallClimb()
+        stopWallClimbing()
+    end
+
+    if updateButtons then
+        updateButtons()
+    end
+    if updateStatusDisplay then
+        updateStatusDisplay()
+    end
+end
+
+local function toggleWallClimb()
+    setWallClimbEnabled(not WallClimbConfig.Enabled)
 end
 
 local timeDragging = false
@@ -4205,6 +4528,7 @@ ToggleBindings = {
     {button = NewsToggle,       state = function() return NewsConfig.Enabled end},
     {button = SkyColorToggle,   state = function() return SkyColorConfig.Enabled end},
     {button = FlyToggle,        state = function() return FlyConfig.Enabled end},
+    {button = WallClimbToggle,  state = function() return WallClimbConfig.Enabled end},
     {button = NoClipToggle,     state = function() return NoClipConfig.Enabled end},
     {button = NoClipReturnToggle, state = function() return NoClipConfig.ReturnY end},
     {button = XrayToggle,       state = function() return XrayConfig.Enabled end},
@@ -4372,6 +4696,7 @@ function collectConfig()
         Aimbot = {Enabled = AimbotConfig.Enabled, Smoothness = AimbotConfig.Smoothness, SnapThreshold = AimbotConfig.SnapThreshold},
         NightVision = NightVisionConfig.Enabled,
         Fly = FlyConfig.Enabled,
+        WallClimb = WallClimbConfig.Enabled,
         NoClip = {Enabled = NoClipConfig.Enabled, ReturnY = NoClipConfig.ReturnY, Mode = NoClipConfig.Mode},
         FOV = {Enabled = FOVConfig.Enabled, Value = FOVConfig.Value},
         CFrameSpeed = {Enabled = CFrameSpeedConfig.Enabled, Speed = CFrameSpeedConfig.Speed},
@@ -4387,6 +4712,7 @@ function collectConfig()
             NoClipToggle = enumToString(KeyConfig.NoClipToggle),
             CFrameSpeedToggle = enumToString(KeyConfig.CFrameSpeedToggle),
             ZoomToggle = enumToString(KeyConfig.ZoomToggle),
+            WallClimbToggle = enumToString(KeyConfig.WallClimbToggle),
             AimbotHold = enumToString(KeyConfig.AimbotHold)
         },
         KeyList = UIState.KeyListVisible,
@@ -4444,6 +4770,7 @@ local function resetConfig()
     end
     if FlyConfig.IsFlying then toggleFly() end
     FlyConfig.Enabled = false
+    setWallClimbEnabled(false)
     if NoClipConfig.IsActive then toggleNoClip() end
     NoClipConfig.Enabled = false
     if FOVConfig.Enabled then toggleFOV() end
@@ -4682,6 +5009,9 @@ function applyConfig(cfg)
             toggleFly()
         end
     end
+    if cfg.WallClimb ~= nil then
+        setWallClimbEnabled(cfg.WallClimb)
+    end
     if cfg.NoClip then
         NoClipConfig.Enabled = cfg.NoClip.Enabled
         NoClipConfig.ReturnY = cfg.NoClip.ReturnY
@@ -4732,6 +5062,9 @@ function applyConfig(cfg)
         end
         if cfg.Keys.ZoomToggle then
             KeyConfig.ZoomToggle = Enum.KeyCode[cfg.Keys.ZoomToggle] or KeyConfig.ZoomToggle
+        end
+        if cfg.Keys.WallClimbToggle then
+            KeyConfig.WallClimbToggle = Enum.KeyCode[cfg.Keys.WallClimbToggle] or KeyConfig.WallClimbToggle
         end
         if cfg.Keys.AimbotHold then
             KeyConfig.AimbotHold = Enum.UserInputType[cfg.Keys.AimbotHold] or KeyConfig.AimbotHold
@@ -5224,6 +5557,10 @@ FlyToggle.Button.MouseButton1Click:Connect(function()
     updateStatusDisplay()
 end)
 
+WallClimbToggle.Button.MouseButton1Click:Connect(function()
+    setWallClimbEnabled(not WallClimbConfig.Enabled)
+end)
+
 NoClipToggle.Button.MouseButton1Click:Connect(function()
     NoClipConfig.Enabled = not NoClipConfig.Enabled
     updateButtons()
@@ -5305,6 +5642,10 @@ ZoomKeyButton.MouseButton1Click:Connect(function()
     waitForKeyInput("ZoomToggle", ZoomKeyButton)
 end)
 
+WallClimbKeyButton.MouseButton1Click:Connect(function()
+    waitForKeyInput("WallClimbToggle", WallClimbKeyButton)
+end)
+
 MenuKeyButton.MouseButton1Click:Connect(function()
     waitForKeyInput("MenuToggle", MenuKeyButton)
 end)
@@ -5370,12 +5711,14 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
             elseif waitingForKey == "NoClipToggle" then
                 NoClipKeyButton.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
             elseif waitingForKey == "CFrameSpeedToggle" then
-                CFrameSpeedKeyButton.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-            elseif waitingForKey == "ZoomToggle" then
-                ZoomKeyButton.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-            elseif waitingForKey == "MenuToggle" then
-                MenuKeyButton.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-            end
+            CFrameSpeedKeyButton.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+        elseif waitingForKey == "ZoomToggle" then
+            ZoomKeyButton.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+        elseif waitingForKey == "WallClimbToggle" then
+            WallClimbKeyButton.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+        elseif waitingForKey == "MenuToggle" then
+            MenuKeyButton.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+        end
 
             waitingForKey = nil
             return
@@ -5402,6 +5745,10 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
         toggleZoom()
     end
 
+    if input.KeyCode == KeyConfig.WallClimbToggle then
+        toggleWallClimb()
+    end
+
     if input.KeyCode == KeyConfig.MenuToggle then
         slideMenu(not MenuOpen)
     end
@@ -5426,14 +5773,21 @@ end)
 LocalPlayer.CharacterAdded:Connect(function(character)
     cleanupAllESP()
     attachDeathCleanup(character)
-    
+
     FlyConfig.IsFlying = false
     FlyKeyLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
     if FlyConfig.Connection then
         FlyConfig.Connection:Disconnect()
         FlyConfig.Connection = nil
     end
-    
+
+    stopWallClimbing()
+    if WallClimbConfig.Enabled then
+        WallClimbKeyLabel.TextColor3 = KeyListActiveColor
+    else
+        WallClimbKeyLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+    end
+
     setNoClipState(false)
     NoClipKeyLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
 
@@ -5459,8 +5813,11 @@ LocalPlayer.CharacterAdded:Connect(function(character)
     
     if character then
         updateRaycastFilter(character)
+        updateWallClimbFilter(character)
     else
-        updateRaycastFilter(LocalPlayer.Character)
+        local currentCharacter = LocalPlayer.Character
+        updateRaycastFilter(currentCharacter)
+        updateWallClimbFilter(currentCharacter)
     end
 
     wait(0.5)
@@ -5508,6 +5865,8 @@ LocalPlayer.CharacterRemoving:Connect(function()
         deathConn:Disconnect()
         deathConn = nil
     end
+    stopWallClimbing()
+    updateWallClimbFilter(nil)
     updateRaycastFilter(nil)
 end)
 
@@ -5600,7 +5959,14 @@ ScreenGui.AncestryChanged:Connect(function()
         if FOVConfig.Enabled then
             Camera.FieldOfView = OriginalSettings.FieldOfView
         end
-        
+
+        if WallClimbConfig.Enabled then
+            setWallClimbEnabled(false)
+        else
+            stopWallClimbing()
+            disconnectWallClimb()
+        end
+
         if AimFovConfig.Circle then
             pcall(function() AimFovConfig.Circle:Remove() end)
         end
